@@ -122,7 +122,6 @@ export class PixelPlace {
 
     emit(key: string, value: any) {
         const data = `42["${key}",${value.toString()}]`;
-        console.log(data);
         this.socket.send(data);
     }
     

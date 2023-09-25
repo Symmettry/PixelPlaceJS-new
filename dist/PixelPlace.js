@@ -139,13 +139,12 @@ var PixelPlace = /** @class */ (function () {
             }
             else {
                 _this.emit("p", "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]"));
-                setTimeout(resolve, 20);
+                setTimeout(resolve, 22);
             }
         });
     };
     PixelPlace.prototype.emit = function (key, value) {
         var data = "42[\"".concat(key, "\",").concat(value.toString(), "]");
-        console.log(data);
         this.socket.send(data);
     };
     PixelPlace.prototype.drawImage = function (x, y, path) {
