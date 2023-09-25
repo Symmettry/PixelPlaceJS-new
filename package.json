@@ -1,0 +1,8 @@
+{
+    "module": "commonjs",
+    "dependencies": {
+        "get-pixels": "^3.3.3",
+        "ndarray": "^1.0.19",
+        "ws": "^8.14.2"
+    }
+}

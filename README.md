@@ -1,2 +1,2 @@
-# PixelPlaceJS new
- PixelPlaceJS but working again :)
+# ppjs-new
+ PixelPlace JS
