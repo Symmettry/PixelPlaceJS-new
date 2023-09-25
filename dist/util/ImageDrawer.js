@@ -65,7 +65,7 @@ var ImageDrawer = /** @class */ (function () {
                 buffer = fs_1.default.readFileSync(this.path);
                 return [2 /*return*/, new Promise(function (resolve, _reject) {
                         getPixels(buffer, type, function (err, pixels) { return __awaiter(_this, void 0, void 0, function () {
-                            var x, y, r, g, b, closestColorId;
+                            var y, x, r, g, b, closestColorId;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
@@ -73,14 +73,14 @@ var ImageDrawer = /** @class */ (function () {
                                             console.error(err);
                                             return [2 /*return*/];
                                         }
-                                        x = 0;
+                                        y = 0;
                                         _a.label = 1;
                                     case 1:
-                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 6];
-                                        y = 0;
+                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 6];
+                                        x = 0;
                                         _a.label = 2;
                                     case 2:
-                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 5];
+                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 5];
                                         r = pixels.get(x, y, 0);
                                         g = pixels.get(x, y, 1);
                                         b = pixels.get(x, y, 2);
@@ -91,10 +91,10 @@ var ImageDrawer = /** @class */ (function () {
                                         _a.sent();
                                         _a.label = 4;
                                     case 4:
-                                        y++;
+                                        x++;
                                         return [3 /*break*/, 2];
                                     case 5:
-                                        x++;
+                                        y++;
                                         return [3 /*break*/, 1];
                                     case 6:
                                         resolve();

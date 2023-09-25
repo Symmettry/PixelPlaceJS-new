@@ -115,7 +115,7 @@ export class PixelPlace {
                 resolve();
             } else {
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
-                setTimeout(resolve, 22);
+                setTimeout(resolve, 50);
             }
         });
     }

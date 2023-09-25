@@ -139,7 +139,7 @@ var PixelPlace = /** @class */ (function () {
             }
             else {
                 _this.emit("p", "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]"));
-                setTimeout(resolve, 22);
+                setTimeout(resolve, 50);
             }
         });
     };
