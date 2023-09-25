@@ -224,8 +224,9 @@ var RECEIVED;
     RECEIVED["GOLDEN_NOTIFICATION"] = "golden.notification";
     RECEIVED["SNOWBALL_ITEM_NOTIFICATION"] = "item.notification.snowball";
     RECEIVED["ITEM_NOTIFICATION_GIFT"] = "item.notification.gift";
-    RECEIVED["CHAT_SYSTEM_MESSAGe"] = "chat.system.message";
+    RECEIVED["CHAT_SYSTEM_MESSAGE"] = "chat.system.message";
     RECEIVED["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
+    RECEIVED["PIXEL"] = "p";
 })(RECEIVED || (RECEIVED = {}));
 var SENT;
 (function (SENT) {

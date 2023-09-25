@@ -44,8 +44,9 @@ declare enum RECEIVED {
     GOLDEN_NOTIFICATION = "golden.notification",
     SNOWBALL_ITEM_NOTIFICATION = "item.notification.snowball",
     ITEM_NOTIFICATION_GIFT = "item.notification.gift",
-    CHAT_SYSTEM_MESSAGe = "chat.system.message",
-    CHAT_SYSTEM_DELETE = "chat.system.delete"
+    CHAT_SYSTEM_MESSAGE = "chat.system.message",
+    CHAT_SYSTEM_DELETE = "chat.system.delete",
+    PIXEL = "p"
 }
 declare enum SENT {
     INIT = "init",
