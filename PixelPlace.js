@@ -1,5 +1,5 @@
-const { getPalive } = require("./palive.js");
-const { Canvas } = require("./canvas.js");
+const { getPalive } = require("./util/PAlive.js");
+const { Canvas } = require("./util/Canvas.js");
 const WebSocket = require('ws');
 
 class PixelPlaceError extends Error { }
