@@ -127,3 +127,5 @@ out
 
 # Tests
 test.js
+test.ts
+test.d.ts
