@@ -25,6 +25,10 @@ pp.placePixel(x, y, col, brush);
 // you can also use 'Packets' from PixelPlace.js, e.g. Packets.PIXEL
 // value won't be set for some packets, such as chat loaded
 pp.on("key", (value) => {});
+
+// emits 42["key", value] through the socket
+// e.g. sends data+
+pp.emit("key", value);
 ```
 
 ### Full Bot
