@@ -8,7 +8,7 @@
   "name": "pixelplacejs-new",
   "description": "PixelPlace JS working",
   "version": "1.0.1",
-  "main": "PixelPlace.js",
+  "main": "src/PixelPlace.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
