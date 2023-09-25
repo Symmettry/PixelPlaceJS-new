@@ -100,7 +100,7 @@ class PixelPlace {
     }
 
     getPixelAt(x, y) {
-        return this.canvas.get(x, y);
+        return this.canvas.pixelData.get(x, y);
     }
 
     getColorId(r, g, b) {
