@@ -17,34 +17,38 @@ class PixelPlace {
     }
 
     on(key, func) {
-        if(!this.listeners.has(key)) this.listeners.set(key, []);
-        this.listeners.get(key).push(func);
+        if(typeof key !== "string" || typeof func !== "function") {
+            throw new PixelPlaceError("Invalid arguments for on(key,func)");
+        } else {
+            if(!this.listeners.has(key)) this.listeners.set(key, []);
+            this.listeners.get(key).push(func);
+        }
     }
 
     async Init() {
         return new Promise((resolve, reject) => {
             // Connect to PixelPlace
-            const socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
+            Object.defineProperty(this, 'socket', {value: new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false});
 
             // Create the canvas
             Object.defineProperty(this, 'canvas', {value: new Canvas(this.boardId), writable: false, enumerable: true, configurable: false});
             
             this.pixels = [];
 
-            socket.on('open', () => {
+            this.socket.on('open', () => {
                 resolve(); // await pp.Init();
 
                 var pixelplacer = () => {
                     if(this.pixels.length > 0) {
                         var [x, y, col, brush] = this.pixels.shift();
-                        socket.send(`42["p", [${x}, ${y}, ${col}, ${brush}]]`)
+                        this.socket.send(`42["p", [${x}, ${y}, ${col}, ${brush}]]`)
                     }
                     setTimeout(pixelplacer, 20);
                 }
                 pixelplacer();
             });
 
-            socket.on('message', (data) => {
+            this.socket.on('message', (data) => {
                 data = data.toString(); // buffer -> string
                 
                 // Gets the data and ID of the response
@@ -61,13 +65,13 @@ class PixelPlace {
 
                 switch(id) {
                     case "0": // socket.io start
-                        socket.send("40");
+                        this.socket.send("40");
                         break;
                     case "40": // socket.io finish
-                        socket.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
+                        this.socket.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
                         break;
                     case "2": // socket.io keepalive
-                        socket.send("3");
+                        this.socket.send("3");
                         break;
                     case "42": // message
                         var key = message[0];
@@ -77,7 +81,7 @@ class PixelPlace {
                         }
                         switch(key) {
                             case "ping.alive": // pixelplace keepalive
-                                socket.send(`42["pong.alive", "${getPalive()}"]`)
+                                this.socket.send(`42["pong.alive", "${getPalive()}"]`)
                                 break;
                             case "canvas": // why are these 2 separate keys? they do the same thing owmince lol
                             case "p": // pixels
@@ -88,11 +92,11 @@ class PixelPlace {
                 }
             });
 
-            socket.on('close', () => {
+            this.socket.on('close', () => {
                 console.log('PPJS Closed.');
             });
 
-            socket.on('error', (error) => {
+            this.socket.on('error', (error) => {
                 console.error('PPJS error:', error);
                 reject(); // error, reject promise
             });
@@ -109,6 +113,11 @@ class PixelPlace {
 
     placePixel(x, y, col, brush=1) {
         this.pixels.push([x, y, col, brush]);
+    }
+
+    emit(key, value) {
+        const data = `42["${key}",${value}]`;
+        this.socket.send(data);
     }
 
 }
