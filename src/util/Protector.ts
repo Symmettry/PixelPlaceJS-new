@@ -1,4 +1,4 @@
-import { PixelPlace } from "../PixelPlace";
+import { Bot } from "../bot/Bot";
 
 export const protectedPixels: Map<string, number> = new Map();
 
@@ -13,15 +13,28 @@ export function getColor(x: number, y: number): number | undefined {
     return protectedPixels.has(`${x},${y}`) ? protectedPixels.get(`${x},${y}`) : -1;
 }
 
-export async function detect(pp: PixelPlace, pixels: number[][]): Promise<void> {
+export async function detectPixels(pp: Bot, pixels: number[][]): Promise<void> {
     await Promise.all(
         pixels.map(async (pixel) => {
             const [x, y, col] = pixel;
             const protectColor = getColor(x, y);
-      
             if (protectColor != undefined && protectColor !== -1 && protectColor !== col) {
-                await pp.placePixel(x, y, protectColor);
+                await pp.placePixel(x, y, protectColor, 1, true, false);
             }
         })
     );      
+}
+
+export async function detectAll(pp: Bot): Promise<void> {
+    await new Promise<void>(async (resolve, _reject) => {
+        protectedPixels.forEach(async (_value, key) => {
+            const [x, y] = key.split(",").map(Number);
+            const protectColor = getColor(x, y);
+            if(protectColor != undefined && protectColor !== -1 && protectColor !== pp.getPixelAt(x, y)) {
+                await pp.placePixel(x, y, protectColor, 1, true, false);
+            }
+        })
+        setTimeout(resolve, 1000);
+    });
+    detectAll(pp);
 }

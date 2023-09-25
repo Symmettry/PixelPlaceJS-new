@@ -75,6 +75,7 @@ var PixelPlace = /** @class */ (function () {
         Object.defineProperty(this, 'authId', { value: authId, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'boardId', { value: boardId, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'listeners', { value: new Map(), writable: false, enumerable: true, configurable: false });
+        this.lastPlaced = 0;
     }
     PixelPlace.prototype.on = function (key, func) {
         var _a;
@@ -93,50 +94,80 @@ var PixelPlace = /** @class */ (function () {
                         Object.defineProperty(_this, 'canvas', { value: new Canvas_js_1.Canvas(_this.boardId), writable: false, enumerable: true, configurable: false });
                         _this.pixels = [];
                         _this.socket.on('open', function () {
-                            resolve(); // await pp.Init();
+                            Protector.detectAll(_this);
                         });
-                        _this.socket.on('message', function (buffer) {
-                            var _a;
-                            var data = buffer.toString(); // buffer -> string
-                            // Gets the data and ID of the response
-                            var index = data.indexOf("{");
-                            var cube = data.indexOf("[");
-                            if (index === -1 || (cube < index && cube != -1)) {
-                                index = cube;
-                            }
-                            var json = index !== -1 ? index : -1;
-                            var id = json == -1 ? data : data.substring(0, json);
-                            // if JSON, parse, else keep it
-                            var message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
-                            switch (id) {
-                                case "0": // socket.io start
-                                    _this.socket.send("40");
-                                    break;
-                                case "40": // socket.io finish
-                                    _this.socket.send("42[\"init\",{\"authKey\":\"".concat(_this.authKey, "\",\"authToken\":\"").concat(_this.authToken, "\",\"authId\":\"").concat(_this.authId, "\",\"boardId\":").concat(_this.boardId, "}]"));
-                                    break;
-                                case "2": // socket.io keepalive
-                                    _this.socket.send("3");
-                                    break;
-                                case "42": // message
-                                    var key = message[0];
-                                    var value = message[1];
-                                    if (_this.listeners.has(key)) { // if there are listeners for this key
-                                        (_a = _this.listeners.get(key)) === null || _a === void 0 ? void 0 : _a.forEach(function (listener) { return listener(value); }); // then send the value!
-                                    }
-                                    switch (key) {
-                                        case "ping.alive": // pixelplace keepalive
-                                            _this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(7), "\"]"));
-                                            break;
-                                        case "canvas": // why are these 2 separate keys? they do the same thing owmince lol
-                                        case "p": // pixels
-                                            _this.canvas.loadCanvasData(value);
-                                            Protector.detect(_this, value);
-                                            break;
-                                    }
-                                    break;
-                            }
-                        });
+                        _this.socket.on('message', function (buffer) { return __awaiter(_this, void 0, void 0, function () {
+                            var data, index, cube, json, id, message, _a, key, value, _b;
+                            var _c;
+                            return __generator(this, function (_d) {
+                                switch (_d.label) {
+                                    case 0:
+                                        data = buffer.toString();
+                                        index = data.indexOf("{");
+                                        cube = data.indexOf("[");
+                                        if (index === -1 || (cube < index && cube != -1)) {
+                                            index = cube;
+                                        }
+                                        json = index !== -1 ? index : -1;
+                                        id = json == -1 ? data : data.substring(0, json);
+                                        message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
+                                        _a = id;
+                                        switch (_a) {
+                                            case "0": return [3 /*break*/, 1];
+                                            case "40": return [3 /*break*/, 2];
+                                            case "2": return [3 /*break*/, 3];
+                                            case "42": return [3 /*break*/, 4];
+                                        }
+                                        return [3 /*break*/, 13];
+                                    case 1:
+                                        this.socket.send("40");
+                                        return [3 /*break*/, 13];
+                                    case 2:
+                                        this.socket.send("42[\"init\",{\"authKey\":\"".concat(this.authKey, "\",\"authToken\":\"").concat(this.authToken, "\",\"authId\":\"").concat(this.authId, "\",\"boardId\":").concat(this.boardId, "}]"));
+                                        return [3 /*break*/, 13];
+                                    case 3:
+                                        this.socket.send("3");
+                                        return [3 /*break*/, 13];
+                                    case 4:
+                                        key = message[0];
+                                        value = message[1];
+                                        if (this.listeners.has(key)) { // if there are listeners for this key
+                                            (_c = this.listeners.get(key)) === null || _c === void 0 ? void 0 : _c.forEach(function (listener) { return listener(value); }); // then send the value!
+                                        }
+                                        _b = key;
+                                        switch (_b) {
+                                            case Packets.RECEIVED.CHAT_STATS: return [3 /*break*/, 5];
+                                            case Packets.RECEIVED.PING_ALIVE: return [3 /*break*/, 8];
+                                            case Packets.RECEIVED.PIXEL: return [3 /*break*/, 9];
+                                            case Packets.RECEIVED.CANVAS: return [3 /*break*/, 10];
+                                        }
+                                        return [3 /*break*/, 12];
+                                    case 5: // sent once initiated
+                                    return [4 /*yield*/, this.canvas.init()];
+                                    case 6:
+                                        _d.sent();
+                                        return [4 /*yield*/, this.canvas.loadCanvasPicture()];
+                                    case 7:
+                                        _d.sent();
+                                        return [3 /*break*/, 12];
+                                    case 8:
+                                        this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(7), "\"]"));
+                                        return [3 /*break*/, 12];
+                                    case 9:
+                                        this.canvas.loadCanvasData(value);
+                                        Protector.detectPixels(this, value);
+                                        return [3 /*break*/, 12];
+                                    case 10: // canvas
+                                    return [4 /*yield*/, this.canvas.loadCanvasData(value)];
+                                    case 11:
+                                        _d.sent();
+                                        setTimeout(resolve, 3000);
+                                        return [3 /*break*/, 12];
+                                    case 12: return [3 /*break*/, 13];
+                                    case 13: return [2 /*return*/];
+                                }
+                            });
+                        }); });
                         _this.socket.on('close', function () {
                             console.log('PPJS Closed.');
                         });
@@ -155,22 +186,56 @@ var PixelPlace = /** @class */ (function () {
     PixelPlace.prototype.getColorId = function (r, g, b) {
         return this.canvas.getColorId(r, g, b);
     };
+    PixelPlace.prototype.genPlacementSpeed = function () {
+        return Math.floor(Math.random() * 10) + 20;
+    };
     PixelPlace.prototype.placePixel = function (x, y, col, brush, protect, force) {
-        var _this = this;
         if (brush === void 0) { brush = 1; }
         if (protect === void 0) { protect = false; }
         if (force === void 0) { force = false; }
-        return new Promise(function (resolve, _reject) {
-            if (protect) {
-                Protector.protect(x, y, col);
-            }
-            if (!force && _this.getPixelAt(x, y) == col) {
-                resolve();
-            }
-            else {
-                _this.emit("p", "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]"));
-                setTimeout(resolve, 50);
-            }
+        return __awaiter(this, void 0, void 0, function () {
+            var deltaTime, placementSpeed;
+            var _this = this;
+            return __generator(this, function (_a) {
+                deltaTime = Date.now() - this.lastPlaced;
+                placementSpeed = this.genPlacementSpeed();
+                if (deltaTime < placementSpeed) {
+                    return [2 /*return*/, new Promise(function (resolve, _reject) { return __awaiter(_this, void 0, void 0, function () {
+                            var _this = this;
+                            return __generator(this, function (_a) {
+                                setTimeout(function () { return __awaiter(_this, void 0, void 0, function () {
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0: return [4 /*yield*/, this.placePixel(x, y, col, brush, protect, force)];
+                                            case 1:
+                                                _a.sent();
+                                                resolve();
+                                                return [2 /*return*/];
+                                        }
+                                    });
+                                }); }, placementSpeed - deltaTime + 1);
+                                return [2 /*return*/];
+                            });
+                        }); })];
+                }
+                else {
+                    return [2 /*return*/, new Promise(function (resolve, _reject) {
+                            if (protect) {
+                                Protector.protect(x, y, col);
+                            }
+                            if (!force && _this.getPixelAt(x, y) == col) {
+                                resolve();
+                            }
+                            else {
+                                var data = "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]");
+                                _this.emit("p", data);
+                                _this.lastPlaced = Date.now();
+                                setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
+                            }
+                        })];
+                }
+                return [2 /*return*/];
+            });
         });
     };
     PixelPlace.prototype.emit = function (key, value) {

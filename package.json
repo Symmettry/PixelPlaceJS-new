@@ -1,6 +1,6 @@
 {
   "name": "pixelplacejs-new",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "PixelPlace JS working",
   "main": "dist/PixelPlace.js",
   "scripts": {

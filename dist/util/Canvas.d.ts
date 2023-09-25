@@ -5,12 +5,13 @@ export declare class Canvas {
         [key: string]: number;
     };
     pixelData: ndarray.NdArray<Float64Array> | undefined;
+    pixelPreData: number[][][];
     constructor(boardId: number);
     init(): Promise<void>;
     getClosestColorId(r: number, g: number, b: number): number;
     getColorId(r: number, g: number, b: number): number;
     loadCanvasPicture(): Promise<void>;
-    loadCanvasData(canvas: number[][]): Promise<void>;
+    loadCanvasData(pixels: number[][]): Promise<void>;
     loadPixelData(pixel: number[]): Promise<void>;
     getDimensions(): Promise<{
         [key: string]: number;

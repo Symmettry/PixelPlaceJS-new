@@ -88,7 +88,7 @@ var ImageDrawer = /** @class */ (function () {
                                         b = pixels.get(x, y, 2);
                                         closestColorId = this.instance.canvas.getClosestColorId(r, g, b);
                                         if (!(closestColorId !== -1)) return [3 /*break*/, 4];
-                                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.force, this.protect)];
+                                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.protect, this.force)];
                                     case 3:
                                         _a.sent();
                                         _a.label = 4;

@@ -121,22 +121,33 @@ var Canvas = /** @class */ (function () {
             '69, 255, 200': 38,
             '181, 232, 238': 48
         };
-        this.init();
     }
     Canvas.prototype.init = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var dimensions, canvasWidth, canvasHeight;
+            var _this = this;
             return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.getDimensions()];
-                    case 1:
-                        dimensions = _a.sent();
-                        canvasWidth = dimensions.width;
-                        canvasHeight = dimensions.height;
-                        this.pixelData = (0, ndarray_1.default)(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
-                        this.loadCanvasPicture();
-                        return [2 /*return*/];
-                }
+                return [2 /*return*/, new Promise(function (resolve, _reject) { return __awaiter(_this, void 0, void 0, function () {
+                        var dimensions, canvasWidth, canvasHeight;
+                        var _this = this;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0: return [4 /*yield*/, this.getDimensions()];
+                                case 1:
+                                    dimensions = _a.sent();
+                                    canvasWidth = dimensions.width;
+                                    canvasHeight = dimensions.height;
+                                    this.pixelData = (0, ndarray_1.default)(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+                                    if (this.pixelPreData) {
+                                        this.pixelPreData.forEach(function (preData) {
+                                            _this.loadCanvasData(preData);
+                                        });
+                                        this.pixelPreData = [];
+                                    }
+                                    resolve();
+                                    return [2 /*return*/];
+                            }
+                        });
+                    }); })];
             });
         });
     };
@@ -158,57 +169,65 @@ var Canvas = /** @class */ (function () {
     };
     Canvas.prototype.loadCanvasPicture = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var imageUrl;
             var _this = this;
             return __generator(this, function (_a) {
-                imageUrl = 'https://pixelplace.io/canvas/' + this.boardId + '.png?t200000=' + Date.now();
-                https.get(imageUrl, function (response) {
-                    var chunks = [];
-                    response
-                        .on('data', function (chunk) {
-                        chunks.push(chunk);
-                    })
-                        .on('end', function () {
-                        var buffer = Buffer.concat(chunks);
-                        getPixels(buffer, 'image/png', function (err, pixels) {
-                            var _a;
-                            if (err) {
-                                console.error(err);
-                                return;
-                            }
-                            for (var x = 0; x < pixels.shape[0]; x++) {
-                                for (var y = 0; y < pixels.shape[1]; y++) {
-                                    var r = pixels.get(x, y, 0);
-                                    var g = pixels.get(x, y, 1);
-                                    var b = pixels.get(x, y, 2);
-                                    if (!(r == 204 && g == 204 && b == 204)) {
-                                        var colId = _this.getColorId(r, g, b);
-                                        if (colId == -1) {
-                                            console.log(r, g, b);
-                                        }
-                                        else {
-                                            (_a = _this.pixelData) === null || _a === void 0 ? void 0 : _a.set(x, y, colId);
+                return [2 /*return*/, new Promise(function (resolve, _reject) {
+                        var imageUrl = 'https://pixelplace.io/canvas/' + _this.boardId + '.png?t200000=' + Date.now();
+                        https.get(imageUrl, function (response) {
+                            var chunks = [];
+                            response
+                                .on('data', function (chunk) {
+                                chunks.push(chunk);
+                            })
+                                .on('end', function () {
+                                var buffer = Buffer.concat(chunks);
+                                getPixels(buffer, 'image/png', function (err, pixels) {
+                                    var _a;
+                                    if (err) {
+                                        console.error(err);
+                                        return;
+                                    }
+                                    for (var x = 0; x < pixels.shape[0]; x++) {
+                                        for (var y = 0; y < pixels.shape[1]; y++) {
+                                            var r = pixels.get(x, y, 0);
+                                            var g = pixels.get(x, y, 1);
+                                            var b = pixels.get(x, y, 2);
+                                            if (!(r == 204 && g == 204 && b == 204)) {
+                                                var colId = _this.getColorId(r, g, b);
+                                                if (colId == -1) {
+                                                    console.log(r, g, b);
+                                                }
+                                                else {
+                                                    (_a = _this.pixelData) === null || _a === void 0 ? void 0 : _a.set(x, y, colId);
+                                                }
+                                            }
                                         }
                                     }
-                                }
-                            }
+                                    resolve();
+                                });
+                            })
+                                .on('error', function (error) {
+                                console.error(error);
+                            });
                         });
-                    })
-                        .on('error', function (error) {
-                        console.error(error);
-                    });
-                });
-                return [2 /*return*/];
+                    })];
             });
         });
     };
-    Canvas.prototype.loadCanvasData = function (canvas) {
+    Canvas.prototype.loadCanvasData = function (pixels) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
-                canvas.forEach(function (pixel) {
-                    _this.loadPixelData(pixel);
-                });
+                if (this.pixelData == undefined) {
+                    if (this.pixelPreData == undefined)
+                        this.pixelPreData = [];
+                    this.pixelPreData.push(pixels);
+                }
+                else {
+                    pixels.forEach(function (pixel) {
+                        _this.loadPixelData(pixel);
+                    });
+                }
                 return [2 /*return*/];
             });
         });

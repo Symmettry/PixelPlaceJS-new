@@ -19,7 +19,9 @@ pp.getColorId(r, g, b);
 
 // places a pixel at x,y with id col
 // if brush isn't set, it will default to 1
-pp.placePixel(x, y, col, brush);
+// if protect isn't set, it will default to false
+// if force isn't set, it will default to false
+pp.placePixel(x, y, col, brush?, protect?, force?);
 
 // will run the function with its value when 'key' is received from the socket
 // you can also use 'Packets' from PixelPlace.js, e.g. Packets.PIXEL

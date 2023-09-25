@@ -1,4 +1,4 @@
-import { PixelPlace } from "../PixelPlace";
+import { Bot } from "../bot/Bot";
 import fs from 'fs';
 import getPixels = require("get-pixels");
 import mime = require("mime-types");
@@ -6,7 +6,7 @@ import { NdArray } from "ndarray";
 
 export class ImageDrawer {
 
-    instance!: PixelPlace;
+    instance!: Bot;
 
     path!: string;
 
@@ -16,7 +16,7 @@ export class ImageDrawer {
     protect!: boolean;
     force!: boolean;
 
-    constructor(instance: PixelPlace, x: number, y: number, path: string, protect: boolean, force: boolean) {
+    constructor(instance: Bot, x: number, y: number, path: string, protect: boolean, force: boolean) {
 
         Object.defineProperty(this, 'instance', {value: instance, writable: false, enumerable: true, configurable: false});
 
@@ -58,7 +58,7 @@ export class ImageDrawer {
                         
                         var closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
                         if(closestColorId !== -1) {
-                            await this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.force, this.protect);
+                            await this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.protect, this.force);
                         }
                     }
                 }

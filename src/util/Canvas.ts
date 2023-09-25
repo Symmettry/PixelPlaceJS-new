@@ -8,6 +8,7 @@ export class Canvas {
     boardId: number;
     colors: { [key: string]: number };
     pixelData: ndarray.NdArray<Float64Array> | undefined;
+    pixelPreData!: number[][][];
 
     constructor(boardId: number) {
         this.boardId = boardId;
@@ -63,19 +64,25 @@ export class Canvas {
             '69, 255, 200': 38,
             '181, 232, 238': 48
         }
-        this.init();
     }
 
     async init(): Promise<void> {
-        const dimensions = await this.getDimensions();
+        return new Promise<void>(async (resolve, _reject) => {
+            const dimensions = await this.getDimensions();
 
-        const canvasWidth = dimensions.width;
-        const canvasHeight = dimensions.height;
+            const canvasWidth = dimensions.width;
+            const canvasHeight = dimensions.height;
+    
+            this.pixelData = ndarray(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+            if(this.pixelPreData) {
+                await Promise.all(this.pixelPreData.map(preData => {
+                    this.loadCanvasData(preData);
+                }));
+                this.pixelPreData = [];
+            }
 
-        this.pixelData = ndarray(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
-
-        this.loadCanvasPicture();
-
+            resolve();
+        });
     }
 
     getClosestColorId(r: number, g: number, b: number): number {
@@ -100,53 +107,59 @@ export class Canvas {
     }
 
     async loadCanvasPicture(): Promise<void> {
+        return new Promise<void>((resolve, _reject) => {
+            const imageUrl = 'https://pixelplace.io/canvas/' + this.boardId + '.png?t200000=' + Date.now();
 
-        const imageUrl = 'https://pixelplace.io/canvas/' + this.boardId + '.png?t200000=' + Date.now();
+            https.get(imageUrl, (response: IncomingMessage) => {
+                const chunks: Buffer[] = [];
 
-        https.get(imageUrl, (response: IncomingMessage) => {
-        const chunks: Buffer[] = [];
+                response
+                    .on('data', (chunk: Buffer) => {
+                        chunks.push(chunk);
+                    })
+                    .on('end', () => {
+                        const buffer = Buffer.concat(chunks);
 
-        response
-            .on('data', (chunk: Buffer) => {
-                chunks.push(chunk);
-            })
-            .on('end', () => {
-                const buffer = Buffer.concat(chunks);
+                        getPixels(buffer, 'image/png', (err: Error | null, pixels: NdArray<Uint8Array>) => {
+                            if (err) {
+                                console.error(err);
+                                return;
+                            }
 
-                getPixels(buffer, 'image/png', (err: Error | null, pixels: NdArray<Uint8Array>) => {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
-
-                    for (let x = 0; x < pixels.shape[0]; x++) {
-                        for (let y = 0; y < pixels.shape[1]; y++) {
-                            const r = pixels.get(x, y, 0);
-                            const g = pixels.get(x, y, 1);
-                            const b = pixels.get(x, y, 2);
-                            if(!(r == 204 && g == 204 && b == 204)) {
-                                var colId = this.getColorId(r,g,b);
-                                if(colId == -1) {
-                                    console.log(r,g,b);
-                                } else {
-                                    this.pixelData?.set(x, y, colId);
+                            for (let x = 0; x < pixels.shape[0]; x++) {
+                                for (let y = 0; y < pixels.shape[1]; y++) {
+                                    const r = pixels.get(x, y, 0);
+                                    const g = pixels.get(x, y, 1);
+                                    const b = pixels.get(x, y, 2);
+                                    if(!(r == 204 && g == 204 && b == 204)) {
+                                        var colId = this.getColorId(r,g,b);
+                                        if(colId == -1) {
+                                            console.log(r,g,b);
+                                        } else {
+                                            this.pixelData?.set(x, y, colId);
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-                });
-            })
-            .on('error', (error: Error) => {
-                console.error(error);
+                            resolve();
+                        });
+                    })
+                    .on('error', (error: Error) => {
+                        console.error(error);
+                    });
             });
         });
-
     }
 
-    async loadCanvasData(canvas: number[][]): Promise<void> {
-        canvas.forEach(pixel => {
-            this.loadPixelData(pixel);
-        })
+    async loadCanvasData(pixels: number[][]): Promise<void> {
+        if(this.pixelData == undefined) {
+            if(this.pixelPreData == undefined)this.pixelPreData = [];
+            this.pixelPreData.push(pixels);
+        } else {
+            pixels.forEach(pixel => {
+                this.loadPixelData(pixel);
+            })
+        }
     }
 
     async loadPixelData(pixel: number[]): Promise<void> {

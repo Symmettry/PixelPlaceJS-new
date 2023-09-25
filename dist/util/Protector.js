@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.detect = exports.getColor = exports.unprotect = exports.protect = exports.protectedPixels = void 0;
+exports.detectAll = exports.detectPixels = exports.getColor = exports.unprotect = exports.protect = exports.protectedPixels = void 0;
 exports.protectedPixels = new Map();
 function protect(x, y, col) {
     exports.protectedPixels.set("".concat(x, ",").concat(y), col);
@@ -50,7 +50,7 @@ function getColor(x, y) {
     return exports.protectedPixels.has("".concat(x, ",").concat(y)) ? exports.protectedPixels.get("".concat(x, ",").concat(y)) : -1;
 }
 exports.getColor = getColor;
-function detect(pp, pixels) {
+function detectPixels(pp, pixels) {
     return __awaiter(this, void 0, void 0, function () {
         var _this = this;
         return __generator(this, function (_a) {
@@ -63,7 +63,7 @@ function detect(pp, pixels) {
                                     x = pixel[0], y = pixel[1], col = pixel[2];
                                     protectColor = getColor(x, y);
                                     if (!(protectColor != undefined && protectColor !== -1 && protectColor !== col)) return [3 /*break*/, 2];
-                                    return [4 /*yield*/, pp.placePixel(x, y, protectColor)];
+                                    return [4 /*yield*/, pp.placePixel(x, y, protectColor, 1, true, false)];
                                 case 1:
                                     _a.sent();
                                     _a.label = 2;
@@ -78,4 +78,41 @@ function detect(pp, pixels) {
         });
     });
 }
-exports.detect = detect;
+exports.detectPixels = detectPixels;
+function detectAll(pp) {
+    return __awaiter(this, void 0, void 0, function () {
+        var _this = this;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, new Promise(function (resolve, _reject) { return __awaiter(_this, void 0, void 0, function () {
+                        var _this = this;
+                        return __generator(this, function (_a) {
+                            exports.protectedPixels.forEach(function (_value, key) { return __awaiter(_this, void 0, void 0, function () {
+                                var _a, x, y, protectColor;
+                                return __generator(this, function (_b) {
+                                    switch (_b.label) {
+                                        case 0:
+                                            _a = key.split(",").map(Number), x = _a[0], y = _a[1];
+                                            protectColor = getColor(x, y);
+                                            if (!(protectColor != undefined && protectColor !== -1 && protectColor !== pp.getPixelAt(x, y))) return [3 /*break*/, 2];
+                                            return [4 /*yield*/, pp.placePixel(x, y, protectColor, 1, true, false)];
+                                        case 1:
+                                            _b.sent();
+                                            _b.label = 2;
+                                        case 2: return [2 /*return*/];
+                                    }
+                                });
+                            }); });
+                            setTimeout(resolve, 1000);
+                            return [2 /*return*/];
+                        });
+                    }); })];
+                case 1:
+                    _a.sent();
+                    detectAll(pp);
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+exports.detectAll = detectAll;
