@@ -29,15 +29,12 @@ pp.on("key", (value) => {});
 // emits 42["key", value] through the socket
 // e.g. sends data+
 pp.emit("key", value);
-
-// draws the image at "path_to_image" at [x,y]
-pp.drawImage(x, y, "path_to_image");
 ```
 
 ### Full Bot
 
 ```js
-const { PixelPlace, Packets } = require("pixelplacejs-new");
+const { PixelPlace, Packets } = require("./PixelPlace.js");
 
 (async () => {
           
