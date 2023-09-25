@@ -44,23 +44,6 @@ export class PixelPlace {
 
             this.socket.on('open', () => {
                 resolve(); // await pp.Init();
-
-                var pixelplacer = () => {
-                    if(this.pixels.length > 0) {
-                        var shiftedPixels = this.pixels.shift();
-                        if (shiftedPixels) {
-                            var [x, y, col] = shiftedPixels;
-                            if(this.getPixelAt(x, y) == col) {
-                                pixelplacer();
-                                return;
-                            } else {
-                                this.emit("p", `[${shiftedPixels}]`);
-                            }
-                        }
-                    }
-                    setTimeout(pixelplacer, 20);
-                }
-                pixelplacer();
             });
 
             this.socket.on('message', (buffer: Buffer) => {
@@ -127,7 +110,10 @@ export class PixelPlace {
     }
 
     placePixel(x: number, y: number, col: number, brush:number=1) {
-        this.pixels.push([x, y, col, brush]);
+        return new Promise<void>((resolve, _reject) => {
+            this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+            setTimeout(resolve, 20);
+        });
     }
 
     emit(key: string, value: any) {
