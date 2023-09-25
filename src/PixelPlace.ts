@@ -122,9 +122,9 @@ export class PixelPlace {
         this.socket.send(data);
     }
     
-    drawImage(x: number, y: number, path: string) {
+    async drawImage(x: number, y: number, path: string) {
         const drawer: ImageDrawer = new ImageDrawer(this, x, y, path);
-        drawer.begin();
+        await drawer.begin();
     }
 
 }

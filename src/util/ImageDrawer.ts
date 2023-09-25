@@ -37,24 +37,27 @@ export class ImageDrawer {
 
         const buffer = fs.readFileSync(this.path);
 
-        getPixels(buffer, type, (err: Error | null, pixels: NdArray<Uint8Array>) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
+        return new Promise<void>((resolve, _reject) => {
+            getPixels(buffer, type, async (err: Error | null, pixels: NdArray<Uint8Array>) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
 
-            for (let x = 0; x < pixels.shape[0]; x++) {
-                for (let y = 0; y < pixels.shape[1]; y++) {
-                    const r = pixels.get(x, y, 0);
-                    const g = pixels.get(x, y, 1);
-                    const b = pixels.get(x, y, 2);
-                    
-                    var closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
-                    if(closestColorId !== -1) {
-                        this.instance.placePixel(this.x + x, this.y + y, closestColorId);
+                for (let x = 0; x < pixels.shape[0]; x++) {
+                    for (let y = 0; y < pixels.shape[1]; y++) {
+                        const r = pixels.get(x, y, 0);
+                        const g = pixels.get(x, y, 1);
+                        const b = pixels.get(x, y, 2);
+                        
+                        var closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
+                        if(closestColorId !== -1) {
+                            await this.instance.placePixel(this.x + x, this.y + y, closestColorId);
+                        }
                     }
                 }
-            }
+                resolve();
+            });
         });
     }
 

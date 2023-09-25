@@ -63,24 +63,46 @@ var ImageDrawer = /** @class */ (function () {
                     throw new Error("File at path: ".concat(this.path, " is not an image"));
                 }
                 buffer = fs_1.default.readFileSync(this.path);
-                getPixels(buffer, type, function (err, pixels) {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
-                    for (var x = 0; x < pixels.shape[0]; x++) {
-                        for (var y = 0; y < pixels.shape[1]; y++) {
-                            var r = pixels.get(x, y, 0);
-                            var g = pixels.get(x, y, 1);
-                            var b = pixels.get(x, y, 2);
-                            var closestColorId = _this.instance.canvas.getClosestColorId(r, g, b);
-                            if (closestColorId !== -1) {
-                                _this.instance.placePixel(_this.x + x, _this.y + y, closestColorId);
-                            }
-                        }
-                    }
-                });
-                return [2 /*return*/];
+                return [2 /*return*/, new Promise(function (resolve, _reject) {
+                        getPixels(buffer, type, function (err, pixels) { return __awaiter(_this, void 0, void 0, function () {
+                            var x, y, r, g, b, closestColorId;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        if (err) {
+                                            console.error(err);
+                                            return [2 /*return*/];
+                                        }
+                                        x = 0;
+                                        _a.label = 1;
+                                    case 1:
+                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 6];
+                                        y = 0;
+                                        _a.label = 2;
+                                    case 2:
+                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 5];
+                                        r = pixels.get(x, y, 0);
+                                        g = pixels.get(x, y, 1);
+                                        b = pixels.get(x, y, 2);
+                                        closestColorId = this.instance.canvas.getClosestColorId(r, g, b);
+                                        if (!(closestColorId !== -1)) return [3 /*break*/, 4];
+                                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId)];
+                                    case 3:
+                                        _a.sent();
+                                        _a.label = 4;
+                                    case 4:
+                                        y++;
+                                        return [3 /*break*/, 2];
+                                    case 5:
+                                        x++;
+                                        return [3 /*break*/, 1];
+                                    case 6:
+                                        resolve();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); });
+                    })];
             });
         });
     };

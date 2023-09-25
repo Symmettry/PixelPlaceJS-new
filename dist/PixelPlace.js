@@ -70,22 +70,6 @@ var PixelPlace = /** @class */ (function () {
                         _this.pixels = [];
                         _this.socket.on('open', function () {
                             resolve(); // await pp.Init();
-                            var pixelplacer = function () {
-                                if (_this.pixels.length > 0) {
-                                    var shiftedPixels = _this.pixels.shift();
-                                    if (shiftedPixels) {
-                                        var x = shiftedPixels[0], y = shiftedPixels[1], col = shiftedPixels[2];
-                                        if (_this.getPixelAt(x, y) == col) {
-                                            pixelplacer();
-                                        }
-                                        else {
-                                            _this.emit("p", "[".concat(shiftedPixels, "]"));
-                                        }
-                                    }
-                                }
-                                setTimeout(pixelplacer, 200);
-                            };
-                            pixelplacer();
                         });
                         _this.socket.on('message', function (buffer) {
                             var _a;
@@ -147,8 +131,12 @@ var PixelPlace = /** @class */ (function () {
         return this.canvas.getColorId(r, g, b);
     };
     PixelPlace.prototype.placePixel = function (x, y, col, brush) {
+        var _this = this;
         if (brush === void 0) { brush = 1; }
-        this.pixels.push([x, y, col, brush]);
+        return new Promise(function (resolve, _reject) {
+            _this.emit("p", "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]"));
+            setTimeout(resolve, 20);
+        });
     };
     PixelPlace.prototype.emit = function (key, value) {
         var data = "42[\"".concat(key, "\",").concat(value.toString(), "]");
@@ -156,8 +144,19 @@ var PixelPlace = /** @class */ (function () {
         this.socket.send(data);
     };
     PixelPlace.prototype.drawImage = function (x, y, path) {
-        var drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path);
-        drawer.begin();
+        return __awaiter(this, void 0, void 0, function () {
+            var drawer;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path);
+                        return [4 /*yield*/, drawer.begin()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
     };
     return PixelPlace;
 }());
