@@ -72,6 +72,9 @@ class PixelPlace {
                     case "42": // message
                         var key = message[0];
                         var value = message[1];
+                        if(this.listeners.has(key)) { // if there are listeners for this key
+                            this.listeners.get(key).forEach(listener => listener(value)); // then send the value!
+                        }
                         switch(key) {
                             case "ping.alive": // pixelplace keepalive
                                 socket.send(`42["pong.alive", "${getPalive()}"]`)
@@ -80,9 +83,6 @@ class PixelPlace {
                             case "p": // pixels
                                 this.canvas.loadCanvasData(value);
                                 break;
-                        }
-                        if(this.listeners.has(key)) { // if there are listeners for this key
-                            this.listeners.get(key).forEach(listener => listener(value)); // then send the value!
                         }
                         break;
                 }
