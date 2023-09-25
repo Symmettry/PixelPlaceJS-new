@@ -165,7 +165,8 @@ enum RECEIVED {
     GOLDEN_NOTIFICATION = "golden.notification",
     SNOWBALL_ITEM_NOTIFICATION = "item.notification.snowball",
     ITEM_NOTIFICATION_GIFT = "item.notification.gift",
-    CHAT_SYSTEM_MESSAGe = "chat.system.message"
+    CHAT_SYSTEM_MESSAGe = "chat.system.message",
+    CHAT_SYSTEM_DELETE = "chat.system.delete",
 }
 enum SENT {
     INIT = "init",
@@ -174,9 +175,6 @@ enum SENT {
     CHAT_MESSAGE = "chat.message",
     USER_PROFILE = "user.profile",
     HOT_PAINTINGS = "hot.paintings",
-    CHAT_SYSTEM_DELETE = "chat.system.delete",
-    CHAT_LOADED = "chat.messages.loaded",
-    CHAT_MESSAGES_LOADED = "chat.messages.loaded",
     SERVER_TIME = "server_time",
     USERNAME = "username",
 }

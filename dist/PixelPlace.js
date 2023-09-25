@@ -225,6 +225,7 @@ var RECEIVED;
     RECEIVED["SNOWBALL_ITEM_NOTIFICATION"] = "item.notification.snowball";
     RECEIVED["ITEM_NOTIFICATION_GIFT"] = "item.notification.gift";
     RECEIVED["CHAT_SYSTEM_MESSAGe"] = "chat.system.message";
+    RECEIVED["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
 })(RECEIVED || (RECEIVED = {}));
 var SENT;
 (function (SENT) {
@@ -234,9 +235,6 @@ var SENT;
     SENT["CHAT_MESSAGE"] = "chat.message";
     SENT["USER_PROFILE"] = "user.profile";
     SENT["HOT_PAINTINGS"] = "hot.paintings";
-    SENT["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
-    SENT["CHAT_LOADED"] = "chat.messages.loaded";
-    SENT["CHAT_MESSAGES_LOADED"] = "chat.messages.loaded";
     SENT["SERVER_TIME"] = "server_time";
     SENT["USERNAME"] = "username";
 })(SENT || (SENT = {}));
