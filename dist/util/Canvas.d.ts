@@ -7,6 +7,7 @@ export declare class Canvas {
     pixelData: ndarray.NdArray<Float64Array> | undefined;
     constructor(boardId: number);
     init(): Promise<void>;
+    getClosestColorId(r: number, g: number, b: number): number;
     getColorId(r: number, g: number, b: number): number;
     loadCanvasPicture(): Promise<void>;
     loadCanvasData(canvas: number[][]): Promise<void>;

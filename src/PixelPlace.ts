@@ -1,6 +1,7 @@
 import { getPalive } from './util/PAlive.js';
 import { Canvas } from './util/Canvas.js';
 import WebSocket from 'ws';
+import { ImageDrawer } from './util/ImageDrawer.js';
 
 export class PixelPlace {
     
@@ -48,7 +49,13 @@ export class PixelPlace {
                     if(this.pixels.length > 0) {
                         var shiftedPixels = this.pixels.shift();
                         if (shiftedPixels) {
-                            this.emit("p", shiftedPixels);
+                            var [x, y, col] = shiftedPixels;
+                            if(this.getPixelAt(x, y) == col) {
+                                pixelplacer();
+                                return;
+                            } else {
+                                this.emit("p", `[${shiftedPixels}]`);
+                            }
                         }
                     }
                     setTimeout(pixelplacer, 20);
@@ -125,7 +132,13 @@ export class PixelPlace {
 
     emit(key: string, value: any) {
         const data = `42["${key}",${value.toString()}]`;
+        console.log(data);
         this.socket.send(data);
+    }
+    
+    drawImage(x: number, y: number, path: string) {
+        const drawer: ImageDrawer = new ImageDrawer(this, x, y, path);
+        drawer.begin();
     }
 
 }

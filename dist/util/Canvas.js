@@ -140,6 +140,19 @@ var Canvas = /** @class */ (function () {
             });
         });
     };
+    Canvas.prototype.getClosestColorId = function (r, g, b) {
+        var minDistance = Infinity;
+        var closestColorId = -1;
+        for (var color in this.colors) {
+            var _a = color.split(', ').map(Number), r2 = _a[0], g2 = _a[1], b2 = _a[2];
+            var distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestColorId = this.colors[color];
+            }
+        }
+        return closestColorId;
+    };
     Canvas.prototype.getColorId = function (r, g, b) {
         return this.colors["".concat(r, ", ").concat(g, ", ").concat(b)] != null ? this.colors["".concat(r, ", ").concat(g, ", ").concat(b)] : -1;
     };

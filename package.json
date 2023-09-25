@@ -4,7 +4,7 @@
   "description": "PixelPlace JS working",
   "main": "dist/PixelPlace.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc -d"
   },
   "repository": {
     "type": "git",
@@ -18,10 +18,12 @@
   "homepage": "https://github.com/Symmettry/PixelPlaceJS-new#readme",
   "dependencies": {
     "get-pixels": "^3.3.3",
+    "mime-types": "^2.1.35",
     "ndarray": "^1.0.19",
     "ws": "^8.14.2"
   },
   "devDependencies": {
+    "@types/mime-types": "^2.1.1",
     "typescript": "^4.5.4"
   }
 }

@@ -43,6 +43,7 @@ exports.Packets = exports.PixelPlace = void 0;
 var PAlive_js_1 = require("./util/PAlive.js");
 var Canvas_js_1 = require("./util/Canvas.js");
 var ws_1 = __importDefault(require("ws"));
+var ImageDrawer_js_1 = require("./util/ImageDrawer.js");
 var PixelPlace = /** @class */ (function () {
     function PixelPlace(authKey, authToken, authId, boardId) {
         Object.defineProperty(this, 'authKey', { value: authKey, writable: false, enumerable: true, configurable: false });
@@ -73,10 +74,16 @@ var PixelPlace = /** @class */ (function () {
                                 if (_this.pixels.length > 0) {
                                     var shiftedPixels = _this.pixels.shift();
                                     if (shiftedPixels) {
-                                        _this.emit("p", shiftedPixels);
+                                        var x = shiftedPixels[0], y = shiftedPixels[1], col = shiftedPixels[2];
+                                        if (_this.getPixelAt(x, y) == col) {
+                                            pixelplacer();
+                                        }
+                                        else {
+                                            _this.emit("p", "[".concat(shiftedPixels, "]"));
+                                        }
                                     }
                                 }
-                                setTimeout(pixelplacer, 20);
+                                setTimeout(pixelplacer, 200);
                             };
                             pixelplacer();
                         });
@@ -145,7 +152,12 @@ var PixelPlace = /** @class */ (function () {
     };
     PixelPlace.prototype.emit = function (key, value) {
         var data = "42[\"".concat(key, "\",").concat(value.toString(), "]");
+        console.log(data);
         this.socket.send(data);
+    };
+    PixelPlace.prototype.drawImage = function (x, y, path) {
+        var drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path);
+        drawer.begin();
     };
     return PixelPlace;
 }());

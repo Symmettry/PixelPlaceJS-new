@@ -1,7 +1,7 @@
 "use strict";
 // taken from npm module "pixelplacejs," thanks shuffle
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.customRandomString = exports.getPalive = void 0;
+exports.getPalive = void 0;
 function getCurrentTimeInSeconds() {
     return Math.floor(new Date().getTime() / 1000);
 }
@@ -72,16 +72,3 @@ function getPalive(tDelay) {
     return result;
 }
 exports.getPalive = getPalive;
-var randomStringCharacters = ["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "gmbonjklezcfxtaGMBONJKLEZCFXTA"];
-//not used in palive but used by other parts of the pxpjs code
-function customRandomString(outputLength, listId) {
-    if (listId === void 0) { listId = 0; }
-    var output = [];
-    var alphabet = randomStringCharacters[listId];
-    var length = alphabet.length;
-    for (var jarelin = 0; jarelin < outputLength; jarelin++) {
-        output.push(alphabet.charAt(Math.floor(Math.random() * length)));
-    }
-    return output.join("");
-}
-exports.customRandomString = customRandomString;

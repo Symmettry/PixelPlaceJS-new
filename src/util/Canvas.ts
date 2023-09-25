@@ -78,7 +78,22 @@ export class Canvas {
 
     }
 
-
+    getClosestColorId(r: number, g: number, b: number) {
+        let minDistance = Infinity;
+        let closestColorId = -1;
+    
+        for (let color in this.colors) {
+            let [r2, g2, b2] = color.split(', ').map(Number);
+            let distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
+    
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestColorId = this.colors[color];
+            }
+        }
+    
+        return closestColorId;
+    }
 
     getColorId(r: number, g: number, b: number) {
         return this.colors[`${r}, ${g}, ${b}`] != null ? this.colors[`${r}, ${g}, ${b}`] : -1;
