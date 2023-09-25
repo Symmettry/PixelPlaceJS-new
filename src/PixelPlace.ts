@@ -94,7 +94,7 @@ export class PixelPlace {
                 console.log('PPJS Closed.');
             });
 
-            this.socket.on('error', (error) => {
+            this.socket.on('error', (error: Error) => {
                 console.error('PPJS error:', error);
                 reject(); // error, reject promise
             });
