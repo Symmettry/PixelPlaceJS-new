@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -44,6 +67,7 @@ var PAlive_js_1 = require("./util/PAlive.js");
 var Canvas_js_1 = require("./util/Canvas.js");
 var ws_1 = __importDefault(require("ws"));
 var ImageDrawer_js_1 = require("./util/ImageDrawer.js");
+var Protector = __importStar(require("./util/Protector.js"));
 var PixelPlace = /** @class */ (function () {
     function PixelPlace(authKey, authToken, authId, boardId) {
         Object.defineProperty(this, 'authKey', { value: authKey, writable: false, enumerable: true, configurable: false });
@@ -107,6 +131,7 @@ var PixelPlace = /** @class */ (function () {
                                         case "canvas": // why are these 2 separate keys? they do the same thing owmince lol
                                         case "p": // pixels
                                             _this.canvas.loadCanvasData(value);
+                                            Protector.detect(_this, value);
                                             break;
                                     }
                                     break;
@@ -130,11 +155,16 @@ var PixelPlace = /** @class */ (function () {
     PixelPlace.prototype.getColorId = function (r, g, b) {
         return this.canvas.getColorId(r, g, b);
     };
-    PixelPlace.prototype.placePixel = function (x, y, col, brush) {
+    PixelPlace.prototype.placePixel = function (x, y, col, brush, protect, force) {
         var _this = this;
         if (brush === void 0) { brush = 1; }
+        if (protect === void 0) { protect = false; }
+        if (force === void 0) { force = false; }
         return new Promise(function (resolve, _reject) {
-            if (_this.getPixelAt(x, y) == col) {
+            if (protect) {
+                Protector.protect(x, y, col);
+            }
+            if (!force && _this.getPixelAt(x, y) == col) {
                 resolve();
             }
             else {
@@ -147,13 +177,15 @@ var PixelPlace = /** @class */ (function () {
         var data = "42[\"".concat(key, "\",").concat(value.toString(), "]");
         this.socket.send(data);
     };
-    PixelPlace.prototype.drawImage = function (x, y, path) {
+    PixelPlace.prototype.drawImage = function (x, y, path, protect, force) {
+        if (protect === void 0) { protect = false; }
+        if (force === void 0) { force = false; }
         return __awaiter(this, void 0, void 0, function () {
             var drawer;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path);
+                        drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path, protect, force);
                         return [4 /*yield*/, drawer.begin()];
                     case 1:
                         _a.sent();
@@ -165,52 +197,70 @@ var PixelPlace = /** @class */ (function () {
     return PixelPlace;
 }());
 exports.PixelPlace = PixelPlace;
-var Packets;
-(function (Packets) {
-    Packets["INIT"] = "init";
-    Packets["PIXEL"] = "p";
-    Packets["JOIN"] = "j";
-    Packets["LEAVE"] = "l";
-    Packets["PALIVE"] = "ping.alive";
-    Packets["POALIVE"] = "pong.alive";
-    Packets["NEW_CHAT_MESSAGE"] = "chat.user.message";
-    Packets["DELETE_CHAT_MESSAGE"] = "chat.system.delete";
-    Packets["CHAT_LOADED"] = "chat.messages.loaded";
-    Packets["CHAT_SEND_MESSAGE"] = "chat.message";
-    Packets["CANVAS"] = "canvas";
-    Packets["CHAT_STATS"] = "chat.stats";
-    Packets["RATE_CHANGE"] = "rate_change";
-    Packets["FIGHT_START"] = "area_fight_start";
-    Packets["FIGHT_END"] = "area_fight_end";
-    Packets["ERROR"] = "throw.error";
-    Packets["ITEM_USED"] = "item.notification.use";
-    Packets["PREMIUM_MOD"] = "premium.mod";
-    Packets["SAVE_TRACKING_CACHE"] = "save.tracking.cache";
-    Packets["SAVE_TRACKING_PENDING"] = "save.tracking.pending";
-    Packets["QUEUE"] = "queue";
-    Packets["SPECIAL_ERROR"] = "throw.error.special";
-    Packets["PROTECTION"] = "protection";
-    Packets["COOLDOWN"] = "cooldown";
-    Packets["COOLDOWN_DOT"] = "cooldown_dot";
-    Packets["RELOAD"] = "reload";
-    Packets["CANVAS_ACCESS_REQUESTED"] = "canvas.access.requested";
-    Packets["USER_PROFILE"] = "user.profile";
-    Packets["PAINTING_PLAYERS"] = "painting.players";
-    Packets["HOT_PAINTINGS"] = "hot.paintings";
-    Packets["COINS_GIFT_NOTIFICATION"] = "coins.notification.gift";
-    Packets["GOLDEN_NOTIFICATION"] = "golden.notification";
-    Packets["ITEM_NOTIFICATION_SNOWBALL"] = "item.notification.snowball";
-    Packets["ITEM_NOTIFICATION_GIFT"] = "item.notification.gift";
-    Packets["CHAT_SYSTEM_MESSAGE"] = "chat.system.message";
-    Packets["CANVAS_SUCCESS"] = "canvas.success";
-    Packets["CANVAS_ALERT"] = "canvas.alert";
-    Packets["CHAT_CUSTOM_MESSAGE"] = "chat.custom.message";
-    Packets["CHAT_CUSTOM_ANNOUNCE"] = "chat.custom.announce";
-    Packets["CHAT_PAINTING_DELETE"] = "chat.painting.delete";
-    Packets["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
-    Packets["CHAT_MESSAGES_LOADED"] = "chat.messages.loaded";
-    Packets["CHAT_COMMAND"] = "chat.command";
-    Packets["AREAS"] = "areas";
-    Packets["SERVER_TIME"] = "server_time";
-    Packets["USERNAME"] = "username";
-})(Packets || (exports.Packets = Packets = {}));
+var RECEIVED;
+(function (RECEIVED) {
+    RECEIVED["LEAVE"] = "l";
+    RECEIVED["JOIN"] = "j";
+    RECEIVED["PING_ALIVE"] = "ping.alive";
+    RECEIVED["DELETE_CHAT_MESSAGE"] = "chat.system.delete";
+    RECEIVED["CHAT_LOADED"] = "chat.messages.loaded";
+    RECEIVED["CHAT_MESSAGE"] = "chat.user.message";
+    RECEIVED["CANVAS"] = "canvas";
+    RECEIVED["CHAT_STATS"] = "chat.stats";
+    RECEIVED["RATE_CHANGE"] = "rate_change";
+    RECEIVED["AREA_FIGHT_START"] = "area_fighT_start";
+    RECEIVED["AREA_FIGHT_END"] = "area_fight_end";
+    RECEIVED["ERROR"] = "throw.error";
+    RECEIVED["ITEM_USE_NOTIFICATION"] = "item.notification.use";
+    RECEIVED["SPECIAL_ERROR"] = "throw.error.special";
+    RECEIVED["PROTECTION"] = "protection";
+    RECEIVED["COOLDOWN"] = "cooldown";
+    RECEIVED["COOLDOWN_DOT"] = "cooldown_dot";
+    RECEIVED["RELOAD"] = "reload";
+    RECEIVED["CANVAS_ACCESS_REQUESTED"] = "canvas.access.requested";
+    RECEIVED["USER_PROFILE"] = "user.profile";
+    RECEIVED["HOT_PAINTINGS"] = "hot.paintings";
+    RECEIVED["COINS_GIFT_NOTIFICATION"] = "coins.notification.gift";
+    RECEIVED["GOLDEN_NOTIFICATION"] = "golden.notification";
+    RECEIVED["SNOWBALL_ITEM_NOTIFICATION"] = "item.notification.snowball";
+    RECEIVED["ITEM_NOTIFICATION_GIFT"] = "item.notification.gift";
+    RECEIVED["CHAT_SYSTEM_MESSAGe"] = "chat.system.message";
+})(RECEIVED || (RECEIVED = {}));
+var SENT;
+(function (SENT) {
+    SENT["INIT"] = "init";
+    SENT["PIXEL"] = "p";
+    SENT["PONG_ALIVE"] = "pong.alive";
+    SENT["CHAT_MESSAGE"] = "chat.message";
+    SENT["USER_PROFILE"] = "user.profile";
+    SENT["HOT_PAINTINGS"] = "hot.paintings";
+    SENT["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
+    SENT["CHAT_LOADED"] = "chat.messages.loaded";
+    SENT["CHAT_MESSAGES_LOADED"] = "chat.messages.loaded";
+    SENT["SERVER_TIME"] = "server_time";
+    SENT["USERNAME"] = "username";
+})(SENT || (SENT = {}));
+var UNKNOWN;
+(function (UNKNOWN) {
+    UNKNOWN["PREMIUM_MOD"] = "premium.mod";
+    UNKNOWN["SAVE_TRACKING_CACHE"] = "save.tracking.cache";
+    UNKNOWN["SAVE_TRACKING_PENDING"] = "save.tracking.pending";
+    UNKNOWN["QUEUE"] = "queue";
+    UNKNOWN["PAINTING_PLAYERS"] = "painting.players";
+    UNKNOWN["CANVAS_SUCCESS"] = "canvas.success";
+    UNKNOWN["CANVAS_ALERT"] = "canvas.alert";
+    UNKNOWN["CHAT_CUSTOM_MESSAGE"] = "chat.custom.message";
+    UNKNOWN["CHAT_CUSTOM_ANNOUNCE"] = "chat.custom.announce";
+    UNKNOWN["CHAT_PAINTING_DELETE"] = "chat.painting.delete";
+    UNKNOWN["CHAT_COMMAND"] = "chat.command";
+    UNKNOWN["AREAS"] = "areas";
+})(UNKNOWN || (UNKNOWN = {}));
+var Packets = /** @class */ (function () {
+    function Packets() {
+    }
+    Packets.RECEIVED = RECEIVED;
+    Packets.SENT = SENT;
+    Packets.UNKNOWN = UNKNOWN;
+    return Packets;
+}());
+exports.Packets = Packets;

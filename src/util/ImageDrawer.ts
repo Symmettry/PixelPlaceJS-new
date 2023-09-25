@@ -13,7 +13,10 @@ export class ImageDrawer {
     x!: number;
     y!: number;
 
-    constructor(instance: PixelPlace, x: number, y: number, path: string) {
+    protect!: boolean;
+    force!: boolean;
+
+    constructor(instance: PixelPlace, x: number, y: number, path: string, protect: boolean, force: boolean) {
 
         Object.defineProperty(this, 'instance', {value: instance, writable: false, enumerable: true, configurable: false});
 
@@ -22,9 +25,12 @@ export class ImageDrawer {
         Object.defineProperty(this, 'x', {value: x, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'y', {value: y, writable: false, enumerable: true, configurable: false});
 
+        Object.defineProperty(this, 'protect', {value: protect, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'force', {value: force, writable: false, enumerable: true, configurable: false});
+
     }
 
-    async begin() {
+    async begin(): Promise<void> {
 
         if (!fs.existsSync(this.path)) {
             throw new Error(`File does not exist at path: ${this.path}`);
@@ -52,7 +58,7 @@ export class ImageDrawer {
                         
                         var closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
                         if(closestColorId !== -1) {
-                            await this.instance.placePixel(this.x + x, this.y + y, closestColorId);
+                            await this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.force, this.protect);
                         }
                     }
                 }

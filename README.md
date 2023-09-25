@@ -29,6 +29,11 @@ pp.on("key", (value) => {});
 // emits 42["key", value] through the socket
 // e.g. sends data+
 pp.emit("key", value);
+
+// draws the image at "path_to_image" at x and y (left->right)
+// protect?: protect the image, defaults to false
+// force?: places pixels over pixels of the same color, defaults to false
+p.drawImage(x, y, "path_to_image", protect?, force?);
 ```
 
 ### Full Bot

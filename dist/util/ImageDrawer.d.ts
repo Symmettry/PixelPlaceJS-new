@@ -4,6 +4,8 @@ export declare class ImageDrawer {
     path: string;
     x: number;
     y: number;
-    constructor(instance: PixelPlace, x: number, y: number, path: string);
+    protect: boolean;
+    force: boolean;
+    constructor(instance: PixelPlace, x: number, y: number, path: string, protect: boolean, force: boolean);
     begin(): Promise<void>;
 }

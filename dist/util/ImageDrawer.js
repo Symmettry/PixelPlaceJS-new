@@ -44,11 +44,13 @@ var fs_1 = __importDefault(require("fs"));
 var getPixels = require("get-pixels");
 var mime = require("mime-types");
 var ImageDrawer = /** @class */ (function () {
-    function ImageDrawer(instance, x, y, path) {
+    function ImageDrawer(instance, x, y, path, protect, force) {
         Object.defineProperty(this, 'instance', { value: instance, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'path', { value: path, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'x', { value: x, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'y', { value: y, writable: false, enumerable: true, configurable: false });
+        Object.defineProperty(this, 'protect', { value: protect, writable: false, enumerable: true, configurable: false });
+        Object.defineProperty(this, 'force', { value: force, writable: false, enumerable: true, configurable: false });
     }
     ImageDrawer.prototype.begin = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -86,7 +88,7 @@ var ImageDrawer = /** @class */ (function () {
                                         b = pixels.get(x, y, 2);
                                         closestColorId = this.instance.canvas.getClosestColorId(r, g, b);
                                         if (!(closestColorId !== -1)) return [3 /*break*/, 4];
-                                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId)];
+                                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.force, this.protect)];
                                     case 3:
                                         _a.sent();
                                         _a.label = 4;

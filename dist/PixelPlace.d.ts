@@ -14,32 +14,24 @@ export declare class PixelPlace {
     Init(): Promise<void>;
     getPixelAt(x: number, y: number): number | undefined;
     getColorId(r: number, g: number, b: number): number;
-    placePixel(x: number, y: number, col: number, brush?: number): Promise<void>;
+    placePixel(x: number, y: number, col: number, brush?: number, protect?: boolean, force?: boolean): Promise<void>;
     emit(key: string, value: any): void;
-    drawImage(x: number, y: number, path: string): Promise<void>;
+    drawImage(x: number, y: number, path: string, protect?: boolean, force?: boolean): Promise<void>;
 }
-export declare enum Packets {
-    INIT = "init",
-    PIXEL = "p",
-    JOIN = "j",
+declare enum RECEIVED {
     LEAVE = "l",
-    PALIVE = "ping.alive",
-    POALIVE = "pong.alive",
-    NEW_CHAT_MESSAGE = "chat.user.message",
+    JOIN = "j",
+    PING_ALIVE = "ping.alive",
     DELETE_CHAT_MESSAGE = "chat.system.delete",
     CHAT_LOADED = "chat.messages.loaded",
-    CHAT_SEND_MESSAGE = "chat.message",
+    CHAT_MESSAGE = "chat.user.message",
     CANVAS = "canvas",
     CHAT_STATS = "chat.stats",
     RATE_CHANGE = "rate_change",
-    FIGHT_START = "area_fight_start",
-    FIGHT_END = "area_fight_end",
+    AREA_FIGHT_START = "area_fighT_start",
+    AREA_FIGHT_END = "area_fight_end",
     ERROR = "throw.error",
-    ITEM_USED = "item.notification.use",
-    PREMIUM_MOD = "premium.mod",
-    SAVE_TRACKING_CACHE = "save.tracking.cache",
-    SAVE_TRACKING_PENDING = "save.tracking.pending",
-    QUEUE = "queue",
+    ITEM_USE_NOTIFICATION = "item.notification.use",
     SPECIAL_ERROR = "throw.error.special",
     PROTECTION = "protection",
     COOLDOWN = "cooldown",
@@ -47,22 +39,43 @@ export declare enum Packets {
     RELOAD = "reload",
     CANVAS_ACCESS_REQUESTED = "canvas.access.requested",
     USER_PROFILE = "user.profile",
-    PAINTING_PLAYERS = "painting.players",
     HOT_PAINTINGS = "hot.paintings",
     COINS_GIFT_NOTIFICATION = "coins.notification.gift",
     GOLDEN_NOTIFICATION = "golden.notification",
-    ITEM_NOTIFICATION_SNOWBALL = "item.notification.snowball",
+    SNOWBALL_ITEM_NOTIFICATION = "item.notification.snowball",
     ITEM_NOTIFICATION_GIFT = "item.notification.gift",
-    CHAT_SYSTEM_MESSAGE = "chat.system.message",
+    CHAT_SYSTEM_MESSAGe = "chat.system.message"
+}
+declare enum SENT {
+    INIT = "init",
+    PIXEL = "p",
+    PONG_ALIVE = "pong.alive",
+    CHAT_MESSAGE = "chat.message",
+    USER_PROFILE = "user.profile",
+    HOT_PAINTINGS = "hot.paintings",
+    CHAT_SYSTEM_DELETE = "chat.system.delete",
+    CHAT_LOADED = "chat.messages.loaded",
+    CHAT_MESSAGES_LOADED = "chat.messages.loaded",
+    SERVER_TIME = "server_time",
+    USERNAME = "username"
+}
+declare enum UNKNOWN {
+    PREMIUM_MOD = "premium.mod",
+    SAVE_TRACKING_CACHE = "save.tracking.cache",
+    SAVE_TRACKING_PENDING = "save.tracking.pending",
+    QUEUE = "queue",
+    PAINTING_PLAYERS = "painting.players",
     CANVAS_SUCCESS = "canvas.success",
     CANVAS_ALERT = "canvas.alert",
     CHAT_CUSTOM_MESSAGE = "chat.custom.message",
     CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
     CHAT_PAINTING_DELETE = "chat.painting.delete",
-    CHAT_SYSTEM_DELETE = "chat.system.delete",
-    CHAT_MESSAGES_LOADED = "chat.messages.loaded",
     CHAT_COMMAND = "chat.command",
-    AREAS = "areas",
-    SERVER_TIME = "server_time",
-    USERNAME = "username"
+    AREAS = "areas"
 }
+export declare class Packets {
+    static RECEIVED: typeof RECEIVED;
+    static SENT: typeof SENT;
+    static UNKNOWN: typeof UNKNOWN;
+}
+export {};

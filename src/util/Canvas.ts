@@ -66,7 +66,7 @@ export class Canvas {
         this.init();
     }
 
-    async init() {
+    async init(): Promise<void> {
         const dimensions = await this.getDimensions();
 
         const canvasWidth = dimensions.width;
@@ -78,7 +78,7 @@ export class Canvas {
 
     }
 
-    getClosestColorId(r: number, g: number, b: number) {
+    getClosestColorId(r: number, g: number, b: number): number {
         let minDistance = Infinity;
         let closestColorId = -1;
     
@@ -95,11 +95,11 @@ export class Canvas {
         return closestColorId;
     }
 
-    getColorId(r: number, g: number, b: number) {
+    getColorId(r: number, g: number, b: number): number {
         return this.colors[`${r}, ${g}, ${b}`] != null ? this.colors[`${r}, ${g}, ${b}`] : -1;
     }
 
-    async loadCanvasPicture() {
+    async loadCanvasPicture(): Promise<void> {
 
         const imageUrl = 'https://pixelplace.io/canvas/' + this.boardId + '.png?t200000=' + Date.now();
 
@@ -143,18 +143,18 @@ export class Canvas {
 
     }
 
-    async loadCanvasData(canvas: number[][]) {
+    async loadCanvasData(canvas: number[][]): Promise<void> {
         canvas.forEach(pixel => {
             this.loadPixelData(pixel);
         })
     }
 
-    async loadPixelData(pixel: number[]) {
+    async loadPixelData(pixel: number[]): Promise<void> {
         var [x, y, col] = pixel;
         this.pixelData?.set(x, y, col);
     }
 
-    async getDimensions() {
+    async getDimensions(): Promise<{ [key: string]: number }> {
         const res: Response = await fetch("https://pixelplace.io/api/get-painting.php?id=" + this.boardId + "&connected=1", {
           "headers": {
             "accept": "application/json, text/javascript, */*; q=0.01",

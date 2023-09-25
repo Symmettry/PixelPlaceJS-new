@@ -2,6 +2,7 @@ import { getPalive } from './util/PAlive.js';
 import { Canvas } from './util/Canvas.js';
 import WebSocket from 'ws';
 import { ImageDrawer } from './util/ImageDrawer.js';
+import * as Protector from "./util/Protector.js";
 
 export class PixelPlace {
     
@@ -27,12 +28,12 @@ export class PixelPlace {
         Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
     }
 
-    on(key: string, func: Function) {
+    on(key: string, func: Function): void {
         if(!this.listeners.has(key)) this.listeners.set(key, []);
         this.listeners.get(key)?.push(func);
     }
 
-    async Init() {
+    async Init(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             // Connect to PixelPlace
             Object.defineProperty(this, 'socket', {value: new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false});
@@ -84,6 +85,7 @@ export class PixelPlace {
                             case "canvas": // why are these 2 separate keys? they do the same thing owmince lol
                             case "p": // pixels
                                 this.canvas.loadCanvasData(value);
+                                Protector.detect(this, value);
                                 break;
                         }
                         break;
@@ -101,59 +103,56 @@ export class PixelPlace {
         });
     }
 
-    getPixelAt(x: number, y: number) {
+    getPixelAt(x: number, y: number): number | undefined {
         return this.canvas.pixelData?.get(x, y);
     }
 
-    getColorId(r: number, g: number, b: number) {
+    getColorId(r: number, g: number, b: number): number {
         return this.canvas.getColorId(r, g, b);
     }
 
-    placePixel(x: number, y: number, col: number, brush:number=1) {
+    placePixel(x: number, y: number, col: number, brush: number=1, protect: boolean=false, force: boolean=false): Promise<void> {
         return new Promise<void>((resolve, _reject) => {
-            if(this.getPixelAt(x, y) == col) {
+            if(protect) {
+                Protector.protect(x, y, col);
+            }
+
+            if(!force && this.getPixelAt(x, y) == col) {
                 resolve();
             } else {
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+
                 setTimeout(resolve, 50);
             }
         });
     }
 
-    emit(key: string, value: any) {
+    emit(key: string, value: any): void {
         const data = `42["${key}",${value.toString()}]`;
         this.socket.send(data);
     }
     
-    async drawImage(x: number, y: number, path: string) {
-        const drawer: ImageDrawer = new ImageDrawer(this, x, y, path);
+    async drawImage(x: number, y: number, path: string, protect: boolean=false, force: boolean=false): Promise<void> {
+        const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, protect, force);
         await drawer.begin();
     }
 
 }
 
-export enum Packets {
-    INIT = "init",
-    PIXEL = "p",
-    JOIN = "j",
+enum RECEIVED {
     LEAVE = "l",
-    PALIVE = "ping.alive",
-    POALIVE = "pong.alive",
-    NEW_CHAT_MESSAGE = "chat.user.message",
+    JOIN = "j",
+    PING_ALIVE = "ping.alive",
     DELETE_CHAT_MESSAGE = "chat.system.delete",
     CHAT_LOADED = "chat.messages.loaded",
-    CHAT_SEND_MESSAGE = "chat.message",
+    CHAT_MESSAGE = "chat.user.message",
     CANVAS = "canvas",
     CHAT_STATS = "chat.stats",
     RATE_CHANGE = "rate_change",
-    FIGHT_START = "area_fight_start",
-    FIGHT_END = "area_fight_end",
+    AREA_FIGHT_START = "area_fighT_start",
+    AREA_FIGHT_END = "area_fight_end",
     ERROR = "throw.error",
-    ITEM_USED = "item.notification.use",
-    PREMIUM_MOD = "premium.mod",
-    SAVE_TRACKING_CACHE = "save.tracking.cache",
-    SAVE_TRACKING_PENDING = "save.tracking.pending",
-    QUEUE = "queue",
+    ITEM_USE_NOTIFICATION = "item.notification.use",
     SPECIAL_ERROR = "throw.error.special",
     PROTECTION = "protection",
     COOLDOWN = "cooldown",
@@ -161,22 +160,43 @@ export enum Packets {
     RELOAD = "reload",
     CANVAS_ACCESS_REQUESTED = "canvas.access.requested",
     USER_PROFILE = "user.profile",
-    PAINTING_PLAYERS = "painting.players",
     HOT_PAINTINGS = "hot.paintings",
     COINS_GIFT_NOTIFICATION = "coins.notification.gift",
     GOLDEN_NOTIFICATION = "golden.notification",
-    ITEM_NOTIFICATION_SNOWBALL = "item.notification.snowball",
+    SNOWBALL_ITEM_NOTIFICATION = "item.notification.snowball",
     ITEM_NOTIFICATION_GIFT = "item.notification.gift",
-    CHAT_SYSTEM_MESSAGE = "chat.system.message",
+    CHAT_SYSTEM_MESSAGe = "chat.system.message"
+}
+enum SENT {
+    INIT = "init",
+    PIXEL = "p",
+    PONG_ALIVE = "pong.alive",
+    CHAT_MESSAGE = "chat.message",
+    USER_PROFILE = "user.profile",
+    HOT_PAINTINGS = "hot.paintings",
+    CHAT_SYSTEM_DELETE = "chat.system.delete",
+    CHAT_LOADED = "chat.messages.loaded",
+    CHAT_MESSAGES_LOADED = "chat.messages.loaded",
+    SERVER_TIME = "server_time",
+    USERNAME = "username",
+}
+enum UNKNOWN {
+    PREMIUM_MOD = "premium.mod",
+    SAVE_TRACKING_CACHE = "save.tracking.cache",
+    SAVE_TRACKING_PENDING = "save.tracking.pending",
+    QUEUE = "queue",
+    PAINTING_PLAYERS = "painting.players",
     CANVAS_SUCCESS = "canvas.success",
     CANVAS_ALERT = "canvas.alert",
     CHAT_CUSTOM_MESSAGE = "chat.custom.message",
     CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
     CHAT_PAINTING_DELETE = "chat.painting.delete",
-    CHAT_SYSTEM_DELETE = "chat.system.delete",
-    CHAT_MESSAGES_LOADED = "chat.messages.loaded",
     CHAT_COMMAND = "chat.command",
     AREAS = "areas",
-    SERVER_TIME = "server_time",
-    USERNAME = "username"
+}
+
+export class Packets {
+    static RECEIVED: typeof RECEIVED = RECEIVED;
+    static SENT: typeof SENT = SENT;
+    static UNKNOWN: typeof UNKNOWN = UNKNOWN;
 }

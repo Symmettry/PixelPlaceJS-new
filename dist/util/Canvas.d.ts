@@ -13,7 +13,6 @@ export declare class Canvas {
     loadCanvasData(canvas: number[][]): Promise<void>;
     loadPixelData(pixel: number[]): Promise<void>;
     getDimensions(): Promise<{
-        width: number;
-        height: number;
+        [key: string]: number;
     }>;
 }
