@@ -111,8 +111,12 @@ export class PixelPlace {
 
     placePixel(x: number, y: number, col: number, brush:number=1) {
         return new Promise<void>((resolve, _reject) => {
-            this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
-            setTimeout(resolve, 20);
+            if(this.getPixelAt(x, y) == col) {
+                resolve();
+            } else {
+                this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+                setTimeout(resolve, 22);
+            }
         });
     }
 

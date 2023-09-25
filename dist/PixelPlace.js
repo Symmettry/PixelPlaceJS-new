@@ -134,8 +134,13 @@ var PixelPlace = /** @class */ (function () {
         var _this = this;
         if (brush === void 0) { brush = 1; }
         return new Promise(function (resolve, _reject) {
-            _this.emit("p", "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]"));
-            setTimeout(resolve, 20);
+            if (_this.getPixelAt(x, y) == col) {
+                resolve();
+            }
+            else {
+                _this.emit("p", "[".concat(x, ", ").concat(y, ", ").concat(col, ", ").concat(brush, "]"));
+                setTimeout(resolve, 20);
+            }
         });
     };
     PixelPlace.prototype.emit = function (key, value) {
