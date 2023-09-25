@@ -137,12 +137,15 @@ var Canvas = /** @class */ (function () {
                                     canvasWidth = dimensions.width;
                                     canvasHeight = dimensions.height;
                                     this.pixelData = (0, ndarray_1.default)(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
-                                    if (this.pixelPreData) {
-                                        this.pixelPreData.forEach(function (preData) {
+                                    if (!this.pixelPreData) return [3 /*break*/, 3];
+                                    return [4 /*yield*/, Promise.all(this.pixelPreData.map(function (preData) {
                                             _this.loadCanvasData(preData);
-                                        });
-                                        this.pixelPreData = [];
-                                    }
+                                        }))];
+                                case 2:
+                                    _a.sent();
+                                    this.pixelPreData = [];
+                                    _a.label = 3;
+                                case 3:
                                     resolve();
                                     return [2 /*return*/];
                             }

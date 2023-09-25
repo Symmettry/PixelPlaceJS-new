@@ -1,11 +1,11 @@
-import { PixelPlace } from "../PixelPlace";
+import { Bot } from "../bot/Bot";
 export declare class ImageDrawer {
-    instance: PixelPlace;
+    instance: Bot;
     path: string;
     x: number;
     y: number;
     protect: boolean;
     force: boolean;
-    constructor(instance: PixelPlace, x: number, y: number, path: string, protect: boolean, force: boolean);
+    constructor(instance: Bot, x: number, y: number, path: string, protect: boolean, force: boolean);
     begin(): Promise<void>;
 }

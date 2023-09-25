@@ -1,6 +1,6 @@
 import { Bot } from "./bot/Bot";
 
-class PixelPlace {
+export class PixelPlace {
 
     bots: Bot[];
 
