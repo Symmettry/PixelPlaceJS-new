@@ -1,16 +1,10 @@
 {
-  "module": "commonjs",
-  "dependencies": {
-    "get-pixels": "^3.3.3",
-    "ndarray": "^1.0.19",
-    "ws": "^8.14.2"
-  },
   "name": "pixelplacejs-new",
-  "description": "PixelPlace JS working",
   "version": "1.0.1",
-  "main": "src/PixelPlace.js",
+  "description": "PixelPlace JS working",
+  "main": "dist/PixelPlace.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -21,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/Symmettry/PixelPlaceJS-new/issues"
   },
-  "homepage": "https://github.com/Symmettry/PixelPlaceJS-new#readme"
+  "homepage": "https://github.com/Symmettry/PixelPlaceJS-new#readme",
+  "dependencies": {
+    "get-pixels": "^3.3.3",
+    "ndarray": "^1.0.19",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.4"
+  }
 }

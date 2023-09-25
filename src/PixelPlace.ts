@@ -1,12 +1,22 @@
-const { getPalive } = require("./util/PAlive.js");
-const { Canvas } = require("./util/Canvas.js");
-const WebSocket = require('ws');
+import { getPalive } from './util/PAlive.js';
+import { Canvas } from './util/Canvas.js';
+import WebSocket from 'ws';
 
-class PixelPlaceError extends Error { }
-
-class PixelPlace {
+export class PixelPlace {
     
-    constructor(authKey, authToken, authId, boardId) {
+    listeners!: Map<string, Function[]>;
+
+    socket!: WebSocket;
+    canvas!: Canvas;
+
+    boardId!: number;
+    authKey!: string;
+    authToken!: string;
+    authId!: string;
+    
+    pixels!: number[][];
+
+    constructor(authKey: string, authToken: string, authId: string, boardId: number) {
         Object.defineProperty(this, 'authKey', {value: authKey, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'authToken', {value: authToken, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'authId', {value: authId, writable: false, enumerable: true, configurable: false});
@@ -16,17 +26,13 @@ class PixelPlace {
         Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
     }
 
-    on(key, func) {
-        if(typeof key !== "string" || typeof func !== "function") {
-            throw new PixelPlaceError("Invalid arguments for on(key,func)");
-        } else {
-            if(!this.listeners.has(key)) this.listeners.set(key, []);
-            this.listeners.get(key).push(func);
-        }
+    on(key: string, func: Function) {
+        if(!this.listeners.has(key)) this.listeners.set(key, []);
+        this.listeners.get(key)?.push(func);
     }
 
     async Init() {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             // Connect to PixelPlace
             Object.defineProperty(this, 'socket', {value: new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false});
 
@@ -40,16 +46,18 @@ class PixelPlace {
 
                 var pixelplacer = () => {
                     if(this.pixels.length > 0) {
-                        var [x, y, col, brush] = this.pixels.shift();
-                        this.socket.send(`42["p", [${x}, ${y}, ${col}, ${brush}]]`)
+                        var shiftedPixels = this.pixels.shift();
+                        if (shiftedPixels) {
+                            this.emit("p", shiftedPixels);
+                        }
                     }
                     setTimeout(pixelplacer, 20);
                 }
                 pixelplacer();
             });
 
-            this.socket.on('message', (data) => {
-                data = data.toString(); // buffer -> string
+            this.socket.on('message', (buffer: Buffer) => {
+                var data: string = buffer.toString(); // buffer -> string
                 
                 // Gets the data and ID of the response
                 let index = data.indexOf("{");
@@ -77,11 +85,11 @@ class PixelPlace {
                         var key = message[0];
                         var value = message[1];
                         if(this.listeners.has(key)) { // if there are listeners for this key
-                            this.listeners.get(key).forEach(listener => listener(value)); // then send the value!
+                            this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
                         }
                         switch(key) {
                             case "ping.alive": // pixelplace keepalive
-                                this.socket.send(`42["pong.alive", "${getPalive()}"]`)
+                                this.socket.send(`42["pong.alive", "${getPalive(7)}"]`)
                                 break;
                             case "canvas": // why are these 2 separate keys? they do the same thing owmince lol
                             case "p": // pixels
@@ -103,71 +111,70 @@ class PixelPlace {
         });
     }
 
-    getPixelAt(x, y) {
-        return this.canvas.pixelData.get(x, y);
+    getPixelAt(x: number, y: number) {
+        return this.canvas.pixelData?.get(x, y);
     }
 
-    getColorId(r, g, b) {
+    getColorId(r: number, g: number, b: number) {
         return this.canvas.getColorId(r, g, b);
     }
 
-    placePixel(x, y, col, brush=1) {
+    placePixel(x: number, y: number, col: number, brush:number=1) {
         this.pixels.push([x, y, col, brush]);
     }
 
-    emit(key, value) {
-        const data = `42["${key}",${value}]`;
+    emit(key: string, value: any) {
+        const data = `42["${key}",${value.toString()}]`;
         this.socket.send(data);
     }
 
 }
 
-var Packets = {};
-Packets["INIT"] = "init";
-Packets["PIXEL"] = "p";
-Packets["JOIN"] = "j";
-Packets["LEAVE"] = "l";
-Packets["PALIVE"] = "ping.alive";
-Packets["POALIVE"] = "pong.alive";
-Packets["NEW_CHAT_MESSAGE"] = "chat.user.message";
-Packets["DELETE_CHAT_MESSAGE"] = "chat.system.delete";
-Packets["CHAT_LOADED"] = "chat.messages.loaded";
-Packets["CHAT_SEND_MESSAGE"] = "chat.message";
-Packets["CANVAS"] = "canvas";
-Packets["CHAT_STATS"] = "chat.stats";
-Packets["RATE_CHANGE"] = "rate_change";
-Packets["FIGHT_START"] = "area_fight_start";
-Packets["FIGHT_END"] = "area_fight_end";
-Packets["ERROR"] = "throw.error";
-Packets["ITEM_USED"] = "item.notification.use";
-Packets["PREMIUM_MOD"] = "premium.mod";
-Packets["SAVE_TRACKING_CACHE"] = "save.tracking.cache";
-Packets["SAVE_TRACKING_PENDING"] = "save.tracking.pending";
-Packets["QUEUE"] = "queue";
-Packets["SPECIAL_ERROR"] = "throw.error.special";
-Packets["PROTECTION"] = "protection";
-Packets["COOLDOWN"] = "cooldown";
-Packets["COOLDOWN_DOT"] = "cooldown_dot";
-Packets["RELOAD"] = "reload";
-Packets["CANVAS_ACCESS_REQUESTED"] = "canvas.access.requested";
-Packets["USER_PROFILE"] = "user.profile";
-Packets["PAINTING_PLAYERS"] = "painting.players";
-Packets["HOT_PAINTINGS"] = "hot.paintings";
-Packets["COINS_GIFT_NOTIFICATION"] = "coins.notification.gift";
-Packets["GOLDEN_NOTIFICATION"] = "golden.notification";
-Packets["ITEM_NOTIFICATION_SNOWBALL"] = "item.notification.snowball";
-Packets["ITEM_NOTIFICATION_GIFT"] = "item.notification.gift";
-Packets["CHAT_SYSTEM_MESSAGE"] = "chat.system.message";
-Packets["CANVAS_SUCCESS"] = "canvas.success";
-Packets["CANVAS_ALERT"] = "canvas.alert";
-Packets["CHAT_CUSTOM_MESSAGE"] = "chat.custom.message";
-Packets["CHAT_CUSTOM_ANNOUNCE"] = "chat.custom.announce";
-Packets["CHAT_PAINTING_DELETE"] = "chat.painting.delete";
-Packets["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
-Packets["CHAT_MESSAGES_LOADED"] = "chat.messages.loaded";
-Packets["CHAT_COMMAND"] = "chat.command";
-Packets["AREAS"] = "areas";
-Packets["SERVER_TIME"] = "server_time";
-Packets["USERNAME"] = "username";
-
-module.exports = { PixelPlace, Packets };
+export enum Packets {
+    INIT = "init",
+    PIXEL = "p",
+    JOIN = "j",
+    LEAVE = "l",
+    PALIVE = "ping.alive",
+    POALIVE = "pong.alive",
+    NEW_CHAT_MESSAGE = "chat.user.message",
+    DELETE_CHAT_MESSAGE = "chat.system.delete",
+    CHAT_LOADED = "chat.messages.loaded",
+    CHAT_SEND_MESSAGE = "chat.message",
+    CANVAS = "canvas",
+    CHAT_STATS = "chat.stats",
+    RATE_CHANGE = "rate_change",
+    FIGHT_START = "area_fight_start",
+    FIGHT_END = "area_fight_end",
+    ERROR = "throw.error",
+    ITEM_USED = "item.notification.use",
+    PREMIUM_MOD = "premium.mod",
+    SAVE_TRACKING_CACHE = "save.tracking.cache",
+    SAVE_TRACKING_PENDING = "save.tracking.pending",
+    QUEUE = "queue",
+    SPECIAL_ERROR = "throw.error.special",
+    PROTECTION = "protection",
+    COOLDOWN = "cooldown",
+    COOLDOWN_DOT = "cooldown_dot",
+    RELOAD = "reload",
+    CANVAS_ACCESS_REQUESTED = "canvas.access.requested",
+    USER_PROFILE = "user.profile",
+    PAINTING_PLAYERS = "painting.players",
+    HOT_PAINTINGS = "hot.paintings",
+    COINS_GIFT_NOTIFICATION = "coins.notification.gift",
+    GOLDEN_NOTIFICATION = "golden.notification",
+    ITEM_NOTIFICATION_SNOWBALL = "item.notification.snowball",
+    ITEM_NOTIFICATION_GIFT = "item.notification.gift",
+    CHAT_SYSTEM_MESSAGE = "chat.system.message",
+    CANVAS_SUCCESS = "canvas.success",
+    CANVAS_ALERT = "canvas.alert",
+    CHAT_CUSTOM_MESSAGE = "chat.custom.message",
+    CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
+    CHAT_PAINTING_DELETE = "chat.painting.delete",
+    CHAT_SYSTEM_DELETE = "chat.system.delete",
+    CHAT_MESSAGES_LOADED = "chat.messages.loaded",
+    CHAT_COMMAND = "chat.command",
+    AREAS = "areas",
+    SERVER_TIME = "server_time",
+    USERNAME = "username"
+}
