@@ -103,13 +103,13 @@ function detectAll(pp) {
                                     }
                                 });
                             }); });
-                            setTimeout(resolve, 1000);
+                            resolve();
                             return [2 /*return*/];
                         });
                     }); })];
                 case 1:
                     _a.sent();
-                    detectAll(pp);
+                    setTimeout(function () { detectAll(pp); }, 1000);
                     return [2 /*return*/];
             }
         });

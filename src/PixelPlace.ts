@@ -1,5 +1,6 @@
 import { Bot } from "./bot/Bot";
 import { Auth } from "./bot/Auth";
+import { Modes } from "./util/Modes";
 
 class PixelPlace {
 
@@ -18,7 +19,7 @@ class PixelPlace {
 
 }
 
-export { Auth, PixelPlace };
+export { Auth, PixelPlace, Modes };
 
 enum RECEIVED {
     LEAVE = "l",
@@ -30,7 +31,7 @@ enum RECEIVED {
     CANVAS = "canvas",
     CHAT_STATS = "chat.stats",
     RATE_CHANGE = "rate_change",
-    AREA_FIGHT_START = "area_fighT_start",
+    AREA_FIGHT_START = "area_fight_start",
     AREA_FIGHT_END = "area_fight_end",
     ERROR = "throw.error",
     ITEM_USE_NOTIFICATION = "item.notification.use",
@@ -49,6 +50,7 @@ enum RECEIVED {
     CHAT_SYSTEM_MESSAGE = "chat.system.message",
     CHAT_SYSTEM_DELETE = "chat.system.delete",
     PIXEL = "p",
+    SERVER_TIME = "server_time",
 }
 enum SENT {
     INIT = "init",
@@ -57,7 +59,6 @@ enum SENT {
     CHAT_MESSAGE = "chat.message",
     USER_PROFILE = "user.profile",
     HOT_PAINTINGS = "hot.paintings",
-    SERVER_TIME = "server_time",
     USERNAME = "username",
 }
 enum UNKNOWN {

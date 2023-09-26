@@ -34,7 +34,7 @@ export async function detectAll(pp: Bot): Promise<void> {
                 await pp.placePixel(x, y, protectColor, 1, true, false);
             }
         })
-        setTimeout(resolve, 1000);
+        resolve();
     });
-    detectAll(pp);
+    setTimeout(() => {detectAll(pp)}, 1000);
 }

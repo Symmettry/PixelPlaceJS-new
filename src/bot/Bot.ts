@@ -1,17 +1,19 @@
-import { getPalive } from '../util/PAlive.js';
-import { Canvas } from '../util/Canvas.js';
+import { getPalive } from '../util/ping/PAlive.js';
+import getTDelay from '../util/ping/TDelay.js';
+import * as Canvas from '../util/Canvas.js';
 import WebSocket from 'ws';
 import { ImageDrawer } from '../util/ImageDrawer.js';
 import * as Protector from "../util/Protector.js";
 import { Packets } from "../PixelPlace.js";
 import { Auth } from './Auth.js';
+import { Modes } from '../util/Modes.js';
 
 export class Bot {
     
     listeners!: Map<string, Function[]>;
 
     socket!: WebSocket;
-    canvas!: Canvas;
+    canvas!: Canvas.Canvas;
 
     boardId!: number;
     authKey!: string;
@@ -21,6 +23,8 @@ export class Bot {
     pixels!: number[][];
 
     lastPlaced!: number;
+
+    tDelay: number = 0;
 
     constructor(auth: Auth) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -45,7 +49,7 @@ export class Bot {
             Object.defineProperty(this, 'socket', {value: new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false});
 
             // Create the canvas
-            Object.defineProperty(this, 'canvas', {value: new Canvas(this.boardId), writable: false, enumerable: true, configurable: false});
+            Object.defineProperty(this, 'canvas', {value: Canvas.getCanvas(this.boardId), writable: false, enumerable: true, configurable: false});
             
             this.pixels = [];
 
@@ -89,15 +93,18 @@ export class Bot {
                                 await this.canvas.loadCanvasPicture();
                                 break;
                             case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
-                                this.socket.send(`42["pong.alive", "${getPalive(7)}"]`)
+                                this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
                                 break;
                             case Packets.RECEIVED.PIXEL: // pixels
                                 this.canvas.loadCanvasData(value);
                                 Protector.detectPixels(this, value);
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
-                                await this.canvas.loadCanvasData(value);
+                                this.canvas.loadCanvasData(value);
                                 setTimeout(resolve, 3000);
+                                break;
+                            case Packets.RECEIVED.SERVER_TIME:
+                                this.tDelay = getTDelay(value);
                                 break;
                         }
                         break;
@@ -124,7 +131,7 @@ export class Bot {
     }
 
     genPlacementSpeed(): number {
-        return Math.floor(Math.random() * 10) + 20;
+        return Math.floor(Math.random() * 11) + 30;
     }
 
     async placePixel(x: number, y: number, col: number, brush: number=1, protect: boolean=false, force: boolean=false): Promise<void> {
@@ -159,7 +166,7 @@ export class Bot {
         this.socket.send(data);
     }
     
-    async drawImage(x: number, y: number, path: string, protect: boolean=false, force: boolean=false): Promise<void> {
+    async drawImage(x: number, y: number, path: string, mode: Modes=Modes.LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
         const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, protect, force);
         await drawer.begin();
     }

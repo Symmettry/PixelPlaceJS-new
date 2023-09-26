@@ -63,14 +63,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Bot = void 0;
-var PAlive_js_1 = require("../util/PAlive.js");
-var Canvas_js_1 = require("../util/Canvas.js");
+var PAlive_js_1 = require("../util/ping/PAlive.js");
+var TDelay_js_1 = __importDefault(require("../util/ping/TDelay.js"));
+var Canvas = __importStar(require("../util/Canvas.js"));
 var ws_1 = __importDefault(require("ws"));
 var ImageDrawer_js_1 = require("../util/ImageDrawer.js");
 var Protector = __importStar(require("../util/Protector.js"));
 var PixelPlace_js_1 = require("../PixelPlace.js");
+var Modes_js_1 = require("../util/Modes.js");
 var Bot = /** @class */ (function () {
     function Bot(auth) {
+        this.tDelay = 0;
         Object.defineProperty(this, 'authKey', { value: auth.authKey, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'authToken', { value: auth.authToken, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'authId', { value: auth.authId, writable: false, enumerable: true, configurable: false });
@@ -92,7 +95,7 @@ var Bot = /** @class */ (function () {
                         // Connect to PixelPlace
                         Object.defineProperty(_this, 'socket', { value: new ws_1.default('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false });
                         // Create the canvas
-                        Object.defineProperty(_this, 'canvas', { value: new Canvas_js_1.Canvas(_this.boardId), writable: false, enumerable: true, configurable: false });
+                        Object.defineProperty(_this, 'canvas', { value: Canvas.getCanvas(_this.boardId), writable: false, enumerable: true, configurable: false });
                         _this.pixels = [];
                         _this.socket.on('open', function () {
                             Protector.detectAll(_this);
@@ -141,6 +144,7 @@ var Bot = /** @class */ (function () {
                                             case PixelPlace_js_1.Packets.RECEIVED.PING_ALIVE: return [3 /*break*/, 8];
                                             case PixelPlace_js_1.Packets.RECEIVED.PIXEL: return [3 /*break*/, 9];
                                             case PixelPlace_js_1.Packets.RECEIVED.CANVAS: return [3 /*break*/, 10];
+                                            case PixelPlace_js_1.Packets.RECEIVED.SERVER_TIME: return [3 /*break*/, 11];
                                         }
                                         return [3 /*break*/, 12];
                                     case 5: // sent once initiated
@@ -152,17 +156,18 @@ var Bot = /** @class */ (function () {
                                         _d.sent();
                                         return [3 /*break*/, 12];
                                     case 8:
-                                        this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(7), "\"]"));
+                                        this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(this.tDelay), "\"]"));
                                         return [3 /*break*/, 12];
                                     case 9:
                                         this.canvas.loadCanvasData(value);
                                         Protector.detectPixels(this, value);
                                         return [3 /*break*/, 12];
-                                    case 10: // canvas
-                                    return [4 /*yield*/, this.canvas.loadCanvasData(value)];
-                                    case 11:
-                                        _d.sent();
+                                    case 10:
+                                        this.canvas.loadCanvasData(value);
                                         setTimeout(resolve, 3000);
+                                        return [3 /*break*/, 12];
+                                    case 11:
+                                        this.tDelay = (0, TDelay_js_1.default)(value);
                                         return [3 /*break*/, 12];
                                     case 12: return [3 /*break*/, 13];
                                     case 13: return [2 /*return*/];
@@ -188,7 +193,7 @@ var Bot = /** @class */ (function () {
         return this.canvas.getColorId(r, g, b);
     };
     Bot.prototype.genPlacementSpeed = function () {
-        return Math.floor(Math.random() * 10) + 20;
+        return Math.floor(Math.random() * 11) + 30;
     };
     Bot.prototype.placePixel = function (x, y, col, brush, protect, force) {
         if (brush === void 0) { brush = 1; }
@@ -243,7 +248,8 @@ var Bot = /** @class */ (function () {
         var data = "42[\"".concat(key, "\",").concat(value.toString(), "]");
         this.socket.send(data);
     };
-    Bot.prototype.drawImage = function (x, y, path, protect, force) {
+    Bot.prototype.drawImage = function (x, y, path, mode, protect, force) {
+        if (mode === void 0) { mode = Modes_js_1.Modes.LEFT_TO_RIGHT; }
         if (protect === void 0) { protect = false; }
         if (force === void 0) { force = false; }
         return __awaiter(this, void 0, void 0, function () {

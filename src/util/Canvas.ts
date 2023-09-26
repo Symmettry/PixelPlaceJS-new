@@ -3,11 +3,21 @@ import * as https from 'https';
 import { IncomingMessage } from 'http';
 import getPixels = require('get-pixels');
 
+var canvases: Map<number, Canvas> = new Map();
+
+export function getCanvas(boardId: number): Canvas | undefined {
+    if(canvases.has(boardId)) {
+        return canvases.get(boardId);
+    } else{
+        return new Canvas(boardId);
+    }
+}
+
 export class Canvas {
 
     boardId: number;
     colors: { [key: string]: number };
-    pixelData: ndarray.NdArray<Float64Array> | undefined;
+    pixelData!: ndarray.NdArray<Uint16Array>;
     pixelPreData!: number[][][];
 
     constructor(boardId: number) {
@@ -73,14 +83,14 @@ export class Canvas {
             const canvasWidth = dimensions.width;
             const canvasHeight = dimensions.height;
     
-            this.pixelData = ndarray(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+            this.pixelData = ndarray(new Uint16Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
             if(this.pixelPreData) {
                 await Promise.all(this.pixelPreData.map(preData => {
                     this.loadCanvasData(preData);
                 }));
                 this.pixelPreData = [];
             }
-
+            canvases.set(this.boardId, this);
             resolve();
         });
     }
@@ -151,20 +161,16 @@ export class Canvas {
         });
     }
 
-    async loadCanvasData(pixels: number[][]): Promise<void> {
+    loadCanvasData(pixels: number[][]): void {
         if(this.pixelData == undefined) {
-            if(this.pixelPreData == undefined)this.pixelPreData = [];
+            if(this.pixelPreData == undefined) this.pixelPreData = [];
             this.pixelPreData.push(pixels);
         } else {
             pixels.forEach(pixel => {
-                this.loadPixelData(pixel);
-            })
+                var [x, y, col] = pixel;
+                this.pixelData.set(x, y, col);
+            });
         }
-    }
-
-    async loadPixelData(pixel: number[]): Promise<void> {
-        var [x, y, col] = pixel;
-        this.pixelData?.set(x, y, col);
     }
 
     async getDimensions(): Promise<{ [key: string]: number }> {

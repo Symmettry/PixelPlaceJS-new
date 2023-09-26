@@ -36,10 +36,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Packets = exports.PixelPlace = exports.Auth = void 0;
+exports.Packets = exports.Modes = exports.PixelPlace = exports.Auth = void 0;
 var Bot_1 = require("./bot/Bot");
 var Auth_1 = require("./bot/Auth");
 Object.defineProperty(exports, "Auth", { enumerable: true, get: function () { return Auth_1.Auth; } });
+var Modes_1 = require("./util/Modes");
+Object.defineProperty(exports, "Modes", { enumerable: true, get: function () { return Modes_1.Modes; } });
 var PixelPlace = /** @class */ (function () {
     function PixelPlace(auths) {
         var _this = this;
@@ -74,7 +76,7 @@ var RECEIVED;
     RECEIVED["CANVAS"] = "canvas";
     RECEIVED["CHAT_STATS"] = "chat.stats";
     RECEIVED["RATE_CHANGE"] = "rate_change";
-    RECEIVED["AREA_FIGHT_START"] = "area_fighT_start";
+    RECEIVED["AREA_FIGHT_START"] = "area_fight_start";
     RECEIVED["AREA_FIGHT_END"] = "area_fight_end";
     RECEIVED["ERROR"] = "throw.error";
     RECEIVED["ITEM_USE_NOTIFICATION"] = "item.notification.use";
@@ -93,6 +95,7 @@ var RECEIVED;
     RECEIVED["CHAT_SYSTEM_MESSAGE"] = "chat.system.message";
     RECEIVED["CHAT_SYSTEM_DELETE"] = "chat.system.delete";
     RECEIVED["PIXEL"] = "p";
+    RECEIVED["SERVER_TIME"] = "server_time";
 })(RECEIVED || (RECEIVED = {}));
 var SENT;
 (function (SENT) {
@@ -102,7 +105,6 @@ var SENT;
     SENT["CHAT_MESSAGE"] = "chat.message";
     SENT["USER_PROFILE"] = "user.profile";
     SENT["HOT_PAINTINGS"] = "hot.paintings";
-    SENT["SERVER_TIME"] = "server_time";
     SENT["USERNAME"] = "username";
 })(SENT || (SENT = {}));
 var UNKNOWN;

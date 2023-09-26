@@ -62,10 +62,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Canvas = void 0;
+exports.Canvas = exports.getCanvas = void 0;
 var ndarray_1 = __importDefault(require("ndarray"));
 var https = __importStar(require("https"));
 var getPixels = require("get-pixels");
+var canvases = new Map();
+function getCanvas(boardId) {
+    if (canvases.has(boardId)) {
+        return canvases.get(boardId);
+    }
+    else {
+        return new Canvas(boardId);
+    }
+}
+exports.getCanvas = getCanvas;
 var Canvas = /** @class */ (function () {
     function Canvas(boardId) {
         this.boardId = boardId;
@@ -136,7 +146,7 @@ var Canvas = /** @class */ (function () {
                                     dimensions = _a.sent();
                                     canvasWidth = dimensions.width;
                                     canvasHeight = dimensions.height;
-                                    this.pixelData = (0, ndarray_1.default)(new Float64Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+                                    this.pixelData = (0, ndarray_1.default)(new Uint16Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
                                     if (!this.pixelPreData) return [3 /*break*/, 3];
                                     return [4 /*yield*/, Promise.all(this.pixelPreData.map(function (preData) {
                                             _this.loadCanvasData(preData);
@@ -146,6 +156,7 @@ var Canvas = /** @class */ (function () {
                                     this.pixelPreData = [];
                                     _a.label = 3;
                                 case 3:
+                                    canvases.set(this.boardId, this);
                                     resolve();
                                     return [2 /*return*/];
                             }
@@ -218,33 +229,18 @@ var Canvas = /** @class */ (function () {
         });
     };
     Canvas.prototype.loadCanvasData = function (pixels) {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                if (this.pixelData == undefined) {
-                    if (this.pixelPreData == undefined)
-                        this.pixelPreData = [];
-                    this.pixelPreData.push(pixels);
-                }
-                else {
-                    pixels.forEach(function (pixel) {
-                        _this.loadPixelData(pixel);
-                    });
-                }
-                return [2 /*return*/];
+        var _this = this;
+        if (this.pixelData == undefined) {
+            if (this.pixelPreData == undefined)
+                this.pixelPreData = [];
+            this.pixelPreData.push(pixels);
+        }
+        else {
+            pixels.forEach(function (pixel) {
+                var x = pixel[0], y = pixel[1], col = pixel[2];
+                _this.pixelData.set(x, y, col);
             });
-        });
-    };
-    Canvas.prototype.loadPixelData = function (pixel) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function () {
-            var x, y, col;
-            return __generator(this, function (_b) {
-                x = pixel[0], y = pixel[1], col = pixel[2];
-                (_a = this.pixelData) === null || _a === void 0 ? void 0 : _a.set(x, y, col);
-                return [2 /*return*/];
-            });
-        });
+        }
     };
     Canvas.prototype.getDimensions = function () {
         return __awaiter(this, void 0, void 0, function () {
