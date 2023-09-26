@@ -1,6 +1,7 @@
 import { Bot } from "./bot/Bot";
+import { Auth } from "./bot/Auth";
 
-export class PixelPlace {
+class PixelPlace {
 
     bots: Bot[];
 
@@ -16,6 +17,8 @@ export class PixelPlace {
     }
 
 }
+
+export { Auth, PixelPlace };
 
 enum RECEIVED {
     LEAVE = "l",

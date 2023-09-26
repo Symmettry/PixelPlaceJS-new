@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import { ImageDrawer } from '../util/ImageDrawer.js';
 import * as Protector from "../util/Protector.js";
 import { Packets } from "../PixelPlace.js";
+import { Auth } from './Auth.js';
 
 export class Bot {
     
@@ -66,7 +67,6 @@ export class Bot {
 
                 // if JSON, parse, else keep it
                 var message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
-
                 switch(id) {
                     case "0": // socket.io start
                         this.socket.send("40");

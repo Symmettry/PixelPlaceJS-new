@@ -1,3 +1,11 @@
+import { Bot } from "./bot/Bot";
+import { Auth } from "./bot/Auth";
+declare class PixelPlace {
+    bots: Bot[];
+    constructor(auths: Auth[]);
+    Init(): Promise<void>;
+}
+export { Auth, PixelPlace };
 declare enum RECEIVED {
     LEAVE = "l",
     JOIN = "j",
@@ -57,4 +65,3 @@ export declare class Packets {
     static SENT: typeof SENT;
     static UNKNOWN: typeof UNKNOWN;
 }
-export {};

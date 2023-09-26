@@ -1,4 +1,4 @@
-class Auth {
+export class Auth {
 
     authKey: string;
     authToken: string;
@@ -6,10 +6,10 @@ class Auth {
 
     boardId: number;
 
-    constructor(authKey: string, authToken: string, authId: string, boardId: number) {
-        this.authKey = authKey;
-        this.authToken = authToken;
-        this.authId = authId;
+    constructor(authObj: {[key: string]: string}, boardId: number) {
+        this.authKey = authObj.authKey;
+        this.authToken = authObj.authToken;
+        this.authId = authObj.authId;
 
         this.boardId = boardId;
     }

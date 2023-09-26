@@ -36,8 +36,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Packets = void 0;
+exports.Packets = exports.PixelPlace = exports.Auth = void 0;
 var Bot_1 = require("./bot/Bot");
+var Auth_1 = require("./bot/Auth");
+Object.defineProperty(exports, "Auth", { enumerable: true, get: function () { return Auth_1.Auth; } });
 var PixelPlace = /** @class */ (function () {
     function PixelPlace(auths) {
         var _this = this;
@@ -60,6 +62,7 @@ var PixelPlace = /** @class */ (function () {
     };
     return PixelPlace;
 }());
+exports.PixelPlace = PixelPlace;
 var RECEIVED;
 (function (RECEIVED) {
     RECEIVED["LEAVE"] = "l";

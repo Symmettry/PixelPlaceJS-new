@@ -1,5 +1,6 @@
 import { Canvas } from '../util/Canvas.js';
 import WebSocket from 'ws';
+import { Auth } from './Auth.js';
 export declare class Bot {
     listeners: Map<string, Function[]>;
     socket: WebSocket;
