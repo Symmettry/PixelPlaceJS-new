@@ -60,7 +60,7 @@ const { PixelPlace, Packets, Auth } = require("pixelplacejs-new");
     await pp.Init();
     console.log("Pixel Place initiated!");
 
-    pp.on(Packets.NEW_CHAT_MESSAGE, (message) => {
+    pp.bots[0].on(Packets.RECEIVED.CHAT_MESSAGE, (message) => {
         console.log(message);
     });
 
