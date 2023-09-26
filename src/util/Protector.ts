@@ -1,40 +1,49 @@
+import ndarray from 'ndarray';
 import { Bot } from "../bot/Bot";
 
-export const protectedPixels: Map<string, number> = new Map();
+export class Protector {
 
-export function protect(x: number, y: number, col: number): void {
-    protectedPixels.set(`${x},${y}`, col);
-}
-export function unprotect(x: number, y: number): void {
-    protectedPixels.delete(`${x},${y}`);
-}
+    protectedPixels: ndarray.NdArray<Uint16Array>;
+    constructor(canvasWidth: number, canvasHeight: number) {
+        this.protectedPixels = ndarray(new Uint16Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+    }
 
-export function getColor(x: number, y: number): number | undefined {
-    return protectedPixels.has(`${x},${y}`) ? protectedPixels.get(`${x},${y}`) : -1;
-}
+    protect(x: number, y: number, col: number): void {
+        this.protectedPixels.set(x, y, col);
+    }
+    unprotect(x: number, y: number): void {
+        this.protectedPixels.set(x, y, -1);
+    }
 
-export async function detectPixels(pp: Bot, pixels: number[][]): Promise<void> {
-    await Promise.all(
-        pixels.map(async (pixel) => {
-            const [x, y, col] = pixel;
-            const protectColor = getColor(x, y);
-            if (protectColor != undefined && protectColor !== -1 && protectColor !== col) {
-                await pp.placePixel(x, y, protectColor, 1, true, false);
+    getColor(x: number, y: number): number | undefined {
+        return this.protectedPixels.get(x,y);
+    }
+
+    async detectPixels(pp: Bot, pixels: number[][]): Promise<void> {
+        await Promise.all(
+            pixels.map(async (pixel) => {
+                const [x, y, col] = pixel;
+                const protectColor = this.getColor(x, y);
+                if (protectColor != undefined && protectColor !== -1 && protectColor !== col) {
+                    await pp.placePixel(x, y, protectColor, 1, true, false);
+                }
+            })
+        );      
+    }
+
+    async detectAll(pp: Bot): Promise<void> {
+        await new Promise<void>(async (resolve, _reject) => {
+            for (let x = 0; x < this.protectedPixels.shape[0]; x++) {
+                for (let y = 0; y < this.protectedPixels.shape[1]; y++) {
+                    const protectColor = this.protectedPixels.get(x, y);
+                    if(protectColor != undefined && protectColor !== -1 && protectColor !== pp.getPixelAt(x, y)) {
+                        await pp.placePixel(x, y, protectColor, 1, true, false);
+                    }
+                }
             }
-        })
-    );      
-}
+            resolve();
+        });
+        setTimeout(() => {this.detectAll(pp)}, 1000);
+    }
 
-export async function detectAll(pp: Bot): Promise<void> {
-    await new Promise<void>(async (resolve, _reject) => {
-        protectedPixels.forEach(async (_value, key) => {
-            const [x, y] = key.split(",").map(Number);
-            const protectColor = getColor(x, y);
-            if(protectColor != undefined && protectColor !== -1 && protectColor !== pp.getPixelAt(x, y)) {
-                await pp.placePixel(x, y, protectColor, 1, true, false);
-            }
-        })
-        resolve();
-    });
-    setTimeout(() => {detectAll(pp)}, 1000);
 }

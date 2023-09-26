@@ -137,16 +137,16 @@ var Canvas = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2 /*return*/, new Promise(function (resolve, _reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var dimensions, canvasWidth, canvasHeight;
+                        var dimensions;
                         var _this = this;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0: return [4 /*yield*/, this.getDimensions()];
                                 case 1:
                                     dimensions = _a.sent();
-                                    canvasWidth = dimensions.width;
-                                    canvasHeight = dimensions.height;
-                                    this.pixelData = (0, ndarray_1.default)(new Uint16Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+                                    this.canvasWidth = dimensions.width;
+                                    this.canvasHeight = dimensions.height;
+                                    this.pixelData = (0, ndarray_1.default)(new Uint16Array(this.canvasWidth * this.canvasHeight), [this.canvasWidth, this.canvasHeight]);
                                     if (!this.pixelPreData) return [3 /*break*/, 3];
                                     return [4 /*yield*/, Promise.all(this.pixelPreData.map(function (preData) {
                                             _this.loadCanvasData(preData);

@@ -56,7 +56,7 @@ export class ImageDrawer {
                         const g = pixels.get(x, y, 1);
                         const b = pixels.get(x, y, 2);
                         
-                        var closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
+                        const closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
                         if(closestColorId !== -1) {
                             await this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.protect, this.force);
                         }

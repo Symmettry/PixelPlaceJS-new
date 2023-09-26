@@ -1,5 +1,6 @@
 import * as Canvas from '../util/Canvas.js';
 import WebSocket from 'ws';
+import { Protector } from "../util/Protector.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/Modes.js';
 export declare class Bot {
@@ -13,6 +14,7 @@ export declare class Bot {
     pixels: number[][];
     lastPlaced: number;
     tDelay: number;
+    protector: Protector;
     constructor(auth: Auth);
     on(key: string, func: Function): void;
     Init(): Promise<void>;

@@ -20,6 +20,9 @@ export class Canvas {
     pixelData!: ndarray.NdArray<Uint16Array>;
     pixelPreData!: number[][][];
 
+    canvasWidth!: number;
+    canvasHeight!: number;
+
     constructor(boardId: number) {
         this.boardId = boardId;
         this.colors = {
@@ -80,10 +83,10 @@ export class Canvas {
         return new Promise<void>(async (resolve, _reject) => {
             const dimensions = await this.getDimensions();
 
-            const canvasWidth = dimensions.width;
-            const canvasHeight = dimensions.height;
+            this.canvasWidth = dimensions.width;
+            this.canvasHeight = dimensions.height;
     
-            this.pixelData = ndarray(new Uint16Array(canvasWidth * canvasHeight), [canvasWidth, canvasHeight]);
+            this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight), [this.canvasWidth, this.canvasHeight]);
             if(this.pixelPreData) {
                 await Promise.all(this.pixelPreData.map(preData => {
                     this.loadCanvasData(preData);

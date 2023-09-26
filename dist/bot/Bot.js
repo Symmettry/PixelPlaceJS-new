@@ -68,7 +68,7 @@ var TDelay_js_1 = __importDefault(require("../util/ping/TDelay.js"));
 var Canvas = __importStar(require("../util/Canvas.js"));
 var ws_1 = __importDefault(require("ws"));
 var ImageDrawer_js_1 = require("../util/ImageDrawer.js");
-var Protector = __importStar(require("../util/Protector.js"));
+var Protector_js_1 = require("../util/Protector.js");
 var PixelPlace_js_1 = require("../PixelPlace.js");
 var Modes_js_1 = require("../util/Modes.js");
 var Bot = /** @class */ (function () {
@@ -98,7 +98,6 @@ var Bot = /** @class */ (function () {
                         Object.defineProperty(_this, 'canvas', { value: Canvas.getCanvas(_this.boardId), writable: false, enumerable: true, configurable: false });
                         _this.pixels = [];
                         _this.socket.on('open', function () {
-                            Protector.detectAll(_this);
                         });
                         _this.socket.on('message', function (buffer) { return __awaiter(_this, void 0, void 0, function () {
                             var data, index, cube, json, id, message, _a, key, value, _b;
@@ -122,16 +121,16 @@ var Bot = /** @class */ (function () {
                                             case "2": return [3 /*break*/, 3];
                                             case "42": return [3 /*break*/, 4];
                                         }
-                                        return [3 /*break*/, 13];
+                                        return [3 /*break*/, 14];
                                     case 1:
                                         this.socket.send("40");
-                                        return [3 /*break*/, 13];
+                                        return [3 /*break*/, 14];
                                     case 2:
                                         this.socket.send("42[\"init\",{\"authKey\":\"".concat(this.authKey, "\",\"authToken\":\"").concat(this.authToken, "\",\"authId\":\"").concat(this.authId, "\",\"boardId\":").concat(this.boardId, "}]"));
-                                        return [3 /*break*/, 13];
+                                        return [3 /*break*/, 14];
                                     case 3:
                                         this.socket.send("3");
-                                        return [3 /*break*/, 13];
+                                        return [3 /*break*/, 14];
                                     case 4:
                                         key = message[0];
                                         value = message[1];
@@ -141,41 +140,47 @@ var Bot = /** @class */ (function () {
                                         _b = key;
                                         switch (_b) {
                                             case PixelPlace_js_1.Packets.RECEIVED.CHAT_STATS: return [3 /*break*/, 5];
-                                            case PixelPlace_js_1.Packets.RECEIVED.PING_ALIVE: return [3 /*break*/, 8];
-                                            case PixelPlace_js_1.Packets.RECEIVED.PIXEL: return [3 /*break*/, 9];
-                                            case PixelPlace_js_1.Packets.RECEIVED.CANVAS: return [3 /*break*/, 10];
-                                            case PixelPlace_js_1.Packets.RECEIVED.SERVER_TIME: return [3 /*break*/, 11];
+                                            case PixelPlace_js_1.Packets.RECEIVED.PING_ALIVE: return [3 /*break*/, 9];
+                                            case PixelPlace_js_1.Packets.RECEIVED.PIXEL: return [3 /*break*/, 10];
+                                            case PixelPlace_js_1.Packets.RECEIVED.CANVAS: return [3 /*break*/, 11];
+                                            case PixelPlace_js_1.Packets.RECEIVED.SERVER_TIME: return [3 /*break*/, 12];
                                         }
-                                        return [3 /*break*/, 12];
-                                    case 5: // sent once initiated
-                                    return [4 /*yield*/, this.canvas.init()];
+                                        return [3 /*break*/, 13];
+                                    case 5:
+                                        if (!!this.protector) return [3 /*break*/, 8];
+                                        return [4 /*yield*/, this.canvas.init()];
                                     case 6:
                                         _d.sent();
+                                        this.protector = new Protector_js_1.Protector(this.canvas.canvasHeight, this.canvas.canvasWidth);
+                                        this.protector.detectAll(this);
                                         return [4 /*yield*/, this.canvas.loadCanvasPicture()];
                                     case 7:
                                         _d.sent();
-                                        return [3 /*break*/, 12];
-                                    case 8:
-                                        this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(this.tDelay), "\"]"));
-                                        return [3 /*break*/, 12];
+                                        _d.label = 8;
+                                    case 8: return [3 /*break*/, 13];
                                     case 9:
-                                        this.canvas.loadCanvasData(value);
-                                        Protector.detectPixels(this, value);
-                                        return [3 /*break*/, 12];
+                                        this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(this.tDelay), "\"]"));
+                                        return [3 /*break*/, 13];
                                     case 10:
                                         this.canvas.loadCanvasData(value);
-                                        setTimeout(resolve, 3000);
-                                        return [3 /*break*/, 12];
+                                        if (this.protector)
+                                            this.protector.detectPixels(this, value);
+                                        return [3 /*break*/, 13];
                                     case 11:
+                                        this.canvas.loadCanvasData(value);
+                                        setTimeout(resolve, 3000);
+                                        return [3 /*break*/, 13];
+                                    case 12:
                                         this.tDelay = (0, TDelay_js_1.default)(value);
-                                        return [3 /*break*/, 12];
-                                    case 12: return [3 /*break*/, 13];
-                                    case 13: return [2 /*return*/];
+                                        return [3 /*break*/, 13];
+                                    case 13: return [3 /*break*/, 14];
+                                    case 14: return [2 /*return*/];
                                 }
                             });
                         }); });
                         _this.socket.on('close', function () {
-                            console.log('PPJS Closed.');
+                            console.log('PPJS Closed, restarting');
+                            _this.Init();
                         });
                         _this.socket.on('error', function (error) {
                             console.error('PPJS error:', error);
@@ -227,7 +232,7 @@ var Bot = /** @class */ (function () {
                 else {
                     return [2 /*return*/, new Promise(function (resolve, _reject) {
                             if (protect) {
-                                Protector.protect(x, y, col);
+                                _this.protector.protect(x, y, col);
                             }
                             if (!force && _this.getPixelAt(x, y) == col) {
                                 resolve();

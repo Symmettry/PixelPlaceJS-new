@@ -3,7 +3,7 @@ import getTDelay from '../util/ping/TDelay.js';
 import * as Canvas from '../util/Canvas.js';
 import WebSocket from 'ws';
 import { ImageDrawer } from '../util/ImageDrawer.js';
-import * as Protector from "../util/Protector.js";
+import { Protector } from "../util/Protector.js";
 import { Packets } from "../PixelPlace.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/Modes.js';
@@ -25,6 +25,8 @@ export class Bot {
     lastPlaced!: number;
 
     tDelay: number = 0;
+
+    protector!: Protector;
 
     constructor(auth: Auth) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -54,7 +56,6 @@ export class Bot {
             this.pixels = [];
 
             this.socket.on('open', () => {
-                Protector.detectAll(this);
             });
 
             this.socket.on('message', async (buffer: Buffer) => {
@@ -89,15 +90,19 @@ export class Bot {
                         }
                         switch(key) {
                             case Packets.RECEIVED.CHAT_STATS: // sent once initiated
-                                await this.canvas.init();
-                                await this.canvas.loadCanvasPicture();
+                                if(!this.protector) {
+                                    await this.canvas.init();
+                                    this.protector = new Protector(this.canvas.canvasHeight, this.canvas.canvasWidth);
+                                    this.protector.detectAll(this);
+                                    await this.canvas.loadCanvasPicture();
+                                }
                                 break;
                             case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
                                 this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
                                 break;
                             case Packets.RECEIVED.PIXEL: // pixels
                                 this.canvas.loadCanvasData(value);
-                                Protector.detectPixels(this, value);
+                                if(this.protector)this.protector.detectPixels(this, value);
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
                                 this.canvas.loadCanvasData(value);
@@ -112,7 +117,8 @@ export class Bot {
             });
 
             this.socket.on('close', () => {
-                console.log('PPJS Closed.');
+                console.log('PPJS Closed, restarting');
+                this.Init();
             });
 
             this.socket.on('error', (error: Error) => {
@@ -147,7 +153,7 @@ export class Bot {
         } else {
             return new Promise<void>((resolve, _reject) => {
                 if(protect) {
-                    Protector.protect(x, y, col);
+                    this.protector.protect(x, y, col);
                 }
                 if(!force && this.getPixelAt(x, y) == col) {
                     resolve();
