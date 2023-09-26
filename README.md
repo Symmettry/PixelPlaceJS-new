@@ -1,5 +1,5 @@
 # ppjs-new
-PixelPlace JS working
+PixelPlace JS v2 basically
 
 ### Usage
 ```js
@@ -33,25 +33,30 @@ pp.on("key", (value) => {});
 pp.emit("key", value);
 
 // draws the image at "path_to_image" at x and y (left->right)
+// mode?: drawing mode, (Modes.LEFT_TO_RIGHT, etc.), defaults to Modes.LEFT_TO_RIGHT
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
-p.drawImage(x, y, "path_to_image", protect?, force?);
+p.drawImage(x, y, "path_to_image", mode?, protect?, force?);
 ```
 
 ### Full Bot
 
 ```js
-const { PixelPlace, Packets } = require("./PixelPlace.js");
+const { PixelPlace, Packets, Auth } = require("pixelplacejs-new");
 
 (async () => {
-          
-    var authKey = ""; // Fill this
-    var authToken = ""; // Fill this
-    var authId = ""; // Fill this
+    
+    const boardId = 7;
 
-    var boardId = 7;
+    const auths = [
+        new Auth({
+            authKey: "", // Fill this
+            authToken: "", // Fill this
+            authId: "", // Fill this
+        }, boardId),
+    ]
 
-    const pp = new PixelPlace(authKey, authToken, authId, boardId);
+    const pp = new PixelPlace(auths);
     await pp.Init();
     console.log("Pixel Place initiated!");
 
