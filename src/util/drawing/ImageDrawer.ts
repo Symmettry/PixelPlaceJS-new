@@ -1,4 +1,4 @@
-import { Bot } from "../bot/Bot";
+import { Bot } from "../../bot/Bot";
 import fs from 'fs';
 import getPixels = require("get-pixels");
 import mime = require("mime-types");

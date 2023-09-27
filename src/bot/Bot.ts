@@ -2,11 +2,11 @@ import { getPalive } from '../util/ping/PAlive.js';
 import getTDelay from '../util/ping/TDelay.js';
 import * as Canvas from '../util/Canvas.js';
 import WebSocket from 'ws';
-import { ImageDrawer } from '../util/ImageDrawer.js';
+import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
-import { Packets } from "../PixelPlace.js";
+import { Packets } from "../util/Packets.js";
 import { Auth } from './Auth.js';
-import { Modes } from '../util/Modes.js';
+import { Modes } from '../util/drawing/Modes.js';
 
 export class Bot {
     
