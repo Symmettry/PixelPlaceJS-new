@@ -73,6 +73,7 @@ var PixelPlace_js_1 = require("../PixelPlace.js");
 var Modes_js_1 = require("../util/Modes.js");
 var Bot = /** @class */ (function () {
     function Bot(auth) {
+        this.isWorld = true;
         this.tDelay = 0;
         Object.defineProperty(this, 'authKey', { value: auth.authKey, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'authToken', { value: auth.authToken, writable: false, enumerable: true, configurable: false });
@@ -94,9 +95,13 @@ var Bot = /** @class */ (function () {
                 return [2 /*return*/, new Promise(function (resolve, reject) {
                         // Connect to PixelPlace
                         Object.defineProperty(_this, 'socket', { value: new ws_1.default('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false });
+                        if (Canvas.hasCanvas(_this.boardId)) {
+                            _this.isWorld = false;
+                        }
                         // Create the canvas
                         Object.defineProperty(_this, 'canvas', { value: Canvas.getCanvas(_this.boardId), writable: false, enumerable: true, configurable: false });
                         _this.pixels = [];
+                        // currently redundant
                         _this.socket.on('open', function () {
                         });
                         _this.socket.on('message', function (buffer) { return __awaiter(_this, void 0, void 0, function () {
@@ -147,7 +152,7 @@ var Bot = /** @class */ (function () {
                                         }
                                         return [3 /*break*/, 13];
                                     case 5:
-                                        if (!!this.protector) return [3 /*break*/, 8];
+                                        if (!(this.isWorld && !this.protector)) return [3 /*break*/, 8];
                                         return [4 /*yield*/, this.canvas.init()];
                                     case 6:
                                         _d.sent();
@@ -162,13 +167,14 @@ var Bot = /** @class */ (function () {
                                         this.socket.send("42[\"pong.alive\", \"".concat((0, PAlive_js_1.getPalive)(this.tDelay), "\"]"));
                                         return [3 /*break*/, 13];
                                     case 10:
-                                        this.canvas.loadCanvasData(value);
-                                        if (this.protector)
-                                            this.protector.detectPixels(this, value);
+                                        if (this.isWorld)
+                                            this.canvas.loadCanvasData(value);
+                                        //if(this.protector)this.protector.detectPixels(this, value);
                                         return [3 /*break*/, 13];
                                     case 11:
-                                        this.canvas.loadCanvasData(value);
-                                        setTimeout(resolve, 3000);
+                                        if (this.isWorld)
+                                            this.canvas.loadCanvasData(value);
+                                        resolve();
                                         return [3 /*break*/, 13];
                                     case 12:
                                         this.tDelay = (0, TDelay_js_1.default)(value);
@@ -262,7 +268,7 @@ var Bot = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path, protect, force);
+                        drawer = new ImageDrawer_js_1.ImageDrawer(this, x, y, path, mode, protect, force);
                         return [4 /*yield*/, drawer.begin()];
                     case 1:
                         _a.sent();

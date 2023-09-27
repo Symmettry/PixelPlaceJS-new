@@ -62,13 +62,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Canvas = exports.getCanvas = void 0;
+exports.Canvas = exports.hasCanvas = exports.getCanvas = void 0;
 var ndarray_1 = __importDefault(require("ndarray"));
 var https = __importStar(require("https"));
 var getPixels = require("get-pixels");
 var canvases = new Map();
 function getCanvas(boardId) {
-    if (canvases.has(boardId)) {
+    if (hasCanvas(boardId)) {
         return canvases.get(boardId);
     }
     else {
@@ -76,6 +76,10 @@ function getCanvas(boardId) {
     }
 }
 exports.getCanvas = getCanvas;
+function hasCanvas(boardId) {
+    return canvases.has(boardId);
+}
+exports.hasCanvas = hasCanvas;
 var Canvas = /** @class */ (function () {
     function Canvas(boardId) {
         this.boardId = boardId;

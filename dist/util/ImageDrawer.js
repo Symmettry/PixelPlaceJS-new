@@ -43,15 +43,37 @@ exports.ImageDrawer = void 0;
 var fs_1 = __importDefault(require("fs"));
 var getPixels = require("get-pixels");
 var mime = require("mime-types");
+var Modes_1 = require("./Modes");
 var ImageDrawer = /** @class */ (function () {
-    function ImageDrawer(instance, x, y, path, protect, force) {
+    function ImageDrawer(instance, x, y, path, mode, protect, force) {
         Object.defineProperty(this, 'instance', { value: instance, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'path', { value: path, writable: false, enumerable: true, configurable: false });
+        Object.defineProperty(this, 'mode', { value: mode, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'x', { value: x, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'y', { value: y, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'protect', { value: protect, writable: false, enumerable: true, configurable: false });
         Object.defineProperty(this, 'force', { value: force, writable: false, enumerable: true, configurable: false });
     }
+    ImageDrawer.prototype.draw = function (x, y, pixels) {
+        return __awaiter(this, void 0, void 0, function () {
+            var r, g, b, closestColorId;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        r = pixels.get(x, y, 0);
+                        g = pixels.get(x, y, 1);
+                        b = pixels.get(x, y, 2);
+                        closestColorId = this.instance.canvas.getClosestColorId(r, g, b);
+                        if (!(closestColorId !== -1)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.protect, this.force)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [2 /*return*/];
+                }
+            });
+        });
+    };
     ImageDrawer.prototype.begin = function () {
         return __awaiter(this, void 0, void 0, function () {
             var type, buffer;
@@ -67,38 +89,128 @@ var ImageDrawer = /** @class */ (function () {
                 buffer = fs_1.default.readFileSync(this.path);
                 return [2 /*return*/, new Promise(function (resolve, _reject) {
                         getPixels(buffer, type, function (err, pixels) { return __awaiter(_this, void 0, void 0, function () {
-                            var y, x, r, g, b, closestColorId;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
+                            var _a, y, x, y, x, x, y, x, y, coordinates, x, y, i, j, i;
+                            var _b;
+                            return __generator(this, function (_c) {
+                                switch (_c.label) {
                                     case 0:
                                         if (err) {
                                             console.error(err);
                                             return [2 /*return*/];
                                         }
-                                        y = 0;
-                                        _a.label = 1;
+                                        _a = this.mode;
+                                        switch (_a) {
+                                            case Modes_1.Modes.LEFT_TO_RIGHT: return [3 /*break*/, 1];
+                                            case Modes_1.Modes.RIGHT_TO_LEFT: return [3 /*break*/, 8];
+                                            case Modes_1.Modes.TOP_TO_BOTTOM: return [3 /*break*/, 15];
+                                            case Modes_1.Modes.BOTTOM_TO_TOP: return [3 /*break*/, 22];
+                                            case Modes_1.Modes.RAND: return [3 /*break*/, 29];
+                                        }
+                                        return [3 /*break*/, 34];
                                     case 1:
-                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 6];
-                                        x = 0;
-                                        _a.label = 2;
+                                        y = 0;
+                                        _c.label = 2;
                                     case 2:
-                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 5];
-                                        r = pixels.get(x, y, 0);
-                                        g = pixels.get(x, y, 1);
-                                        b = pixels.get(x, y, 2);
-                                        closestColorId = this.instance.canvas.getClosestColorId(r, g, b);
-                                        if (!(closestColorId !== -1)) return [3 /*break*/, 4];
-                                        return [4 /*yield*/, this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.protect, this.force)];
+                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 7];
+                                        x = 0;
+                                        _c.label = 3;
                                     case 3:
-                                        _a.sent();
-                                        _a.label = 4;
+                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 6];
+                                        return [4 /*yield*/, this.draw(x, y, pixels)];
                                     case 4:
-                                        x++;
-                                        return [3 /*break*/, 2];
+                                        _c.sent();
+                                        _c.label = 5;
                                     case 5:
-                                        y++;
-                                        return [3 /*break*/, 1];
+                                        x++;
+                                        return [3 /*break*/, 3];
                                     case 6:
+                                        y++;
+                                        return [3 /*break*/, 2];
+                                    case 7: return [3 /*break*/, 34];
+                                    case 8:
+                                        y = 0;
+                                        _c.label = 9;
+                                    case 9:
+                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 14];
+                                        x = pixels.shape[0];
+                                        _c.label = 10;
+                                    case 10:
+                                        if (!(x > 0)) return [3 /*break*/, 13];
+                                        return [4 /*yield*/, this.draw(x, y, pixels)];
+                                    case 11:
+                                        _c.sent();
+                                        _c.label = 12;
+                                    case 12:
+                                        x--;
+                                        return [3 /*break*/, 10];
+                                    case 13:
+                                        y++;
+                                        return [3 /*break*/, 9];
+                                    case 14: return [3 /*break*/, 34];
+                                    case 15:
+                                        x = 0;
+                                        _c.label = 16;
+                                    case 16:
+                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 21];
+                                        y = 0;
+                                        _c.label = 17;
+                                    case 17:
+                                        if (!(y < pixels.shape[1])) return [3 /*break*/, 20];
+                                        return [4 /*yield*/, this.draw(x, y, pixels)];
+                                    case 18:
+                                        _c.sent();
+                                        _c.label = 19;
+                                    case 19:
+                                        y++;
+                                        return [3 /*break*/, 17];
+                                    case 20:
+                                        x++;
+                                        return [3 /*break*/, 16];
+                                    case 21: return [3 /*break*/, 34];
+                                    case 22:
+                                        x = 0;
+                                        _c.label = 23;
+                                    case 23:
+                                        if (!(x < pixels.shape[0])) return [3 /*break*/, 28];
+                                        y = pixels.shape[1];
+                                        _c.label = 24;
+                                    case 24:
+                                        if (!(y > 0)) return [3 /*break*/, 27];
+                                        return [4 /*yield*/, this.draw(x, y, pixels)];
+                                    case 25:
+                                        _c.sent();
+                                        _c.label = 26;
+                                    case 26:
+                                        y--;
+                                        return [3 /*break*/, 24];
+                                    case 27:
+                                        x++;
+                                        return [3 /*break*/, 23];
+                                    case 28: return [3 /*break*/, 34];
+                                    case 29:
+                                        coordinates = [];
+                                        for (x = 0; x < pixels.shape[0]; x++) {
+                                            for (y = 0; y < pixels.shape[1]; y++) {
+                                                coordinates.push([x, y]);
+                                            }
+                                        }
+                                        for (i = coordinates.length - 1; i > 0; i--) {
+                                            j = Math.floor(Math.random() * (i + 1));
+                                            _b = [coordinates[j], coordinates[i]], coordinates[i] = _b[0], coordinates[j] = _b[1];
+                                        }
+                                        i = 0;
+                                        _c.label = 30;
+                                    case 30:
+                                        if (!(i < coordinates.length)) return [3 /*break*/, 33];
+                                        return [4 /*yield*/, this.draw(coordinates[i][0], coordinates[i][1], pixels)];
+                                    case 31:
+                                        _c.sent();
+                                        _c.label = 32;
+                                    case 32:
+                                        i++;
+                                        return [3 /*break*/, 30];
+                                    case 33: return [3 /*break*/, 34];
+                                    case 34:
                                         resolve();
                                         return [2 /*return*/];
                                 }

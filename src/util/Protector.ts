@@ -16,7 +16,7 @@ export class Protector {
     }
 
     getColor(x: number, y: number): number | undefined {
-        return this.protectedPixels.get(x,y);
+        return this.protectedPixels.get(x, y);
     }
 
     async detectPixels(pp: Bot, pixels: number[][]): Promise<void> {
@@ -24,9 +24,10 @@ export class Protector {
             pixels.map(async (pixel) => {
                 const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
-                if (protectColor != undefined && protectColor !== -1 && protectColor !== col) {
-                    await pp.placePixel(x, y, protectColor, 1, true, false);
-                }
+                console.log(protectColor);
+                //if (protectColor !== undefined && protectColor !== -1 && protectColor !== col) {
+                //    await pp.placePixel(x, y, protectColor, 1, true, false);
+                //}
             })
         );      
     }
@@ -36,9 +37,9 @@ export class Protector {
             for (let x = 0; x < this.protectedPixels.shape[0]; x++) {
                 for (let y = 0; y < this.protectedPixels.shape[1]; y++) {
                     const protectColor = this.protectedPixels.get(x, y);
-                    if(protectColor != undefined && protectColor !== -1 && protectColor !== pp.getPixelAt(x, y)) {
-                        await pp.placePixel(x, y, protectColor, 1, true, false);
-                    }
+                    //if(protectColor != undefined && protectColor !== -1 && protectColor !== pp.getPixelAt(x, y)) {
+                    //    await pp.placePixel(x, y, protectColor, 1, true, false);
+                    //}
                 }
             }
             resolve();

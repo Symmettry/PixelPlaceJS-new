@@ -13,8 +13,11 @@ class PixelPlace {
         })
     }
 
-    async Init() {
-        await Promise.all(this.bots.map(bot => bot.Init()));
+    async Init(): Promise<void> {
+        return new Promise<void>(async (resolve, _reject) => {
+            await Promise.all(this.bots.map(bot => bot.Init()));
+            setTimeout(resolve, 3000);
+        });
     }
 
 }

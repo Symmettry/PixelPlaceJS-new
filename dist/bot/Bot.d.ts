@@ -7,6 +7,7 @@ export declare class Bot {
     listeners: Map<string, Function[]>;
     socket: WebSocket;
     canvas: Canvas.Canvas;
+    isWorld: boolean;
     boardId: number;
     authKey: string;
     authToken: string;

@@ -1,5 +1,6 @@
 import ndarray from 'ndarray';
 export declare function getCanvas(boardId: number): Canvas | undefined;
+export declare function hasCanvas(boardId: number): boolean;
 export declare class Canvas {
     boardId: number;
     colors: {

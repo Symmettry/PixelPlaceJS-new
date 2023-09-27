@@ -13,7 +13,9 @@ export class Bot {
     listeners!: Map<string, Function[]>;
 
     socket!: WebSocket;
+
     canvas!: Canvas.Canvas;
+    isWorld: boolean = true;
 
     boardId!: number;
     authKey!: string;
@@ -50,12 +52,18 @@ export class Bot {
             // Connect to PixelPlace
             Object.defineProperty(this, 'socket', {value: new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false});
 
+            if(Canvas.hasCanvas(this.boardId)) {
+                this.isWorld = false;
+            }
+
             // Create the canvas
             Object.defineProperty(this, 'canvas', {value: Canvas.getCanvas(this.boardId), writable: false, enumerable: true, configurable: false});
             
             this.pixels = [];
 
+            // currently redundant
             this.socket.on('open', () => {
+            
             });
 
             this.socket.on('message', async (buffer: Buffer) => {
@@ -90,7 +98,7 @@ export class Bot {
                         }
                         switch(key) {
                             case Packets.RECEIVED.CHAT_STATS: // sent once initiated
-                                if(!this.protector) {
+                                if(this.isWorld && !this.protector) {
                                     await this.canvas.init();
                                     this.protector = new Protector(this.canvas.canvasHeight, this.canvas.canvasWidth);
                                     this.protector.detectAll(this);
@@ -101,12 +109,12 @@ export class Bot {
                                 this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
                                 break;
                             case Packets.RECEIVED.PIXEL: // pixels
-                                this.canvas.loadCanvasData(value);
-                                if(this.protector)this.protector.detectPixels(this, value);
+                                if(this.isWorld)this.canvas.loadCanvasData(value);
+                                //if(this.protector)this.protector.detectPixels(this, value);
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
-                                this.canvas.loadCanvasData(value);
-                                setTimeout(resolve, 3000);
+                                if(this.isWorld)this.canvas.loadCanvasData(value);
+                                resolve();
                                 break;
                             case Packets.RECEIVED.SERVER_TIME:
                                 this.tDelay = getTDelay(value);

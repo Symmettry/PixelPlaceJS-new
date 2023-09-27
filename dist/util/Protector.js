@@ -62,17 +62,10 @@ var Protector = /** @class */ (function () {
                     case 0: return [4 /*yield*/, Promise.all(pixels.map(function (pixel) { return __awaiter(_this, void 0, void 0, function () {
                             var x, y, col, protectColor;
                             return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0:
-                                        x = pixel[0], y = pixel[1], col = pixel[2];
-                                        protectColor = this.getColor(x, y);
-                                        if (!(protectColor != undefined && protectColor !== -1 && protectColor !== col)) return [3 /*break*/, 2];
-                                        return [4 /*yield*/, pp.placePixel(x, y, protectColor, 1, true, false)];
-                                    case 1:
-                                        _a.sent();
-                                        _a.label = 2;
-                                    case 2: return [2 /*return*/];
-                                }
+                                x = pixel[0], y = pixel[1], col = pixel[2];
+                                protectColor = this.getColor(x, y);
+                                console.log(protectColor);
+                                return [2 /*return*/];
                             });
                         }); }))];
                     case 1:

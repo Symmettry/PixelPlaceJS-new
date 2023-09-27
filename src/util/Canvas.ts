@@ -6,11 +6,14 @@ import getPixels = require('get-pixels');
 var canvases: Map<number, Canvas> = new Map();
 
 export function getCanvas(boardId: number): Canvas | undefined {
-    if(canvases.has(boardId)) {
+    if(hasCanvas(boardId)) {
         return canvases.get(boardId);
     } else{
         return new Canvas(boardId);
     }
+}
+export function hasCanvas(boardId: number): boolean {
+    return canvases.has(boardId);
 }
 
 export class Canvas {
