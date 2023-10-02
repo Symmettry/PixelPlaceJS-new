@@ -5,9 +5,9 @@ import getPixels = require('get-pixels');
 
 var canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: number): Canvas | undefined {
+export function getCanvas(boardId: number): Canvas {
     if(hasCanvas(boardId)) {
-        return canvases.get(boardId);
+        return canvases.get(boardId) || new Canvas(boardId);
     } else{
         return new Canvas(boardId);
     }
