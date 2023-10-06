@@ -2,7 +2,8 @@
   "name": "pixelplacejs-new",
   "version": "1.1.4",
   "description": "PixelPlace JS working",
-  "main": "dist/PixelPlace.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -d"
   },

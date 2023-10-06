@@ -1,13 +1,4 @@
-import { Bot } from "./bot/Bot";
-import { Auth } from "./bot/Auth";
-import { Modes } from "./util/Modes";
-declare class PixelPlace {
-    bots: Bot[];
-    constructor(auths: Auth[]);
-    Init(): Promise<void>;
-}
-export { Auth, PixelPlace, Modes };
-declare enum RECEIVED {
+enum RECEIVED {
     LEAVE = "l",
     JOIN = "j",
     PING_ALIVE = "ping.alive",
@@ -36,18 +27,18 @@ declare enum RECEIVED {
     CHAT_SYSTEM_MESSAGE = "chat.system.message",
     CHAT_SYSTEM_DELETE = "chat.system.delete",
     PIXEL = "p",
-    SERVER_TIME = "server_time"
+    SERVER_TIME = "server_time",
 }
-declare enum SENT {
+enum SENT {
     INIT = "init",
     PIXEL = "p",
     PONG_ALIVE = "pong.alive",
     CHAT_MESSAGE = "chat.message",
     USER_PROFILE = "user.profile",
     HOT_PAINTINGS = "hot.paintings",
-    USERNAME = "username"
+    USERNAME = "username",
 }
-declare enum UNKNOWN {
+enum UNKNOWN {
     PREMIUM_MOD = "premium.mod",
     SAVE_TRACKING_CACHE = "save.tracking.cache",
     SAVE_TRACKING_PENDING = "save.tracking.pending",
@@ -59,10 +50,11 @@ declare enum UNKNOWN {
     CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
     CHAT_PAINTING_DELETE = "chat.painting.delete",
     CHAT_COMMAND = "chat.command",
-    AREAS = "areas"
+    AREAS = "areas",
 }
-export declare class Packets {
-    static RECEIVED: typeof RECEIVED;
-    static SENT: typeof SENT;
-    static UNKNOWN: typeof UNKNOWN;
+
+export class Packets {
+    static RECEIVED: typeof RECEIVED = RECEIVED;
+    static SENT: typeof SENT = SENT;
+    static UNKNOWN: typeof UNKNOWN = UNKNOWN;
 }

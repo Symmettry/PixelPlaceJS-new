@@ -8,6 +8,7 @@
       "forceConsistentCasingInFileNames": true,
       "outDir": "./dist/",                       
       "declaration": true,
+      "rootDir": "./src/",
       "lib":["es2015","dom"],                
     },
     "include": ["./src/**/*"],

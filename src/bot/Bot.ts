@@ -2,11 +2,11 @@ import { getPalive } from '../util/ping/PAlive.js';
 import getTDelay from '../util/ping/TDelay.js';
 import * as Canvas from '../util/Canvas.js';
 import WebSocket from 'ws';
-import { ImageDrawer } from '../util/ImageDrawer.js';
+import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
-import { Packets } from "../PixelPlace.js";
+import { Packets } from "../util/Packets.js";
 import { Auth } from './Auth.js';
-import { Modes } from '../util/Modes.js';
+import { Modes } from '../util/drawing/Modes.js';
 
 export class Bot {
     
@@ -50,14 +50,14 @@ export class Bot {
     async Init(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             // Connect to PixelPlace
-            Object.defineProperty(this, 'socket', {value: new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket'), writable: false, enumerable: true, configurable: false});
+            this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
 
             if(Canvas.hasCanvas(this.boardId)) {
                 this.isWorld = false;
             }
 
             // Create the canvas
-            Object.defineProperty(this, 'canvas', {value: Canvas.getCanvas(this.boardId), writable: false, enumerable: true, configurable: false});
+            this.canvas = Canvas.getCanvas(this.boardId);
             
             this.pixels = [];
 

@@ -3,65 +3,75 @@ PixelPlace JS v2 basically
 
 ### Usage
 ```js
-// Create the client
-const pp = new PixelPlace(authKey, authToken, authId, boardId);
+// Create auths
+var auths = [
+    new Auth({
+        authKey: "", // Fill this
+        authToken: "", // Fill this
+        authId: "", // Fill this
+    }, boardId), // Assign board id
+]
 
-// Initiate the client
+// Create PixelPlace instances
+const pp = new PixelPlace(auths);
+
+// Initiate all bots
 await pp.Init();
 
 // returns the color of the pixel at X and Y
 // this will give the pixel color prior to it being updated from the pixel event
-pp.getPixelAt(x, y);
+pp.bots[index].getPixelAt(x, y);
 
 // returns the color id of the r, g, and b
 // returns -1 if non-existent
-pp.getColorId(r, g, b);
+pp.bots[index].getColorId(r, g, b);
 
 // places a pixel at x,y with id col
 // if brush isn't set, it will default to 1
 // if protect isn't set, it will default to false
 // if force isn't set, it will default to false
-pp.placePixel(x, y, col, brush?, protect?, force?);
+pp.bots[index].placePixel(x, y, col, brush?, protect?, force?);
 
 // will run the function with its value when 'key' is received from the socket
 // you can also use 'Packets' from PixelPlace.js, e.g. Packets.PIXEL
 // value won't be set for some packets, such as chat loaded
-pp.on("key", (value) => {});
+pp.bots[index].on("key", (value) => {});
 
 // emits 42["key", value] through the socket
 // e.g. sends data+
-pp.emit("key", value);
+pp.bots[index].emit("key", value);
 
 // draws the image at "path_to_image" at x and y (left->right)
 // mode?: drawing mode, (Modes.LEFT_TO_RIGHT, etc.), defaults to Modes.LEFT_TO_RIGHT
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
-p.drawImage(x, y, "path_to_image", mode?, protect?, force?);
+pp.bots[index].drawImage(x, y, "path_to_image", mode?, protect?, force?);
 ```
 
 ### Full Bot
 
 ```js
-const { PixelPlace, Packets, Auth } = require("pixelplacejs-new");
+import { PixelPlace, Packets, Auth } from "pixelplacejs-new";
 
 (async () => {
-    
-    const boardId = 7;
 
-    const auths = [
+    var boardId = 7;
+
+    var auths = [
         new Auth({
             authKey: "", // Fill this
             authToken: "", // Fill this
-            authId: "", // Fill this
+            authid: "" // Fill this
         }, boardId),
     ]
 
-    const pp = new PixelPlace(auths);
+    var pp = new PixelPlace(auths);
     await pp.Init();
-    console.log("Pixel Place initiated!");
+    console.log("PP is ready!");
 
     pp.bots[0].on(Packets.RECEIVED.CHAT_MESSAGE, (message) => {
-        console.log(message);
+        if(message.channel != "global")return;
+        console.log(message.username + ": " + message.message);
     });
 
 })();
