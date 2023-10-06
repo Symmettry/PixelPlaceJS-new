@@ -7,6 +7,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
+import { Pixel } from '../util/Pixel.js';
 
 export class Bot {
     
@@ -29,6 +30,9 @@ export class Bot {
     tDelay: number = 0;
 
     protector!: Protector;
+
+    sendQueue: Array<Pixel> = [];
+    unverifiedPixels: Array<Pixel> = [];
 
     constructor(auth: Auth) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -120,6 +124,9 @@ export class Bot {
                             case Packets.RECEIVED.PIXEL: // pixels
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
                                 if(this.protector)this.protector.detectPixels(this, value);
+                                  
+                                // go through and verify if the pixels were actually sent
+                                this.verifyPixels(value);  
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
@@ -157,26 +164,77 @@ export class Bot {
         return Math.floor(Math.random() * 11) + 30;
     }
 
-    async placePixel(x: number, y: number, col: number, brush: number=1, protect: boolean=false, force: boolean=false): Promise<void> {
+    verifyPixels(value: Array<number[]>) {
+        this.unverifiedPixels = this.unverifiedPixels.filter((pixel) => {
+            return !value.some((numArr: number[]) => {
+                return numArr[0] === pixel.x && numArr[1] === pixel.y && numArr[2] === pixel.col;
+            });
+        });
+        for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
+            const pixel = this.unverifiedPixels[i];
+          
+            if (this.getPixelAt(pixel.x, pixel.y) !== pixel.col) {
+                this.sendQueue.push(pixel); // pixels were not sent, redo them
+            } else {
+                this.unverifiedPixels.splice(i, 1);
+            }
+        }
+    }
+
+    async placePixel(...args: [Pixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
+        let pixel: Pixel;
+
+        if (args.length === 1 && typeof args[0] === 'object') {
+            pixel = args[0] as Pixel;
+        } else if (args.length >= 3) {
+            pixel = {
+                x: args[0] as number,
+                y: args[1] as number,
+                col: args[2] as number,
+                brush: args[3] as number || 1,
+                protect: args[4] as boolean || false,
+                force: args[5] as boolean || false
+            };
+        } else {
+            throw new Error('Invalid arguments for placePixel.');
+        }
+
+        await this.placePixelInternal(pixel);
+    }
+
+    private async placePixelInternal(p: Pixel): Promise<void> {
+        const {x, y, col, brush, protect, force} = p;
         const deltaTime = Date.now() - this.lastPlaced;
         var placementSpeed = this.genPlacementSpeed();
         if(deltaTime < placementSpeed) {
             return new Promise<void>(async (resolve, _reject) => {
                 setTimeout(async () => {
-                    await this.placePixel(x, y, col, brush, protect, force);
+                    await this.placePixel(p);
                     resolve();
                 }, placementSpeed - deltaTime + 1);
             })
         } else {
-            return new Promise<void>((resolve, _reject) => {
+            return new Promise<void>(async (resolve, _reject) => {
                 if(protect) {
                     this.protector.protect(x, y, col);
                 }
                 if(!force && this.getPixelAt(x, y) == col) {
                     resolve();
                 } else {
-                    var data = `[${x}, ${y}, ${col}, ${brush}]`;
-                    this.emit("p", data);
+
+                    if(this.sendQueue.length > 0) {
+                        const pixel: Pixel | undefined = this.sendQueue.shift();
+                        if(pixel != null) {
+                            await this.placePixel(pixel);
+                        }
+                    }
+                    
+                    var arr: Pixel = {x,y,col,brush,protect,force};
+
+                    this.unverifiedPixels.push(arr);
+
+                    this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+
                     this.lastPlaced = Date.now();
                     setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
                 }
@@ -185,6 +243,7 @@ export class Bot {
     }
 
     emit(key: string, value: any): void {
+        console.log(key, value);
         const data = `42["${key}",${value.toString()}]`;
         this.socket.send(data);
     }
