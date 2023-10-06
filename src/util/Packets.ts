@@ -57,4 +57,5 @@ export class Packets {
     static RECEIVED: typeof RECEIVED = RECEIVED;
     static SENT: typeof SENT = SENT;
     static UNKNOWN: typeof UNKNOWN = UNKNOWN;
+    static ALL: string = "*";
 }

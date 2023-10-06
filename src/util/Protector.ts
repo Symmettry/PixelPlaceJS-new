@@ -32,7 +32,7 @@ export class Protector {
 
     async detectAll(pp: Bot): Promise<void> {
         await new Promise<void>(async (resolve, _reject) => {
-            // Here, we want to map each pixel detection to a Promise
+            // here we want to map each pixel detection to a promise
             const pixelDetectionPromises = Array.from(this.protectedPixels.entries()).map(async ([key, value]) => {
                 const [x, y] = key.split(",").map(Number);
                 if (value !== pp.getPixelAt(x, y)) {
@@ -40,7 +40,7 @@ export class Protector {
                 }
             });
     
-            // Wait for all pixel detections to complete
+            // wait for all pixel detections to complete
             await Promise.all(pixelDetectionPromises);
     
             resolve();

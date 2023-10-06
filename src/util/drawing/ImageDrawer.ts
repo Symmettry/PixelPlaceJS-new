@@ -20,7 +20,6 @@ export class ImageDrawer {
     force!: boolean;
 
     constructor(instance: Bot, x: number, y: number, path: string, mode: Modes, protect: boolean, force: boolean) {
-
         Object.defineProperty(this, 'instance', {value: instance, writable: false, enumerable: true, configurable: false});
 
         Object.defineProperty(this, 'path', {value: path, writable: false, enumerable: true, configurable: false});
@@ -32,7 +31,6 @@ export class ImageDrawer {
 
         Object.defineProperty(this, 'protect', {value: protect, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'force', {value: force, writable: false, enumerable: true, configurable: false});
-
     }
 
     async draw(x: number, y: number, pixels: NdArray<Uint8Array>) {

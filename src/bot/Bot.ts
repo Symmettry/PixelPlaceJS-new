@@ -93,9 +93,18 @@ export class Bot {
                     case "42": // message
                         var key = message[0];
                         var value = message[1];
+
+                        // Packet listeners
+                        // per-key
                         if(this.listeners.has(key)) { // if there are listeners for this key
                             this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
                         }
+                        // all-keys
+                        if(this.listeners.has(Packets.ALL)) {
+                            this.listeners.get(Packets.ALL)?.forEach(listener => listener(value));
+                        }
+
+                        // built-in functions, e.g. keepalive and pixels.
                         switch(key) {
                             case Packets.RECEIVED.CHAT_STATS: // sent once initiated
                                 if(this.isWorld && !this.protector) {
@@ -110,7 +119,7 @@ export class Bot {
                                 break;
                             case Packets.RECEIVED.PIXEL: // pixels
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
-                                //if(this.protector)this.protector.detectPixels(this, value);
+                                if(this.protector)this.protector.detectPixels(this, value);
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
