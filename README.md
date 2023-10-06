@@ -18,6 +18,8 @@ const pp = new PixelPlace(auths);
 // Initiate all bots
 await pp.Init();
 
+// index is the bot, e.g. bots[0] is similar to auths[0]
+
 // returns the color of the pixel at X and Y
 // this will give the pixel color prior to it being updated from the pixel event
 pp.bots[index].getPixelAt(x, y);
