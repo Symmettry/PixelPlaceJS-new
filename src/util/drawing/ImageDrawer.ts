@@ -77,52 +77,93 @@ export class ImageDrawer {
                     return;
                 }
 
-                switch(this.mode) {
-                    case Modes.LEFT_TO_RIGHT:
+                const drawingStrategies: {[key in Modes]: (pixels: NdArray<Uint8Array>) => Promise<void>} = {
+                    0: async (pixels: NdArray<Uint8Array>) => { // TOP_LEFT_TO_RIGHT
                         for (let y = 0; y < pixels.shape[1]; y++) {
                             for (let x = 0; x < pixels.shape[0]; x++) {
                                 await this.draw(x, y, pixels);
                             }
                         }
-                        break;
-                    case Modes.RIGHT_TO_LEFT:
+                    },
+                    1: async (pixels: NdArray<Uint8Array>) => { // TOP_RIGHT_TO_LEFT
                         for (let y = 0; y < pixels.shape[1]; y++) {
                             for (let x = pixels.shape[0]; x > 0; x--) {
                                 await this.draw(x, y, pixels);
                             }
                         }
-                        break;
-                    case Modes.TOP_TO_BOTTOM:
+                    },
+                    2: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_LEFT_TO_RIGHT
+                        for (let y = pixels.shape[1]; y > 0; y--) {
+                            for (let x = 0; x < pixels.shape[0]; x++) {
+                                await this.draw(x, y, pixels);
+                            }
+                        }
+                    },
+                    3: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_RIGHT_TO_LEFT
+                        for (let y = pixels.shape[1]; y > 0; y--) {
+                            for (let x = pixels.shape[0]; x > 0; x--) {
+                                await this.draw(x, y, pixels);
+                            }
+                        }
+                    },
+                    4: async (pixels: NdArray<Uint8Array>) => {
                         for (let x = 0; x < pixels.shape[0]; x++) {
                             for (let y = 0; y < pixels.shape[1]; y++) {
                                 await this.draw(x, y, pixels);
                             }
                         }
-                        break;
-                    case Modes.BOTTOM_TO_TOP:
+                    },
+                    5: async (pixels: NdArray<Uint8Array>) => {
                         for (let x = 0; x < pixels.shape[0]; x++) {
                             for (let y = pixels.shape[1]; y > 0; y--) {
                                 await this.draw(x, y, pixels);
                             }
                         }
-                        break;
-                    case Modes.RAND:
-                        const coordinates = [];
-                        for (let x = 0; x < pixels.shape[0]; x++) {
+                    },
+                    6: async (pixels: NdArray<Uint8Array>) => {
+                        for (let x = pixels.shape[0]; x > 0; x--) {
                             for (let y = 0; y < pixels.shape[1]; y++) {
-                                coordinates.push([x, y]);
+                                await this.draw(x, y, pixels);
                             }
                         }
+                    },
+                    7: async (pixels: NdArray<Uint8Array>) => {
+                        for (let x = pixels.shape[0]; x > 0; x--) {
+                            for (let y = pixels.shape[1]; y > 0; y--) {
+                                await this.draw(x, y, pixels);
+                            }
+                        }
+                    },
+                    8: async (pixels: NdArray<Uint8Array>) => { // RAND
+                        const totalPixels = pixels.shape[0] * pixels.shape[1];
+                        const coordinates = new Array(totalPixels);
                     
-                        for (let i = coordinates.length - 1; i > 0; i--) {
+                        // initialize the coordinates array
+                        for (let i = 0; i < totalPixels; i++) {
+                            coordinates[i] = i;
+                        }
+                    
+                        // fisher-yates shuffle algorithm
+                        for (let i = totalPixels - 1; i > 0; i--) {
                             const j = Math.floor(Math.random() * (i + 1));
                             [coordinates[i], coordinates[j]] = [coordinates[j], coordinates[i]];
                         }
                     
-                        for (let i = 0; i < coordinates.length; i++) {
-                            await this.draw(coordinates[i][0], coordinates[i][1], pixels);
+                        // draw the pixels in the shuffled order
+                        for (let i = 0; i < totalPixels; i++) {
+                            const x = coordinates[i] % pixels.shape[0];
+                            const y = Math.floor(coordinates[i] / pixels.shape[0]);
+                            await this.draw(x, y, pixels);
                         }
-                        break;
+                    },
+                    
+                };
+                
+                // Then, in your main code, you can call the appropriate strategy like this:
+                if (drawingStrategies[this.mode]) {
+                    await (drawingStrategies[this.mode])(pixels);
+                } else {
+                    throw new Error(`Invalid mode: ${this.mode}`);
                 }
                 resolve();
             });

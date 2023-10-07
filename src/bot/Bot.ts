@@ -292,7 +292,7 @@ export class Bot {
         this.socket.send(data);
     }
     
-    async drawImage(x: number, y: number, path: string, mode: Modes=Modes.LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
+    async drawImage(x: number, y: number, path: string, mode: Modes=Modes.TOP_LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
         const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, mode, protect, force);
         this.stats.images.drawing++;
         await drawer.begin();

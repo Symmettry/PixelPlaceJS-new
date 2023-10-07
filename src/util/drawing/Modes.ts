@@ -1,7 +1,17 @@
 export enum Modes {
-    LEFT_TO_RIGHT = 0,
-    RIGHT_TO_LEFT = 1,
-    TOP_TO_BOTTOM = 2,
-    BOTTOM_TO_TOP = 3,
-    RAND = 4
+
+    TOP_LEFT_TO_RIGHT = 0,
+    TOP_RIGHT_TO_LEFT = 1,
+
+    BOTTOM_LEFT_TO_RIGHT = 2,
+    BOTTOM_RIGHT_TO_LEFT = 3,
+
+    LEFT_TOP_TO_BOTTOM = 4,
+    LEFT_BOTTOM_TO_TOP = 5,
+
+    RIGHT_TOP_TO_BOTTOM = 6,
+    RIGHT_BOTTOM_TO_TOP = 7,
+
+    RAND = 8,
+    
 }
