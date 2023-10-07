@@ -120,7 +120,7 @@ export class Bot {
                         }
                         // all-keys
                         if(this.listeners.has(Packets.ALL)) {
-                            this.listeners.get(Packets.ALL)?.forEach(listener => listener(value));
+                            this.listeners.get(Packets.ALL)?.forEach(listener => listener(key, value));
                         }
 
                         // built-in functions, e.g. keepalive and pixels.
@@ -242,7 +242,7 @@ export class Bot {
         this.protector.protect(x, y, col);
     }
 
-    private async placePixelInternal(p: IPixel): Promise<void> {
+    private async placePixelInternal(p: IPixel, forcePlacementSpeed: number=-1): Promise<void> {
 
         if(this.sendQueue.length > 0) {
             const pixel: IPixel | undefined = this.sendQueue.shift();
@@ -253,6 +253,8 @@ export class Bot {
 
         const {x, y, col, brush, protect, force} = p;
 
+        const placementSpeed = forcePlacementSpeed == -1 ? this.getPlacementSpeed() : forcePlacementSpeed;
+
         if(protect) {
             this.protector.protect(x, y, col);
         }
@@ -261,12 +263,13 @@ export class Bot {
         }
 
         const deltaTime = Date.now() - this.lastPlaced;
-        if(deltaTime < this.getPlacementSpeed()) {
+        if(deltaTime < placementSpeed) {
             return new Promise<void>(async (resolve, _reject) => {
+                const newPlacementSpeed = this.getPlacementSpeed();
                 setTimeout(async () => {
-                    await this.placePixelInternal(p);
+                    await this.placePixelInternal(p, newPlacementSpeed);
                     resolve();
-                }, this.getPlacementSpeed() - deltaTime + 1);
+                }, newPlacementSpeed - deltaTime + 1);
             })
         } else {
             return new Promise<void>(async (resolve, _reject) => {
@@ -279,7 +282,7 @@ export class Bot {
                 this.stats.pixels.placed++;
 
                 this.lastPlaced = Date.now();
-                setTimeout(resolve, this.getPlacementSpeed() - (deltaTime - this.getPlacementSpeed()) + 1);
+                setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
             });
         }
     }
