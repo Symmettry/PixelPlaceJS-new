@@ -3,6 +3,9 @@ PixelPlace JS v2 basically
 
 ### Usage
 ```js
+// example import
+import { PixelPlace, Packets, Auth, Modes } from "pixelplacejs-new";
+
 // Create auths
 var auths = [
     new Auth({
@@ -21,14 +24,6 @@ await pp.Init();
 
 // index is the bot, e.g. bots[0] is similar to auths[0]
 
-// returns the color of the pixel at X and Y
-// this will give the pixel color prior to it being updated from the pixel event
-pp.bots[index].getPixelAt(x, y);
-
-// returns the color id of the r, g, and b
-// returns -1 if non-existent
-pp.bots[index].getColorId(r, g, b);
-
 // assigns pixel placement speed to a function or a number
 // For function, it will include the previous placement value.
 // supress?: suppress console warning for pixel speed under 20, defaults to false
@@ -41,22 +36,31 @@ pp.bots[index].setPlacementSpeed(number | Function, supress?);
 // if brush isn't set, it will default to 1
 // if protect isn't set, it will default to false
 // if force isn't set, it will default to false
-pp.bots[index].placePixel(x, y, col, brush?, protect?, force?);
-
-// will run the function with its value when 'key' is received from the socket
-// you can also use 'Packets' from PixelPlace.js, e.g. Packets.PIXEL
-// value won't be set for some packets, such as chat loaded
-pp.bots[index].on("key", (value) => {});
-
-// emits 42["key", value] through the socket
-// e.g. sends data+
-pp.bots[index].emit("key", value);
+await pp.bots[index].placePixel((x, y, col, brush?, protect?, force?) | IPixel);
 
 // draws the image at "path_to_image" at x and y (left->right)
 // mode?: drawing mode, (Modes.LEFT_TO_RIGHT, etc.), defaults to Modes.LEFT_TO_RIGHT
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
-pp.bots[index].drawImage(x, y, "path_to_image", mode?, protect?, force?);
+await pp.bots[index].drawImage((x, y, "path_to_image", mode?, protect?, force?) | IImage);
+
+// will run the function with its value when 'key' is received from the socket
+// you can also use a string for it, but it's recommended to use 'Packets' imported from the library
+// value won't be set for some packets, such as chat loaded
+// "Packet" refers to a string; use 'Packets' imported from the library
+pp.bots[index].on(Packet, (value) => {});
+
+// returns the color of the pixel at X and Y
+// this will give the pixel color prior to it being updated from the pixel event
+pp.bots[index].getPixelAt(x, y);
+
+// returns the color id of the r, g, and b
+// returns -1 if non-existent
+pp.bots[index].getColorId(r, g, b);
+
+// emits 42["packet", value] through the socket
+// "Packet" refers to a string; use 'Packets' imported from the library
+pp.bots[index].emit(Packet, value);
 
 // returns 'Statistics' interface
 // stats.pixels.placed, stats.pixels.protected, stats.pixels.per_second
@@ -71,28 +75,39 @@ pp.bots[index].getUsername(uid);
 ### Full Bot
 
 ```js
-import { PixelPlace, Packets, Auth } from "pixelplacejs-new";
+import { PixelPlace, Auth, Modes, Packets } from "pixelplacejs-new";
 
 (async () => {
+    const boardId = 7;
 
-    var boardId = 7;
-
-    var auths = [
+    const auths = [
         new Auth({
-            authKey: "", // Fill this
-            authToken: "", // Fill this
-            authid: "" // Fill this
+            authKey: "", // fill
+            authToken: "", // fill
+            authId: "", // fill
         }, boardId),
-    ]
+    ];
 
-    var pp = new PixelPlace(auths);
+    const pp = new PixelPlace(auths);
     await pp.Init();
-    console.log("PP is ready!");
+    
+    console.log("Pixel Place initiated!");
 
-    pp.bots[0].on(Packets.RECEIVED.CHAT_MESSAGE, (message) => {
-        if(message.channel != "global")return;
-        console.log(message.username + ": " + message.message);
-    });
+    pp.bots[0].setPlacementSpeed((prevValue) => {
+        return prevValue == 30 ? 20 : 30;
+    })
 
+    await pp.bots[0].drawImage(x, y, "my image file", Modes.TOP_LEFT_TO_RIGHT),
+    //await pp.bots[0].drawImage({ x: x, y: y, path: "my image file",
+    //      mode: Modes.TOP_LEFT_TO_RIGHT, protect: false, force: false, });
+
+    for(var x=0;x<10;x++) {
+        for(var y=0;y<10;y++) {
+            await pp.bots[0].placePixel(1000 + x, 1000 + y, 0);
+            // await pp.bots[0].placePixel({ x: 1000 + x, y: 1000 + y, col: 0, brush: 1,
+            //       protect: false, force: false })
+        }
+    }
 })();
+
 ```

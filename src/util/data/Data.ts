@@ -1,3 +1,5 @@
+import { Modes } from "../drawing/Modes";
+
 export interface IPixel {
     x: number;
     y: number;
@@ -6,6 +8,15 @@ export interface IPixel {
     protect: boolean;
     force: boolean;
 }
+export interface IImage {
+    x: number;
+    y: number;
+    path: string;
+    mode: Modes,
+    protect: boolean;
+    force: boolean;
+}
+
 export interface IStatistics {
     pixels: {
         placing: {

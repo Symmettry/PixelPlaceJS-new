@@ -7,7 +7,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
-import { IPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
+import { IImage, IPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 
 export class Bot {
@@ -304,15 +304,35 @@ export class Bot {
         this.socket.send(data);
     }
     
-    async drawImage(x: number, y: number, path: string, mode: Modes=Modes.TOP_LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
+    async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
+        let image: IImage;
+
+        if (args.length === 1 && typeof args[0] === 'object') {
+            image = args[0] as IImage;
+        } else if (args.length >= 3) {
+            image = {
+                x: args[0] as number,
+                y: args[1] as number,
+                path: args[2] as string,
+                mode: args[3] as Modes || Modes.TOP_LEFT_TO_RIGHT,
+                protect: args[4] as boolean || false,
+                force: args[5] as boolean || false
+            };
+        } else {
+            throw new Error('Invalid arguments for drawImage.');
+        }
+
+        return this.drawImageInternal(image);
+    }
+    
+    private async drawImageInternal(image: IImage) {
         this.stats.images.drawing++;
 
-        const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, mode, protect, force);
+        const drawer: ImageDrawer = new ImageDrawer(this, image);
         await drawer.begin();
 
         this.stats.images.drawing--;
         this.stats.images.finished++;
-
     }
 
     private stats: IStatistics = defaultStatistics();

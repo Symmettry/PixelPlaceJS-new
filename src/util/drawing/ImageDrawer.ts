@@ -4,6 +4,7 @@ import getPixels = require("get-pixels");
 import mime = require("mime-types");
 import { NdArray } from "ndarray";
 import { Modes } from "./Modes";
+import { IImage } from "../data/Data";
 
 export class ImageDrawer {
 
@@ -19,18 +20,18 @@ export class ImageDrawer {
     private protect!: boolean;
     private force!: boolean;
 
-    constructor(instance: Bot, x: number, y: number, path: string, mode: Modes, protect: boolean, force: boolean) {
+    constructor(instance: Bot, image: IImage) {
         Object.defineProperty(this, 'instance', {value: instance, writable: false, enumerable: true, configurable: false});
 
-        Object.defineProperty(this, 'path', {value: path, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'path', {value: image.path, writable: false, enumerable: true, configurable: false});
 
-        Object.defineProperty(this, 'mode', {value: mode, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'mode', {value: image.mode, writable: false, enumerable: true, configurable: false});
 
-        Object.defineProperty(this, 'x', {value: x, writable: false, enumerable: true, configurable: false});
-        Object.defineProperty(this, 'y', {value: y, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'x', {value: image.x, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'y', {value: image.y, writable: false, enumerable: true, configurable: false});
 
-        Object.defineProperty(this, 'protect', {value: protect, writable: false, enumerable: true, configurable: false});
-        Object.defineProperty(this, 'force', {value: force, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'protect', {value: image.protect, writable: false, enumerable: true, configurable: false});
+        Object.defineProperty(this, 'force', {value: image.force, writable: false, enumerable: true, configurable: false});
     }
 
     async draw(x: number, y: number, pixels: NdArray<Uint8Array>): Promise<void> {
