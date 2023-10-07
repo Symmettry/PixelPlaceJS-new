@@ -1,4 +1,5 @@
 import { Bot } from "../bot/Bot";
+import { Packets } from "./data/Packets";
 
 export default class UIDManager {
 
@@ -8,7 +9,7 @@ export default class UIDManager {
     // warnings if the account isnt premium.
     hasWarned: number = 0;
 
-    uidMap: Map<string, string> = new Map();
+    uidMap: Map<number, string> = new Map();
 
     constructor(pp: Bot, premium: boolean) {
         this.pp = pp;
@@ -31,7 +32,7 @@ export default class UIDManager {
             }
         })
     }
-    onUsername(id: string, name: string) {
+    onUsername(id: number, name: string) {
         this.uidMap.set(id, name);
     }
 
@@ -40,16 +41,16 @@ export default class UIDManager {
             console.warn(`~~WARN~~ Attempted access on getUsername(${uid}), but the account was not amrked premium in auth! new Auth({...}, boardId, true);`);
             return undefined;
         } else {
-            if(typeof uid == 'number')uid = uid.toString();
+            if(typeof uid == 'string')uid = parseFloat(uid);
             const val = this.uidMap.get(uid);
             return val == "---" ? undefined : val;
         }
     }
 
     register(uid: number) {
-        if(this.uidMap.get(uid.toString()) == undefined) {
-            this.pp.emit("u", uid);
-            this.uidMap.set(uid.toString(), "---");
+        if(this.uidMap.get(uid) == undefined) {
+            this.pp.emit(Packets.SENT.USERNAME, uid);
+            this.uidMap.set(uid, "---");
         }
     }
 

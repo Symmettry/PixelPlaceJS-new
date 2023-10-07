@@ -205,7 +205,7 @@ export class Bot {
             this.getPlacementSpeed = arg;
         } else {
             if(!supress && arg < 20) {
-                console.log(`WARN: Placement speed under 20 may lead to rate limit or even a ban! (Supress with setPlacementSpeed(${arg}, true))`);
+                console.warn(`~~WARN~~ Placement speed under 20 may lead to rate limit or even a ban! (Suppress with setPlacementSpeed(${arg}, true); not recommended)`);
             }
             this.getPlacementSpeed = () => arg;
         }
@@ -274,7 +274,6 @@ export class Bot {
 
     emit(key: Packets, value: any): void {
         const data = `42["${key}",${value.toString()}]`;
-        console.log(data);
         this.socket.send(data);
     }
     
