@@ -28,6 +28,12 @@ pp.bots[index].getPixelAt(x, y);
 // returns -1 if non-existent
 pp.bots[index].getColorId(r, g, b);
 
+// assigns pixel placement speed to a function or a number
+// supress?: suppress console warning for pixel speed under 20, defaults to false
+// pp.bots[index].setPlacementSpeed(30);
+// pp.bots[index].setPlacementSpeed(() => Math.floor(Math.random() * 10) + 20);
+pp.bots[index].setPlacementSpeed(number | Function, supress?);
+
 // places a pixel at x,y with id col
 // if brush isn't set, it will default to 1
 // if protect isn't set, it will default to false

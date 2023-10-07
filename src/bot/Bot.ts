@@ -171,10 +171,13 @@ export class Bot {
 
     getPlacementSpeed: Function = () => 30;
 
-    setPlacementSpeed(arg: Function | number) {
+    setPlacementSpeed(arg: Function | number, supress: boolean=false) {
         if(typeof arg == 'function') {
             this.getPlacementSpeed = arg;
         } else {
+            if(!supress && arg < 20) {
+                console.log(`WARN: Placement speed under 20 may lead to rate limit or even a ban! (Supress with setPlacementSpeed(${arg}, true))`);
+            }
             this.getPlacementSpeed = () => arg;
         }
     }
