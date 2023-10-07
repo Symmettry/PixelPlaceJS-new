@@ -29,6 +29,7 @@ enum RECEIVED {
     CHAT_SYSTEM_DELETE = "chat.system.delete",
     PIXEL = "p",
     SERVER_TIME = "server_time",
+    USERNAME = "username",
 }
 
 // packets the client can send

@@ -8,6 +8,7 @@ import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
 import { Pixel, Statistics } from '../util/data/Data.js';
+import UIDManager from '../util/UIDManager.js';
 
 export class Bot {
     
@@ -32,6 +33,8 @@ export class Bot {
 
     private autoRestart: boolean;
 
+    private uidman: UIDManager;
+
     constructor(auth: Auth, autoRestart: boolean = true) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'authToken', {value: auth.authToken, writable: false, enumerable: true, configurable: false});
@@ -43,6 +46,11 @@ export class Bot {
         
         this.lastPlaced = 0;
         this.autoRestart = autoRestart;
+        this.uidman = new UIDManager(this, auth.isPremium);
+    }
+
+    getUsername(uid: string | number): string | undefined {
+        return this.uidman.getUsername(uid);
     }
 
     getCanvas(): Canvas.Canvas {
@@ -70,9 +78,8 @@ export class Bot {
             this.canvas = Canvas.getCanvas(this.boardId);
 
             // currently redundant
-            this.socket.on('open', () => {
-            
-            });
+            //this.socket.on('open', () => {
+            //});
 
             this.socket.on('message', async (buffer: Buffer) => {
                 const data: string = buffer.toString(); // buffer -> string
@@ -127,9 +134,12 @@ export class Bot {
                             case Packets.RECEIVED.PIXEL: // pixels
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
                                 if(this.protector)await this.protector.detectPixels(value);
-                                  
-                                // go through and verify if the pixels were actually sent
-                                this.verifyPixels(value);  
+                                
+                                // pass the pixel update to the uid manager
+                                this.uidman.onPixels(value);
+
+                                // go through and verify if the pixels the bot placed were actually sent
+                                this.verifyPixels(value);
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
@@ -137,6 +147,10 @@ export class Bot {
                                 break;
                             case Packets.RECEIVED.SERVER_TIME:
                                 this.tDelay = getTDelay(value);
+                                break;
+                            case Packets.RECEIVED.USERNAME:
+                                // pass the username data to the uid manager
+                                this.uidman.onUsername(value.id, value.name);
                                 break;
                         }
                         break;
@@ -246,7 +260,7 @@ export class Bot {
                         }
                     }
                 }
-                
+
                 const arr: Pixel = {x,y,col,brush,protect,force};
                 this.unverifiedPixels.push(arr);
 
