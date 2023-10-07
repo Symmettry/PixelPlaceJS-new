@@ -7,7 +7,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
-import { Pixel, Statistics } from '../util/data/Data.js';
+import { IPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 
 export class Bot {
@@ -27,13 +27,16 @@ export class Bot {
     private tDelay: number = 0;
 
     private lastPlaced!: number;
+    private prevPlaceValue!: number;
 
-    private sendQueue: Array<Pixel> = [];
-    private unverifiedPixels: Array<Pixel> = [];
+    private sendQueue: Array<IPixel> = [];
+    private unverifiedPixels: Array<IPixel> = [];
 
     private autoRestart: boolean;
 
     private uidman: UIDManager;
+
+    private beginTime: number = Date.now();
 
     constructor(auth: Auth, autoRestart: boolean = true) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -45,8 +48,9 @@ export class Bot {
         Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
         
         this.lastPlaced = 0;
+        this.prevPlaceValue = 0;
         this.autoRestart = autoRestart;
-        this.uidman = new UIDManager(this, auth.isPremium);
+        this.uidman = new UIDManager(this);
     }
 
     getUsername(uid: string | number): string | undefined {
@@ -139,7 +143,7 @@ export class Bot {
                                 this.uidman.onPixels(value);
 
                                 // go through and verify if the pixels the bot placed were actually sent
-                                this.verifyPixels(value);
+                                this.verifyPixels();
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
@@ -182,40 +186,41 @@ export class Bot {
         return this.canvas.getColorId(r, g, b);
     }
 
-    verifyPixels(value: Array<number[]>) {
-        this.unverifiedPixels = this.unverifiedPixels.filter((pixel) => {
-            return !value.some((numArr: number[]) => {
-                const wasPlaced: boolean = numArr[0] === pixel.x && numArr[1] === pixel.y && numArr[2] === pixel.col;
-                if(wasPlaced) {
-                    this.stats.pixelsPlaced++;
-                }
-                return wasPlaced;
-            });
-        });
+    verifyPixels() {
         for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
             const pixel = this.unverifiedPixels[i];
-            this.sendQueue.push(pixel); // pixels were not sent, redo them
+            if(this.getPixelAt(pixel.x, pixel.y) != pixel.col) {
+                this.sendQueue.push(pixel); // pixels were not sent, redo them
+                this.stats.pixels.placed--;
+                this.unverifiedPixels.splice(i, 1);
+            }
         }
     }
-
-    getPlacementSpeed: Function = () => 30;
+    
+    private getPlacementSpeed() {
+        const prevValue = this.prevPlaceValue;
+        const newValue = this.userDefPlaceSpeed(prevValue);
+        this.prevPlaceValue = newValue;
+        return newValue;
+    }
+    private userDefPlaceSpeed: Function = () => 30;
 
     setPlacementSpeed(arg: Function | number, supress: boolean=false) {
         if(typeof arg == 'function') {
-            this.getPlacementSpeed = arg;
+            this.userDefPlaceSpeed = arg;
         } else {
             if(!supress && arg < 20) {
                 console.warn(`~~WARN~~ Placement speed under 20 may lead to rate limit or even a ban! (Suppress with setPlacementSpeed(${arg}, true); not recommended)`);
             }
-            this.getPlacementSpeed = () => arg;
+            this.userDefPlaceSpeed = () => arg;
         }
     }
 
-    async placePixel(...args: [Pixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
-        let pixel: Pixel;
+    async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
+        let pixel: IPixel;
 
         if (args.length === 1 && typeof args[0] === 'object') {
-            pixel = args[0] as Pixel;
+            pixel = args[0] as IPixel;
         } else if (args.length >= 3) {
             pixel = {
                 x: args[0] as number,
@@ -232,7 +237,20 @@ export class Bot {
         return this.placePixelInternal(pixel);
     }
 
-    private async placePixelInternal(p: Pixel, checkQueue: boolean=true): Promise<void> {
+    // alternative protect in case of bugs
+    protect(x: number, y: number, col: number) {
+        this.protector.protect(x, y, col);
+    }
+
+    private async placePixelInternal(p: IPixel): Promise<void> {
+
+        if(this.sendQueue.length > 0) {
+            const pixel: IPixel | undefined = this.sendQueue.shift();
+            if(pixel != null) {
+                await this.placePixelInternal(pixel);
+            }
+        }
+
         const {x, y, col, brush, protect, force} = p;
 
         if(protect) {
@@ -246,25 +264,19 @@ export class Bot {
         if(deltaTime < this.getPlacementSpeed()) {
             return new Promise<void>(async (resolve, _reject) => {
                 setTimeout(async () => {
-                    await this.placePixelInternal(p, checkQueue);
+                    await this.placePixelInternal(p);
                     resolve();
                 }, this.getPlacementSpeed() - deltaTime + 1);
             })
         } else {
             return new Promise<void>(async (resolve, _reject) => {
-                if(checkQueue) {
-                    while(this.sendQueue.length > 0) {
-                        const pixel: Pixel | undefined = this.sendQueue.shift();
-                        if(pixel != null) {
-                            await this.placePixelInternal(pixel, false);
-                        }
-                    }
-                }
 
-                const arr: Pixel = {x,y,col,brush,protect,force};
+                const arr: IPixel = {x,y,col,brush,protect,force};
                 this.unverifiedPixels.push(arr);
 
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+
+                this.stats.pixels.placed++;
 
                 this.lastPlaced = Date.now();
                 setTimeout(resolve, this.getPlacementSpeed() - (deltaTime - this.getPlacementSpeed()) + 1);
@@ -279,13 +291,17 @@ export class Bot {
     
     async drawImage(x: number, y: number, path: string, mode: Modes=Modes.LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
         const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, mode, protect, force);
+        this.stats.images.drawing++;
         await drawer.begin();
-        this.stats.imagesDrawn++;
+        this.stats.images.drawing--;
+        this.stats.images.finished++;
     }
 
-    private stats: Statistics = {pixelsPlaced: 0, pixelsProtected: 0, imagesDrawn: 0};
+    private stats: IStatistics = defaultStatistics();
 
-    getStatistics(): Statistics {
+    getStatistics(): IStatistics {
+        this.stats.session.time = Date.now() - this.beginTime;
+        this.stats.pixels.per_second = this.stats.pixels.placed / (this.stats.session.time / 1000);
         return this.stats;
     }
 

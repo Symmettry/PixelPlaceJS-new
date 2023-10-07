@@ -40,14 +40,20 @@ export class ImageDrawer {
         
         const closestColorId: number = this.instance.getCanvas().getClosestColorId(r, g, b);
         if(closestColorId !== -1) {
-            await this.instance.placePixel({
-                x: this.x + x,
-                y: this.y + y,
-                col: closestColorId,
-                brush: 1,
-                protect: this.protect,
-                force: this.force
-            });
+            const nx = this.x + x;
+            const ny = this.y + y;
+            if(this.instance.getPixelAt(nx, ny) != closestColorId) {
+                return this.instance.placePixel({
+                    x: nx,
+                    y: ny,
+                    col: closestColorId,
+                    brush: 1,
+                    protect: this.protect,
+                    force: this.force
+                });
+            } else if (this.protect) {
+                return this.instance.protect(nx, ny, closestColorId);
+            }
         }
     }
 

@@ -30,9 +30,11 @@ pp.bots[index].getPixelAt(x, y);
 pp.bots[index].getColorId(r, g, b);
 
 // assigns pixel placement speed to a function or a number
+// For function, it will include the previous placement value.
 // supress?: suppress console warning for pixel speed under 20, defaults to false
 // pp.bots[index].setPlacementSpeed(30);
 // pp.bots[index].setPlacementSpeed(() => Math.floor(Math.random() * 10) + 20);
+// pp.bots[index].setPlacementSpeed((previous) => previous > 30 ? previous / 2 : previous * 2);
 pp.bots[index].setPlacementSpeed(number | Function, supress?);
 
 // places a pixel at x,y with id col
@@ -56,8 +58,14 @@ pp.bots[index].emit("key", value);
 // force?: places pixels over pixels of the same color, defaults to false
 pp.bots[index].drawImage(x, y, "path_to_image", mode?, protect?, force?);
 
-// returns 'Statistics' interface, including pixels placed, pixels protected, and images drawn
+// returns 'Statistics' interface
+// stats.pixels.placed, stats.pixels.protected, stats.pixels.per_second
+// stats.images.drawing, stats.images.finished
+// stats.session.time
 pp.bots[index].getStatistics();
+
+// Returns the username of a UID; string | number (For premium accounts, if the account is not premium it will throw an error)
+pp.bots[index].getUsername(uid);
 ```
 
 ### Full Bot

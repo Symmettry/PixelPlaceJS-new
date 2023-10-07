@@ -1,13 +1,13 @@
 import { Bot } from "../bot/Bot";
-import { Statistics } from "./data/Data";
+import { IStatistics } from "./data/Data";
 
 export class Protector {
 
     private protectedPixels: Map<string, number>;
     private pp: Bot;
-    private stats: Statistics;
+    private stats: IStatistics;
 
-    constructor(pp: Bot, stats: Statistics) {
+    constructor(pp: Bot, stats: IStatistics) {
         this.protectedPixels = new Map();
         this.pp = pp;
         this.stats = stats;
@@ -17,14 +17,14 @@ export class Protector {
         const protectColor = this.getColor(x, y);
         if (protectColor == undefined || protectColor != col) {
             this.protectedPixels.set(`${x},${y}`, col);
-            if(protectColor == undefined)this.stats.pixelsProtected++;
+            if(protectColor == undefined)this.stats.pixels.protected++;
         }
     }
     unprotect(x: number, y: number): void {
         const protectColor = this.getColor(x, y);
         if (protectColor != undefined) {
             this.protectedPixels.delete(`${x},${y}`);
-            this.stats.pixelsProtected--;
+            this.stats.pixels.protected--;
         }
     }
 
