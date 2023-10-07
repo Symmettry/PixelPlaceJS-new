@@ -7,17 +7,17 @@ import { Modes } from "./Modes";
 
 export class ImageDrawer {
 
-    instance!: Bot;
+    private instance!: Bot;
 
-    path!: string;
+    private path!: string;
 
-    mode!: Modes;
+    private mode!: Modes;
 
-    x!: number;
-    y!: number;
+    private x!: number;
+    private y!: number;
 
-    protect!: boolean;
-    force!: boolean;
+    private protect!: boolean;
+    private force!: boolean;
 
     constructor(instance: Bot, x: number, y: number, path: string, mode: Modes, protect: boolean, force: boolean) {
         Object.defineProperty(this, 'instance', {value: instance, writable: false, enumerable: true, configurable: false});
@@ -33,14 +33,21 @@ export class ImageDrawer {
         Object.defineProperty(this, 'force', {value: force, writable: false, enumerable: true, configurable: false});
     }
 
-    async draw(x: number, y: number, pixels: NdArray<Uint8Array>) {
+    async draw(x: number, y: number, pixels: NdArray<Uint8Array>): Promise<void> {
         const r = pixels.get(x, y, 0);
         const g = pixels.get(x, y, 1);
         const b = pixels.get(x, y, 2);
         
-        const closestColorId: number = this.instance.canvas.getClosestColorId(r, g, b);
+        const closestColorId: number = this.instance.getCanvas().getClosestColorId(r, g, b);
         if(closestColorId !== -1) {
-            await this.instance.placePixel(this.x + x, this.y + y, closestColorId, 1, this.protect, this.force);
+            await this.instance.placePixel({
+                x: this.x + x,
+                y: this.y + y,
+                col: closestColorId,
+                brush: 1,
+                protect: this.protect,
+                force: this.force
+            });
         }
     }
 

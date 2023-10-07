@@ -2,7 +2,7 @@ import { Bot } from "../bot/Bot";
 
 export class Protector {
 
-    protectedPixels: Map<string, number>;
+    private protectedPixels: Map<string, number>;
     constructor(canvasWidth: number, canvasHeight: number) {
         this.protectedPixels = new Map();
     }
@@ -23,14 +23,15 @@ export class Protector {
             pixels.map(async (pixel) => {
                 const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
-                if (protectColor !== undefined && protectColor !== col) {
+                if (protectColor !== undefined) {
                     await pp.placePixel(x, y, protectColor, 1, true, false);
                 }
             })
         );      
     }
 
-    async detectAll(pp: Bot): Promise<void> {
+    // worthless rn
+    /*async detectAll(pp: Bot): Promise<void> {
         await new Promise<void>(async (resolve, _reject) => {
             // here we want to map each pixel detection to a promise
             const pixelDetectionPromises = Array.from(this.protectedPixels.entries()).map(async ([key, value]) => {
@@ -50,7 +51,7 @@ export class Protector {
         setTimeout(() => {
             this.detectAll(pp);
         }, 1000);
-    }
+    }*/
     
 
 };

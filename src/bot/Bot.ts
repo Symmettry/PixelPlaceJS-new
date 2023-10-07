@@ -11,28 +11,24 @@ import { Pixel } from '../util/Pixel.js';
 
 export class Bot {
     
-    listeners!: Map<string, Function[]>;
+    private socket!: WebSocket;
+    private listeners!: Map<string, Function[]>;
 
-    socket!: WebSocket;
+    private canvas!: Canvas.Canvas;
+    private protector!: Protector;
+    private isWorld: boolean = true;
 
-    canvas!: Canvas.Canvas;
-    isWorld: boolean = true;
+    private boardId!: number;
+    private authKey!: string;
+    private authToken!: string;
+    private authId!: string;
 
-    boardId!: number;
-    authKey!: string;
-    authToken!: string;
-    authId!: string;
-    
-    pixels!: number[][];
+    private tDelay: number = 0;
 
-    lastPlaced!: number;
+    private lastPlaced!: number;
 
-    tDelay: number = 0;
-
-    protector!: Protector;
-
-    sendQueue: Array<Pixel> = [];
-    unverifiedPixels: Array<Pixel> = [];
+    private sendQueue: Array<Pixel> = [];
+    private unverifiedPixels: Array<Pixel> = [];
 
     constructor(auth: Auth) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -44,6 +40,10 @@ export class Bot {
         Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
         
         this.lastPlaced = 0;
+    }
+
+    getCanvas(): Canvas.Canvas {
+        return this.canvas;
     }
 
     on(key: string, func: Function): void {
@@ -62,8 +62,6 @@ export class Bot {
 
             // Create the canvas
             this.canvas = Canvas.getCanvas(this.boardId);
-            
-            this.pixels = [];
 
             // currently redundant
             this.socket.on('open', () => {
@@ -114,7 +112,6 @@ export class Bot {
                                 if(this.isWorld && !this.protector) {
                                     await this.canvas.init();
                                     this.protector = new Protector(this.canvas.canvasHeight, this.canvas.canvasWidth);
-                                    this.protector.detectAll(this);
                                     await this.canvas.loadCanvasPicture();
                                 }
                                 break;
@@ -123,7 +120,7 @@ export class Bot {
                                 break;
                             case Packets.RECEIVED.PIXEL: // pixels
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
-                                if(this.protector)this.protector.detectPixels(this, value);
+                                if(this.protector)await this.protector.detectPixels(this, value);
                                   
                                 // go through and verify if the pixels were actually sent
                                 this.verifyPixels(value);  
@@ -160,10 +157,6 @@ export class Bot {
         return this.canvas.getColorId(r, g, b);
     }
 
-    genPlacementSpeed(): number {
-        return Math.floor(Math.random() * 11) + 30;
-    }
-
     verifyPixels(value: Array<number[]>) {
         this.unverifiedPixels = this.unverifiedPixels.filter((pixel) => {
             return !value.some((numArr: number[]) => {
@@ -172,12 +165,17 @@ export class Bot {
         });
         for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
             const pixel = this.unverifiedPixels[i];
-          
-            if (this.getPixelAt(pixel.x, pixel.y) !== pixel.col) {
-                this.sendQueue.push(pixel); // pixels were not sent, redo them
-            } else {
-                this.unverifiedPixels.splice(i, 1);
-            }
+            this.sendQueue.push(pixel); // pixels were not sent, redo them
+        }
+    }
+
+    getPlacementSpeed: Function = () => 30;
+
+    setPlacementSpeed(arg: Function | number) {
+        if(typeof arg == 'function') {
+            this.getPlacementSpeed = arg;
+        } else {
+            this.getPlacementSpeed = () => arg;
         }
     }
 
@@ -199,52 +197,52 @@ export class Bot {
             throw new Error('Invalid arguments for placePixel.');
         }
 
-        await this.placePixelInternal(pixel);
+        return this.placePixelInternal(pixel);
     }
 
-    private async placePixelInternal(p: Pixel): Promise<void> {
+    private async placePixelInternal(p: Pixel, checkQueue: boolean=true): Promise<void> {
         const {x, y, col, brush, protect, force} = p;
+
+        if(protect) {
+            this.protector.protect(x, y, col);
+        }
+        if(!force && this.getPixelAt(x, y) == col) {
+            return new Promise<void>((resolve, _reject) => resolve);
+        }
+
         const deltaTime = Date.now() - this.lastPlaced;
-        var placementSpeed = this.genPlacementSpeed();
-        if(deltaTime < placementSpeed) {
+        if(deltaTime < this.getPlacementSpeed()) {
             return new Promise<void>(async (resolve, _reject) => {
                 setTimeout(async () => {
-                    await this.placePixel(p);
+                    await this.placePixelInternal(p, checkQueue);
                     resolve();
-                }, placementSpeed - deltaTime + 1);
+                }, this.getPlacementSpeed() - deltaTime + 1);
             })
         } else {
             return new Promise<void>(async (resolve, _reject) => {
-                if(protect) {
-                    this.protector.protect(x, y, col);
-                }
-                if(!force && this.getPixelAt(x, y) == col) {
-                    resolve();
-                } else {
-
-                    if(this.sendQueue.length > 0) {
+                if(checkQueue) {
+                    while(this.sendQueue.length > 0) {
                         const pixel: Pixel | undefined = this.sendQueue.shift();
                         if(pixel != null) {
-                            await this.placePixel(pixel);
+                            await this.placePixelInternal(pixel, false);
                         }
                     }
-                    
-                    var arr: Pixel = {x,y,col,brush,protect,force};
-
-                    this.unverifiedPixels.push(arr);
-
-                    this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
-
-                    this.lastPlaced = Date.now();
-                    setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
                 }
+                var arr: Pixel = {x,y,col,brush,protect,force};
+
+                this.unverifiedPixels.push(arr);
+
+                this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+
+                this.lastPlaced = Date.now();
+                setTimeout(resolve, this.getPlacementSpeed() - (deltaTime - this.getPlacementSpeed()) + 1);
             });
         }
     }
 
-    emit(key: string, value: any): void {
-        console.log(key, value);
+    emit(key: Packets, value: any): void {
         const data = `42["${key}",${value.toString()}]`;
+        console.log(data);
         this.socket.send(data);
     }
     
