@@ -174,6 +174,9 @@ export class Bot {
                 if(this.listeners.has(Packets.API.ERROR)) {
                     this.listeners.get(Packets.API.ERROR)?.forEach(listener => listener());
                 }
+
+                // statistics
+                this.stats.session.errors++;
             });
         });
     }
@@ -191,8 +194,12 @@ export class Bot {
             const pixel = this.unverifiedPixels[i];
             if(this.getPixelAt(pixel.x, pixel.y) != pixel.col) {
                 this.sendQueue.push(pixel); // pixels were not sent, redo them
-                this.stats.pixels.placed--;
                 this.unverifiedPixels.splice(i, 1);
+
+                // statistics
+                this.stats.pixels.placing.failed++;
+                this.stats.pixels.placing.placed--;
+                this.stats.pixels.colors[pixel.col]--;
             }
         }
     }
@@ -278,11 +285,16 @@ export class Bot {
                 this.unverifiedPixels.push(arr);
 
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
-
-                this.stats.pixels.placed++;
-
+                
                 this.lastPlaced = Date.now();
                 setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
+
+                // statistics
+                this.stats.pixels.placing.attempted++;
+                this.stats.pixels.placing.placed++;
+
+                if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
+                this.stats.pixels.colors[col]++;
             });
         }
     }
@@ -293,18 +305,22 @@ export class Bot {
     }
     
     async drawImage(x: number, y: number, path: string, mode: Modes=Modes.TOP_LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
-        const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, mode, protect, force);
         this.stats.images.drawing++;
+
+        const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, mode, protect, force);
         await drawer.begin();
+
         this.stats.images.drawing--;
         this.stats.images.finished++;
+
     }
 
     private stats: IStatistics = defaultStatistics();
 
     getStatistics(): IStatistics {
+        // updating values
         this.stats.session.time = Date.now() - this.beginTime;
-        this.stats.pixels.per_second = this.stats.pixels.placed / (this.stats.session.time / 1000);
+        this.stats.pixels.placing.per_second = this.stats.pixels.placing.placed / (this.stats.session.time / 1000);
         return this.stats;
     }
 

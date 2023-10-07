@@ -8,9 +8,16 @@ export interface IPixel {
 }
 export interface IStatistics {
     pixels: {
-        placed: number,
-        protected: number,
-        per_second: number,
+        placing: {
+            placed: number,
+            attempted: number,
+            failed: number,
+            protected: number,
+            per_second: number,
+        },
+        colors: {
+            [color: number]: number,
+        }
     },
     images: {
         drawing: number,
@@ -18,15 +25,21 @@ export interface IStatistics {
     },
     session: {
         time: number,
-    }
+        errors: number,
+    },
 }
 
 export function defaultStatistics(): IStatistics {
     return {
         pixels: {
-            placed: 0,
-            protected: 0,
-            per_second: 0,
+            placing: {
+                placed: 0,
+                attempted: 0,
+                failed: 0,
+                protected: 0,
+                per_second: 0,
+            },
+            colors: { },
         },
         images: {
             drawing: 0,
@@ -34,6 +47,7 @@ export function defaultStatistics(): IStatistics {
         },
         session: {
             time: 0,
+            errors: 0,
         }
     }
 }
