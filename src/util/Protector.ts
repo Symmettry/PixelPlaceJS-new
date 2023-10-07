@@ -1,30 +1,44 @@
 import { Bot } from "../bot/Bot";
+import { Statistics } from "./Data";
 
 export class Protector {
 
     private protectedPixels: Map<string, number>;
-    constructor(canvasWidth: number, canvasHeight: number) {
+    private pp: Bot;
+    private stats: Statistics;
+
+    constructor(pp: Bot, stats: Statistics) {
         this.protectedPixels = new Map();
+        this.pp = pp;
+        this.stats = stats;
     }
 
     protect(x: number, y: number, col: number): void {
-        this.protectedPixels.set(`${x},${y}`, col);
+        const protectColor = this.getColor(x, y);
+        if (protectColor == undefined || protectColor != col) {
+            this.protectedPixels.set(`${x},${y}`, col);
+            if(protectColor == undefined)this.stats.pixelsProtected++;
+        }
     }
     unprotect(x: number, y: number): void {
-        this.protectedPixels.delete(`${x},${y}`);
+        const protectColor = this.getColor(x, y);
+        if (protectColor != undefined) {
+            this.protectedPixels.delete(`${x},${y}`);
+            this.stats.pixelsProtected--;
+        }
     }
 
     getColor(x: number, y: number): number | undefined {
         return this.protectedPixels.get(`${x},${y}`);
     }
 
-    async detectPixels(pp: Bot, pixels: number[][]): Promise<void> {
+    async detectPixels(pixels: number[][]): Promise<void> {
         await Promise.all(
             pixels.map(async (pixel) => {
                 const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
                 if (protectColor !== undefined) {
-                    await pp.placePixel(x, y, protectColor, 1, true, false);
+                    await this.pp.placePixel(x, y, protectColor, 1, true, false);
                 }
             })
         );      

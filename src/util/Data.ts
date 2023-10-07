@@ -6,3 +6,8 @@ export interface Pixel {
     protect: boolean;
     force: boolean;
 }
+export interface Statistics {
+    pixelsPlaced: number,
+    pixelsProtected: number,
+    imagesDrawn: number,
+}

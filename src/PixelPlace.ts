@@ -5,10 +5,10 @@ class PixelPlace {
 
     bots: Bot[];
 
-    constructor(auths: Auth[]) {
+    constructor(auths: Auth[], autoRestart: boolean = true) {
         this.bots = [];
         auths.forEach(auth => {
-            this.bots.push(new Bot(auth));
+            this.bots.push(new Bot(auth, autoRestart));
         })
     }
 

@@ -7,7 +7,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
-import { Pixel } from '../util/Pixel.js';
+import { Pixel, Statistics } from '../util/Data.js';
 
 export class Bot {
     
@@ -30,7 +30,9 @@ export class Bot {
     private sendQueue: Array<Pixel> = [];
     private unverifiedPixels: Array<Pixel> = [];
 
-    constructor(auth: Auth) {
+    private autoRestart: boolean;
+
+    constructor(auth: Auth, autoRestart: boolean = true) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'authToken', {value: auth.authToken, writable: false, enumerable: true, configurable: false});
         Object.defineProperty(this, 'authId', {value: auth.authId, writable: false, enumerable: true, configurable: false});
@@ -40,6 +42,7 @@ export class Bot {
         Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
         
         this.lastPlaced = 0;
+        this.autoRestart = autoRestart;
     }
 
     getCanvas(): Canvas.Canvas {
@@ -49,6 +52,9 @@ export class Bot {
     on(key: string, func: Function): void {
         if(!this.listeners.has(key)) this.listeners.set(key, []);
         this.listeners.get(key)?.push(func);
+        if(key != Packets.ALL) {
+            this.on(Packets.ALL, func);
+        }
     }
 
     async Init(): Promise<void> {
@@ -111,7 +117,7 @@ export class Bot {
                             case Packets.RECEIVED.CHAT_STATS: // sent once initiated
                                 if(this.isWorld && !this.protector) {
                                     await this.canvas.init();
-                                    this.protector = new Protector(this.canvas.canvasHeight, this.canvas.canvasWidth);
+                                    this.protector = new Protector(this, this.stats); // pass in the bot instance & private statistics variable
                                     await this.canvas.loadCanvasPicture();
                                 }
                                 break;
@@ -120,7 +126,7 @@ export class Bot {
                                 break;
                             case Packets.RECEIVED.PIXEL: // pixels
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
-                                if(this.protector)await this.protector.detectPixels(this, value);
+                                if(this.protector)await this.protector.detectPixels(value);
                                   
                                 // go through and verify if the pixels were actually sent
                                 this.verifyPixels(value);  
@@ -138,13 +144,18 @@ export class Bot {
             });
 
             this.socket.on('close', () => {
-                console.log('PPJS Closed, restarting');
-                this.Init();
+                if(this.listeners.has(Packets.API.SOCKET_CLOSE)) {
+                    this.listeners.get(Packets.API.SOCKET_CLOSE)?.forEach(listener => listener());
+                }
+                if(this.autoRestart) {
+                    this.Init();
+                }
             });
 
             this.socket.on('error', (error: Error) => {
-                console.error('PPJS error:', error);
-                reject(); // error, reject promise
+                if(this.listeners.has(Packets.API.ERROR)) {
+                    this.listeners.get(Packets.API.ERROR)?.forEach(listener => listener());
+                }
             });
         });
     }
@@ -160,7 +171,11 @@ export class Bot {
     verifyPixels(value: Array<number[]>) {
         this.unverifiedPixels = this.unverifiedPixels.filter((pixel) => {
             return !value.some((numArr: number[]) => {
-                return numArr[0] === pixel.x && numArr[1] === pixel.y && numArr[2] === pixel.col;
+                var wasPlaced: boolean = numArr[0] === pixel.x && numArr[1] === pixel.y && numArr[2] === pixel.col;
+                if(wasPlaced) {
+                    this.stats.pixelsPlaced++;
+                }
+                return wasPlaced;
             });
         });
         for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
@@ -252,6 +267,13 @@ export class Bot {
     async drawImage(x: number, y: number, path: string, mode: Modes=Modes.LEFT_TO_RIGHT, protect: boolean=false, force: boolean=false): Promise<void> {
         const drawer: ImageDrawer = new ImageDrawer(this, x, y, path, mode, protect, force);
         await drawer.begin();
+        this.stats.imagesDrawn++;
+    }
+
+    private stats: Statistics = {pixelsPlaced: 0, pixelsProtected: 0, imagesDrawn: 0};
+
+    getStatistics(): Statistics {
+        return this.stats;
     }
 
 }

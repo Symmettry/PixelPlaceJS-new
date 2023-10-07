@@ -1,3 +1,4 @@
+// packets sent via the server
 enum RECEIVED {
     LEAVE = "l",
     JOIN = "j",
@@ -29,6 +30,8 @@ enum RECEIVED {
     PIXEL = "p",
     SERVER_TIME = "server_time",
 }
+
+// packets the client can send
 enum SENT {
     INIT = "init",
     PIXEL = "p",
@@ -38,6 +41,8 @@ enum SENT {
     HOT_PAINTINGS = "hot.paintings",
     USERNAME = "username",
 }
+
+// I don't know which ones these are.
 enum UNKNOWN {
     PREMIUM_MOD = "premium.mod",
     SAVE_TRACKING_CACHE = "save.tracking.cache",
@@ -53,9 +58,16 @@ enum UNKNOWN {
     AREAS = "areas",
 }
 
+// API packets
+enum API {
+    SOCKET_CLOSE = "socket_close",
+    ERROR = "error",
+}
+
 export class Packets {
     static RECEIVED: typeof RECEIVED = RECEIVED;
     static SENT: typeof SENT = SENT;
     static UNKNOWN: typeof UNKNOWN = UNKNOWN;
+    static API: typeof API = API;
     static ALL: string = "*";
 }
