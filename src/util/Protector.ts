@@ -1,5 +1,5 @@
 import { Bot } from "../bot/Bot";
-import { Statistics } from "./Data";
+import { Statistics } from "./data/Data";
 
 export class Protector {
 

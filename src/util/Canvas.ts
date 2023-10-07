@@ -3,7 +3,7 @@ import * as https from 'https';
 import { IncomingMessage } from 'http';
 import getPixels = require('get-pixels');
 
-var canvases: Map<number, Canvas> = new Map();
+const canvases: Map<number, Canvas> = new Map();
 
 export function getCanvas(boardId: number): Canvas {
     if(hasCanvas(boardId)) {
@@ -106,7 +106,7 @@ export class Canvas {
                                     const g = pixels.get(x, y, 1);
                                     const b = pixels.get(x, y, 2);
                                     if(!(r == 204 && g == 204 && b == 204)) {
-                                        var colId = this.getColorId(r,g,b);
+                                        const colId = this.getColorId(r,g,b);
                                         if(colId == -1) {
                                             console.log(r,g,b);
                                         } else {
@@ -131,7 +131,7 @@ export class Canvas {
             this.pixelPreData.push(pixels);
         } else {
             pixels.forEach(pixel => {
-                var [x, y, col] = pixel;
+                const [x, y, col] = pixel;
                 this.pixelData.set(x, y, col);
             });
         }

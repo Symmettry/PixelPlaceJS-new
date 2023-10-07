@@ -13,7 +13,8 @@ var auths = [
 ]
 
 // Create PixelPlace instances
-const pp = new PixelPlace(auths);
+// autoRestart?: if the bots should automatically attempt to reconnect when the socket closes, defaults to true
+const pp = new PixelPlace(auths, autoRestart?);
 
 // Initiate all bots
 await pp.Init();
@@ -54,6 +55,9 @@ pp.bots[index].emit("key", value);
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
 pp.bots[index].drawImage(x, y, "path_to_image", mode?, protect?, force?);
+
+// returns 'Statistics' interface, including pixels placed, pixels protected, and images drawn
+pp.bots[index].getStatistics();
 ```
 
 ### Full Bot

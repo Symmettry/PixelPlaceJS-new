@@ -4,10 +4,10 @@ import * as Canvas from '../util/Canvas.js';
 import WebSocket from 'ws';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
-import { Packets } from "../util/Packets.js";
+import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
-import { Pixel, Statistics } from '../util/Data.js';
+import { Pixel, Statistics } from '../util/data/Data.js';
 
 export class Bot {
     
@@ -75,19 +75,19 @@ export class Bot {
             });
 
             this.socket.on('message', async (buffer: Buffer) => {
-                var data: string = buffer.toString(); // buffer -> string
+                const data: string = buffer.toString(); // buffer -> string
                 
                 // Gets the data and ID of the response
                 let index = data.indexOf("{");
-                var cube = data.indexOf("[");
+                const cube = data.indexOf("[");
                 if (index === -1 || (cube < index && cube != -1)) {
                     index = cube;
                 }
                 const json = index !== -1 ? index : -1; 
-                var id = json == -1 ? data : data.substring(0, json);
+                const id = json == -1 ? data : data.substring(0, json);
 
                 // if JSON, parse, else keep it
-                var message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
+                const message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
                 switch(id) {
                     case "0": // socket.io start
                         this.socket.send("40");
@@ -99,8 +99,8 @@ export class Bot {
                         this.socket.send("3");
                         break;
                     case "42": // message
-                        var key = message[0];
-                        var value = message[1];
+                        const key = message[0];
+                        const value = message[1];
 
                         // Packet listeners
                         // per-key
@@ -171,7 +171,7 @@ export class Bot {
     verifyPixels(value: Array<number[]>) {
         this.unverifiedPixels = this.unverifiedPixels.filter((pixel) => {
             return !value.some((numArr: number[]) => {
-                var wasPlaced: boolean = numArr[0] === pixel.x && numArr[1] === pixel.y && numArr[2] === pixel.col;
+                const wasPlaced: boolean = numArr[0] === pixel.x && numArr[1] === pixel.y && numArr[2] === pixel.col;
                 if(wasPlaced) {
                     this.stats.pixelsPlaced++;
                 }
@@ -246,8 +246,8 @@ export class Bot {
                         }
                     }
                 }
-                var arr: Pixel = {x,y,col,brush,protect,force};
-
+                
+                const arr: Pixel = {x,y,col,brush,protect,force};
                 this.unverifiedPixels.push(arr);
 
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
