@@ -123,6 +123,8 @@ export class Bot {
                             this.listeners.get(Packets.ALL)?.forEach(listener => listener(key, value));
                         }
 
+                        this.stats.socket.received++;
+
                         // built-in functions, e.g. keepalive and pixels.
                         switch(key) {
                             case Packets.RECEIVED.CHAT_STATS: // sent once initiated
@@ -302,6 +304,9 @@ export class Bot {
     emit(key: Packets, value: any): void {
         const data = `42["${key}",${value.toString()}]`;
         this.socket.send(data);
+
+        // statistics
+        this.stats.socket.sent++;
     }
     
     async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {

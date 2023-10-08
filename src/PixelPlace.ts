@@ -21,4 +21,4 @@ class PixelPlace {
 
 }
 
-export { Auth, PixelPlace };
+export { PixelPlace };

@@ -17,14 +17,14 @@ export class Protector {
         const protectColor = this.getColor(x, y);
         if (protectColor == undefined || protectColor != col) {
             this.protectedPixels.set(`${x},${y}`, col);
-            if(protectColor == undefined)this.stats.pixels.placing.protected++;
+            if(protectColor == undefined)this.stats.pixels.protection.protected++;
         }
     }
     unprotect(x: number, y: number): void {
         const protectColor = this.getColor(x, y);
         if (protectColor != undefined) {
             this.protectedPixels.delete(`${x},${y}`);
-            this.stats.pixels.placing.protected--;
+            this.stats.pixels.protection.protected--;
         }
     }
 
@@ -38,6 +38,7 @@ export class Protector {
                 const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
                 if (protectColor !== undefined) {
+                    if(col != protectColor)this.stats.pixels.protection.repaired++;
                     await this.pp.placePixel(x, y, protectColor, 1, true, false);
                 }
             })
