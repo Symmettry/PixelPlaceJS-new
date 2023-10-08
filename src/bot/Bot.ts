@@ -36,7 +36,8 @@ export class Bot {
 
     private uidman: UIDManager;
 
-    private beginTime: number = Date.now();
+    private beginTime: number = -1;
+    private packets: Array<[string, any]> | undefined;
 
     constructor(auth: Auth, autoRestart: boolean = true) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -67,6 +68,13 @@ export class Bot {
         if(key != Packets.ALL) {
             this.on(Packets.ALL, func);
         }
+
+        if(Date.now() - this.beginTime < 500) {
+            this.packets?.forEach(packetData => {
+                this.listen(packetData[0], packetData[1]);
+            });
+            this.packets = undefined;
+        }
     }
 
     async Init(): Promise<void> {
@@ -80,6 +88,9 @@ export class Bot {
 
             // Create the canvas
             this.canvas = Canvas.getCanvas(this.boardId);
+
+            this.packets = [];
+            let loadedCanvas = false;
 
             // currently redundant
             //this.socket.on('open', () => {
@@ -114,13 +125,10 @@ export class Bot {
                         const value = message[1];
 
                         // Packet listeners
-                        // per-key
-                        if(this.listeners.has(key)) { // if there are listeners for this key
-                            this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
-                        }
-                        // all-keys
-                        if(this.listeners.has(Packets.ALL)) {
-                            this.listeners.get(Packets.ALL)?.forEach(listener => listener(key, value));
+                        this.listen(key, value);
+
+                        if(!loadedCanvas) {
+                            this.packets?.push([key, value]);
                         }
 
                         this.stats.socket.received++;
@@ -149,7 +157,9 @@ export class Bot {
                                 break;
                             case Packets.RECEIVED.CANVAS: // canvas
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
+                                this.beginTime = Date.now();
                                 resolve();
+                                loadedCanvas = true;
                                 break;
                             case Packets.RECEIVED.SERVER_TIME:
                                 this.tDelay = getTDelay(value);
@@ -181,6 +191,17 @@ export class Bot {
                 this.stats.session.errors++;
             });
         });
+    }
+
+    private listen(key: string, value: any) {
+        // per-key
+        if(this.listeners.has(key)) { // if there are listeners for this key
+            this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
+        }
+        // all-keys
+        if(this.listeners.has(Packets.ALL)) {
+            this.listeners.get(Packets.ALL)?.forEach(listener => listener(key, value));
+        }
     }
 
     getPixelAt(x: number, y: number): number | undefined {

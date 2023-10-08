@@ -30,6 +30,13 @@ enum RECEIVED {
     PIXEL = "p",
     SERVER_TIME = "server_time",
     USERNAME = "username",
+    COIN_ISLAND_OWNER_CHANGE = "coin_island_owner_change",
+    AREAS = "areas",
+    CANVAS_SUCCESS = "canvas.success",
+    CANVAS_ALERT = "canvas.alert",
+    SAVE_TRACKING_CACHE = "save.tracking.cache",
+    AUCTION_WIN_NOTIFICATION = "auction.notification.win",
+    AUCTION_NEW_BID = "auction.new.bid",
 }
 
 // packets the client can send
@@ -46,17 +53,13 @@ enum SENT {
 // I don't know which ones these are.
 enum UNKNOWN {
     PREMIUM_MOD = "premium.mod",
-    SAVE_TRACKING_CACHE = "save.tracking.cache",
     SAVE_TRACKING_PENDING = "save.tracking.pending",
     QUEUE = "queue",
     PAINTING_PLAYERS = "painting.players",
-    CANVAS_SUCCESS = "canvas.success",
-    CANVAS_ALERT = "canvas.alert",
     CHAT_CUSTOM_MESSAGE = "chat.custom.message",
     CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
     CHAT_PAINTING_DELETE = "chat.painting.delete",
     CHAT_COMMAND = "chat.command",
-    AREAS = "areas",
 }
 
 // API packets

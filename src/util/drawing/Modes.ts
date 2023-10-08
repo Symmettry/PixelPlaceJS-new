@@ -12,6 +12,9 @@ export enum Modes {
     RIGHT_TOP_TO_BOTTOM = 6,
     RIGHT_BOTTOM_TO_TOP = 7,
 
-    RAND = 8,
-    
+    TO_CENTER = 8,
+    FROM_CENTER = 9,
+
+    RAND = 10,
+
 }

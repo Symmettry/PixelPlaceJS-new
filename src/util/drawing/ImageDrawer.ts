@@ -5,6 +5,7 @@ import mime = require("mime-types");
 import { NdArray } from "ndarray";
 import { Modes } from "./Modes";
 import { IImage } from "../data/Data";
+import ndarray = require("ndarray");
 
 export class ImageDrawer {
 
@@ -88,21 +89,21 @@ export class ImageDrawer {
                     },
                     1: async (pixels: NdArray<Uint8Array>) => { // TOP_RIGHT_TO_LEFT
                         for (let y = 0; y < pixels.shape[1]; y++) {
-                            for (let x = pixels.shape[0]; x > 0; x--) {
+                            for (let x = pixels.shape[0]; x >= 0; x--) {
                                 await this.draw(x, y, pixels);
                             }
                         }
                     },
                     2: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_LEFT_TO_RIGHT
-                        for (let y = pixels.shape[1]; y > 0; y--) {
+                        for (let y = pixels.shape[1]; y >= 0; y--) {
                             for (let x = 0; x < pixels.shape[0]; x++) {
                                 await this.draw(x, y, pixels);
                             }
                         }
                     },
                     3: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_RIGHT_TO_LEFT
-                        for (let y = pixels.shape[1]; y > 0; y--) {
-                            for (let x = pixels.shape[0]; x > 0; x--) {
+                        for (let y = pixels.shape[1]; y >= 0; y--) {
+                            for (let x = pixels.shape[0]; x >= 0; x--) {
                                 await this.draw(x, y, pixels);
                             }
                         }
@@ -116,26 +117,80 @@ export class ImageDrawer {
                     },
                     5: async (pixels: NdArray<Uint8Array>) => {
                         for (let x = 0; x < pixels.shape[0]; x++) {
-                            for (let y = pixels.shape[1]; y > 0; y--) {
+                            for (let y = pixels.shape[1]; y >= 0; y--) {
                                 await this.draw(x, y, pixels);
                             }
                         }
                     },
                     6: async (pixels: NdArray<Uint8Array>) => {
-                        for (let x = pixels.shape[0]; x > 0; x--) {
+                        for (let x = pixels.shape[0]; x >= 0; x--) {
                             for (let y = 0; y < pixels.shape[1]; y++) {
                                 await this.draw(x, y, pixels);
                             }
                         }
                     },
                     7: async (pixels: NdArray<Uint8Array>) => {
-                        for (let x = pixels.shape[0]; x > 0; x--) {
-                            for (let y = pixels.shape[1]; y > 0; y--) {
+                        for (let x = pixels.shape[0]; x >=0; x--) {
+                            for (let y = pixels.shape[1]; y >= 0; y--) {
                                 await this.draw(x, y, pixels);
                             }
                         }
                     },
-                    8: async (pixels: NdArray<Uint8Array>) => { // RAND
+                    8: async (pixels: NdArray<Uint8Array>) => { // CENTER
+                        // calculate the center point
+                        const centerX = Math.floor(pixels.shape[0] / 2);
+                        const centerY = Math.floor(pixels.shape[1] / 2);
+
+                        // create an array to hold pixels and their distances from the center
+                        let pixelDistances = [];
+
+                        // calculate the distance of each pixel from the center
+                        for (let x = 0; x < pixels.shape[0]; x++) {
+                            for (let y = 0; y < pixels.shape[1]; y++) {
+                                const dx = centerX - x;
+                                const dy = centerY - y;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                                pixelDistances.push({x, y, distance});
+                            }
+                        }
+
+                        //sort the pixels by their distance from the center
+                        pixelDistances.sort((a, b) => a.distance - b.distance);
+
+                        // draw the pixels from the center outward
+                        for (const pixel of pixelDistances) {
+                            await this.draw(pixel.x, pixel.y, pixels);
+                        }
+                    },
+                    9: async (pixels: NdArray<Uint8Array>) => {
+                        // calculate the center point
+                        const centerX = Math.floor(pixels.shape[0] / 2);
+                        const centerY = Math.floor(pixels.shape[1] / 2);
+
+                        // create an array to hold pixels and their distances from the center
+                        let pixelDistances = [];
+
+                        // calculate the distance of each pixel from the center
+                        for (let x = 0; x < pixels.shape[0]; x++) {
+                            for (let y = 0; y < pixels.shape[1]; y++) {
+                                const dx = centerX - x;
+                                const dy = centerY - y;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                                pixelDistances.push({x, y, distance});
+                            }
+                        }
+
+                        //sort the pixels by their distance from the center
+                        pixelDistances.sort((a, b) => b.distance - a.distance);
+
+                        // draw the pixels from the center outward
+                        for (const pixel of pixelDistances) {
+                            await this.draw(pixel.x, pixel.y, pixels);
+                        }
+                    },
+                    10: async (pixels: NdArray<Uint8Array>) => { // RAND
                         const totalPixels = pixels.shape[0] * pixels.shape[1];
                         const coordinates = new Array(totalPixels);
                     

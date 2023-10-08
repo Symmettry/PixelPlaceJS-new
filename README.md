@@ -70,6 +70,24 @@ pp.bots[index].getStatistics();
 
 // Returns the username of a UID; string | number (For premium accounts, if the account is not premium it will throw an error)
 pp.bots[index].getUsername(uid);
+
+// Image Drawing Modes
+Modes.TOP_LEFT_TO_RIGHT // Draws from the top left to the top right
+Modes.TOP_RIGHT_TO_LEFT // Draws from the top right to the top left
+
+Modes.BOTTOM_LEFT_TO_RIGHT // Draws from the bottom left to the bottom right
+Modes.BOTTOM_RIGHT_TO_LEFT // Draws from the bottom right to the bottom left
+
+Modes.LEFT_TOP_TO_BOTTOM // Draws from the top left to the bottom left
+Modes.LEFT_BOTTOM_TO_TOP // Draws from the bottom left to the top left
+
+Modes.RIGHT_TOP_TO_BOTTOM // Draws from the top right to the bottom right
+Modes.RIGHT_BOTTOM_TO_TOP // Draws from the bottom right to the top right
+
+Modes.FROM_CENTER // Draws from the center outward
+Modes.TO_CENTER // Draws outward to the center
+
+Modes.RAND // Draws randomly
 ```
 
 ### Full Bot
