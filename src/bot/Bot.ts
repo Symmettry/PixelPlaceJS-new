@@ -1,7 +1,4 @@
-import { getPalive } from '../util/ping/PAlive.js';
-import getTDelay from '../util/ping/TDelay.js';
 import * as Canvas from '../util/Canvas.js';
-import WebSocket from 'ws';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
@@ -9,22 +6,15 @@ import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
 import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
+import { Connection } from './Connection.js';
 
 export class Bot {
-    
-    private socket!: WebSocket;
-    private listeners!: Map<string, Function[]>;
 
-    private canvas!: Canvas.Canvas;
-    private protector!: Protector;
-    private isWorld: boolean = true;
-
-    private boardId!: number;
+    protector!: Protector;
     private authKey!: string;
     private authToken!: string;
     private authId!: string;
-
-    private tDelay: number = 0;
+    private boardId!: number;
 
     private lastPlaced!: number;
     private prevPlaceValue!: number;
@@ -32,12 +22,11 @@ export class Bot {
     private sendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
 
-    private autoRestart: boolean;
+    autoRestart: boolean;
 
-    private uidman: UIDManager;
+    uidman: UIDManager;
 
-    private beginTime: number = -1;
-    private packets: Array<[string, any]> | undefined;
+    private connection!: Connection;
 
     constructor(auth: Auth, autoRestart: boolean = true) {
         Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
@@ -45,8 +34,6 @@ export class Bot {
         Object.defineProperty(this, 'authId', {value: auth.authId, writable: false, enumerable: true, configurable: false});
 
         Object.defineProperty(this, 'boardId', {value: auth.boardId, writable: false, enumerable: true, configurable: false});
-
-        Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
         
         this.lastPlaced = 0;
         this.prevPlaceValue = 0;
@@ -59,157 +46,24 @@ export class Bot {
     }
 
     getCanvas(): Canvas.Canvas {
-        return this.canvas;
+        return this.connection.canvas;
     }
 
     on(key: string, func: Function): void {
-        if(!this.listeners.has(key)) this.listeners.set(key, []);
-        this.listeners.get(key)?.push(func);
-        if(key != Packets.ALL) {
-            this.on(Packets.ALL, func);
-        }
-
-        if(Date.now() - this.beginTime < 500) {
-            this.packets?.forEach(packetData => {
-                this.listen(packetData[0], packetData[1]);
-            });
-            this.packets = undefined;
-        }
+        this.connection.on(key, func);
     }
 
     async Init(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            // Connect to PixelPlace
-            this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
-
-            if(Canvas.hasCanvas(this.boardId)) {
-                this.isWorld = false;
-            }
-
-            // Create the canvas
-            this.canvas = Canvas.getCanvas(this.boardId);
-
-            this.packets = [];
-            let loadedCanvas = false;
-
-            // currently redundant
-            //this.socket.on('open', () => {
-            //});
-
-            this.socket.on('message', async (buffer: Buffer) => {
-                const data: string = buffer.toString(); // buffer -> string
-                
-                // Gets the data and ID of the response
-                let index = data.indexOf("{");
-                const cube = data.indexOf("[");
-                if (index === -1 || (cube < index && cube != -1)) {
-                    index = cube;
-                }
-                const json = index !== -1 ? index : -1; 
-                const id = json == -1 ? data : data.substring(0, json);
-
-                // if JSON, parse, else keep it
-                const message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
-                switch(id) {
-                    case "0": // socket.io start
-                        this.socket.send("40");
-                        break;
-                    case "40": // socket.io finish
-                        this.socket.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
-                        break;
-                    case "2": // socket.io keepalive
-                        this.socket.send("3");
-                        break;
-                    case "42": // message
-                        const key = message[0];
-                        const value = message[1];
-
-                        // Packet listeners
-                        this.listen(key, value);
-
-                        if(!loadedCanvas) {
-                            this.packets?.push([key, value]);
-                        }
-
-                        this.stats.socket.received++;
-
-                        // built-in functions, e.g. keepalive and pixels.
-                        switch(key) {
-                            case Packets.RECEIVED.CHAT_STATS: // sent once initiated
-                                if(this.isWorld && !this.protector) {
-                                    await this.canvas.init();
-                                    this.protector = new Protector(this, this.stats); // pass in the bot instance & private statistics variable
-                                    await this.canvas.loadCanvasPicture();
-                                }
-                                break;
-                            case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
-                                this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
-                                break;
-                            case Packets.RECEIVED.PIXEL: // pixels
-                                if(this.isWorld)this.canvas.loadCanvasData(value);
-                                if(this.protector)await this.protector.detectPixels(value);
-                                
-                                // pass the pixel update to the uid manager
-                                this.uidman.onPixels(value);
-
-                                // go through and verify if the pixels the bot placed were actually sent
-                                this.verifyPixels();
-                                break;
-                            case Packets.RECEIVED.CANVAS: // canvas
-                                if(this.isWorld)this.canvas.loadCanvasData(value);
-                                this.beginTime = Date.now();
-                                resolve();
-                                loadedCanvas = true;
-                                break;
-                            case Packets.RECEIVED.SERVER_TIME:
-                                this.tDelay = getTDelay(value);
-                                break;
-                            case Packets.RECEIVED.USERNAME:
-                                // pass the username data to the uid manager
-                                this.uidman.onUsername(value.id, value.name);
-                                break;
-                        }
-                        break;
-                }
-            });
-
-            this.socket.on('close', () => {
-                if(this.listeners.has(Packets.API.SOCKET_CLOSE)) {
-                    this.listeners.get(Packets.API.SOCKET_CLOSE)?.forEach(listener => listener());
-                }
-                if(this.autoRestart) {
-                    this.Init();
-                }
-            });
-
-            this.socket.on('error', (error: Error) => {
-                if(this.listeners.has(Packets.API.ERROR)) {
-                    this.listeners.get(Packets.API.ERROR)?.forEach(listener => listener());
-                }
-
-                // statistics
-                this.stats.session.errors++;
-            });
-        });
-    }
-
-    private listen(key: string, value: any) {
-        // per-key
-        if(this.listeners.has(key)) { // if there are listeners for this key
-            this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
-        }
-        // all-keys
-        if(this.listeners.has(Packets.ALL)) {
-            this.listeners.get(Packets.ALL)?.forEach(listener => listener(key, value));
-        }
+        this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats);
+        return this.connection.Init();
     }
 
     getPixelAt(x: number, y: number): number | undefined {
-        return this.canvas.pixelData?.get(x, y);
+        return this.connection.canvas.pixelData?.get(x, y);
     }
 
     getColorId(r: number, g: number, b: number): number {
-        return this.canvas.getColorId(r, g, b);
+        return this.connection.canvas?.getColorId(r, g, b);
     }
 
     verifyPixels() {
@@ -218,7 +72,7 @@ export class Bot {
             const pixel = this.unverifiedPixels[i];
             if(this.getPixelAt(pixel.data.x, pixel.data.y) != pixel.data.col) {
                 this.sendQueue.push(pixel.data); // pixels were not sent, redo them
-                this.canvas.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
+                this.connection.canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
 
                 // statistics
                 this.stats.pixels.placing.failed++;
@@ -292,9 +146,9 @@ export class Bot {
             this.protector.protect(x, y, col);
         }
 
-        const colAtSpot = this.getPixelAt(x, y) || -1;
-        if((!force && colAtSpot == col) || colAtSpot == -1) {
-            return new Promise<void>((resolve, _reject) => resolve);
+        const colAtSpot = this.getPixelAt(x, y)
+        if((!force && colAtSpot == col)) {
+            return;
         }
 
         const deltaTime = Date.now() - this.lastPlaced;
@@ -309,19 +163,18 @@ export class Bot {
         } else {
             return new Promise<void>(async (resolve, _reject) => {
 
-                const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot};
+                const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot || 0};
                 this.unverifiedPixels.push(arr);
 
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
 
-                this.canvas.pixelData?.set(x, y, col);
+                this.connection.canvas?.pixelData?.set(x, y, col);
                 
                 this.lastPlaced = Date.now();
                 setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
 
                 // statistics
                 this.stats.pixels.placing.attempted++;
-                this.stats.pixels.placing.placed++;
 
                 if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
                 this.stats.pixels.colors[col]++;
@@ -330,11 +183,7 @@ export class Bot {
     }
 
     emit(key: Packets, value: any): void {
-        const data = `42["${key}",${value.toString()}]`;
-        this.socket.send(data);
-
-        // statistics
-        this.stats.socket.sent++;
+        this.connection.emit(key, value);
     }
     
     async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
@@ -372,7 +221,7 @@ export class Bot {
 
     getStatistics(): IStatistics {
         // updating values
-        this.stats.session.time = Date.now() - this.beginTime;
+        this.stats.session.time = Date.now() - this.stats.session.beginTime;
         this.stats.pixels.placing.per_second = this.stats.pixels.placing.placed / (this.stats.session.time / 1000);
         return this.stats;
     }

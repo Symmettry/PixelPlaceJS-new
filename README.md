@@ -38,8 +38,8 @@ pp.bots[index].setPlacementSpeed(number | Function, supress?);
 // if force isn't set, it will default to false
 await pp.bots[index].placePixel((x, y, col, brush?, protect?, force?) | IPixel);
 
-// draws the image at "path_to_image" at x and y (left->right)
-// mode?: drawing mode, (Modes.LEFT_TO_RIGHT, etc.), defaults to Modes.LEFT_TO_RIGHT
+// draws the image at "path_to_image" at starting point x and y (This is not central, it is the top left of the final drawing)
+// mode?: drawing mode, (See "Image Drawing Modes"), defaults to Modes.TOP_LEFT_TO_RIGHT
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
 await pp.bots[index].drawImage((x, y, "path_to_image", mode?, protect?, force?) | IImage);
@@ -62,10 +62,13 @@ pp.bots[index].getColorId(r, g, b);
 // "Packet" refers to a string; use 'Packets' imported from the library
 pp.bots[index].emit(Packet, value);
 
-// returns 'Statistics' interface
-// stats.pixels.placed, stats.pixels.protected, stats.pixels.per_second
+// returns 'IStatistics' interface
+// stats.pixels.placing.placed, stats.pixels.placing.attempted, stats.pixels.placing.failed, stats.pixels.placing.per_second
+// stats.pixels.protection.protected, stats.pixels.protection.repaired
+// stats.pixels.colors[<Color ID>] = amount of color id placed
 // stats.images.drawing, stats.images.finished
-// stats.session.time
+// stats.session.time, stats.session.errors
+// stats.socket.sent, stats.socket.received
 pp.bots[index].getStatistics();
 
 // Returns the username of a UID; string | number (For premium accounts, if the account is not premium it will throw an error)
@@ -88,6 +91,15 @@ Modes.FROM_CENTER // Draws from the center outward
 Modes.TO_CENTER // Draws outward to the center
 
 Modes.RAND // Draws randomly
+
+
+// Packet categories
+// (replace <NAME> with the actual packet name of course!)
+Packets.RECEIVED.<NAME> // Packets received by the server
+Packets.SENT.<NAME> // Packets sent by the client
+Packets.UNKNOWN.<NAME> // Obscure packets that I'm unsure if they're sent or received
+Packets.LIBRARY.<NAME> // Library packets, such as errors and socket closing
+Packets.ALL // All packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
 ```
 
 ### Full Bot
@@ -115,13 +127,17 @@ import { PixelPlace, Auth, Modes, Packets } from "pixelplacejs-new";
         return prevValue == 30 ? 20 : 30;
     })
 
-    await pp.bots[0].drawImage(x, y, "my image file", Modes.TOP_LEFT_TO_RIGHT),
+    await pp.bots[0].drawImage(x, y, "my image file", Modes.FROM_CENTER),
+
+    // IImage implementation
     //await pp.bots[0].drawImage({ x: x, y: y, path: "my image file",
-    //      mode: Modes.TOP_LEFT_TO_RIGHT, protect: false, force: false, });
+    //      mode: Modes.FROM_CENTER, protect: false, force: false, });
 
     for(var x=0;x<10;x++) {
         for(var y=0;y<10;y++) {
             await pp.bots[0].placePixel(1000 + x, 1000 + y, 0);
+
+            // IPixel implementation
             // await pp.bots[0].placePixel({ x: 1000 + x, y: 1000 + y, col: 0, brush: 1,
             //       protect: false, force: false })
         }

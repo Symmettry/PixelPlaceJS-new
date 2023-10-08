@@ -33,6 +33,7 @@ export interface IStatistics {
         protection: {
             protected: number,
             repaired: number,
+            last_repair: number,
         }
         colors: {
             [color: number]: number,
@@ -45,6 +46,7 @@ export interface IStatistics {
     session: {
         time: number,
         errors: number,
+        beginTime: number,
     },
     socket: {
         sent: number,
@@ -64,6 +66,7 @@ export function defaultStatistics(): IStatistics {
             protection: {
                 protected: 0,
                 repaired: 0,
+                last_repair: 0,
             },
             colors: { },
         },
@@ -74,6 +77,7 @@ export function defaultStatistics(): IStatistics {
         session: {
             time: 0,
             errors: 0,
+            beginTime: 0,
         },
         socket: {
             sent: 0,

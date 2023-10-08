@@ -1,4 +1,4 @@
-// taken from npm module "pixelplacejs," thanks shuffle
+// taken from npm module "pixelplacejs" - thanks shuffle
 
 export default (serverTime: number): number => {
     const currentTime = new Date().getTime() / 1e3;

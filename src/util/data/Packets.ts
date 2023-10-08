@@ -62,8 +62,8 @@ enum UNKNOWN {
     CHAT_COMMAND = "chat.command",
 }
 
-// API packets
-enum API {
+// Library packets
+enum LIBRARY {
     SOCKET_CLOSE = "socket_close",
     ERROR = "error",
 }
@@ -72,6 +72,6 @@ export class Packets {
     static RECEIVED: typeof RECEIVED = RECEIVED;
     static SENT: typeof SENT = SENT;
     static UNKNOWN: typeof UNKNOWN = UNKNOWN;
-    static API: typeof API = API;
+    static LIBRARY: typeof LIBRARY = LIBRARY;
     static ALL: string = "*";
 }

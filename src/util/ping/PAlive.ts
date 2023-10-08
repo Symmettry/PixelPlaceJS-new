@@ -1,4 +1,4 @@
-// taken from npm module "pixelplacejs," thanks shuffle
+// taken from npm module "pixelplacejs" - thanks shuffle
 
 function getCurrentTimeInSeconds(): number {
     return Math.floor(new Date().getTime() / 1000);

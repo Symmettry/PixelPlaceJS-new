@@ -38,35 +38,12 @@ export class Protector {
                 const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
                 if (protectColor !== undefined) {
-                    if(col != protectColor)this.stats.pixels.protection.repaired++;
+                    this.stats.pixels.protection.repaired++;
+                    this.stats.pixels.protection.last_repair = Date.now();
                     await this.pp.placePixel(x, y, protectColor, 1, true, false);
                 }
             })
         );      
     }
-
-    // worthless rn
-    /*async detectAll(pp: Bot): Promise<void> {
-        await new Promise<void>(async (resolve, _reject) => {
-            // here we want to map each pixel detection to a promise
-            const pixelDetectionPromises = Array.from(this.protectedPixels.entries()).map(async ([key, value]) => {
-                const [x, y] = key.split(",").map(Number);
-                if (value !== pp.getPixelAt(x, y)) {
-                    await pp.placePixel(x, y, value, 1, true, false);
-                }
-            });
     
-            // wait for all pixel detections to complete
-            await Promise.all(pixelDetectionPromises);
-    
-            resolve();
-        });
-    
-        // This will recursively call detectAll every 1000 milliseconds
-        setTimeout(() => {
-            this.detectAll(pp);
-        }, 1000);
-    }*/
-    
-
 };

@@ -5,7 +5,6 @@ import mime = require("mime-types");
 import { NdArray } from "ndarray";
 import { Modes } from "./Modes";
 import { IImage } from "../data/Data";
-import ndarray = require("ndarray");
 
 export class ImageDrawer {
 
