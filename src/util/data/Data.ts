@@ -8,6 +8,11 @@ export interface IPixel {
     protect: boolean;
     force: boolean;
 }
+export interface IUnverifiedPixel {
+    data: IPixel;
+    originalColor: number;
+}
+
 export interface IImage {
     x: number;
     y: number;

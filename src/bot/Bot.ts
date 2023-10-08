@@ -7,7 +7,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
-import { IImage, IPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
+import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 
 export class Bot {
@@ -30,7 +30,7 @@ export class Bot {
     private prevPlaceValue!: number;
 
     private sendQueue: Array<IPixel> = [];
-    private unverifiedPixels: Array<IPixel> = [];
+    private unverifiedPixels: Array<IUnverifiedPixel> = [];
 
     private autoRestart: boolean;
 
@@ -213,18 +213,21 @@ export class Bot {
     }
 
     verifyPixels() {
+        let successful = this.unverifiedPixels.length;
         for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
             const pixel = this.unverifiedPixels[i];
-            if(this.getPixelAt(pixel.x, pixel.y) != pixel.col) {
-                this.sendQueue.push(pixel); // pixels were not sent, redo them
-                this.unverifiedPixels.splice(i, 1);
+            if(this.getPixelAt(pixel.data.x, pixel.data.y) != pixel.data.col) {
+                this.sendQueue.push(pixel.data); // pixels were not sent, redo them
+                this.canvas.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
 
                 // statistics
                 this.stats.pixels.placing.failed++;
-                this.stats.pixels.placing.placed--;
-                this.stats.pixels.colors[pixel.col]--;
+                this.stats.pixels.colors[pixel.data.col]--;
+                successful--;
             }
         }
+        this.stats.pixels.placing.placed += successful;
+        this.unverifiedPixels = [];
     }
     
     private getPlacementSpeed() {
@@ -288,7 +291,9 @@ export class Bot {
         if(protect) {
             this.protector.protect(x, y, col);
         }
-        if(!force && this.getPixelAt(x, y) == col) {
+
+        const colAtSpot = this.getPixelAt(x, y) || -1;
+        if((!force && colAtSpot == col) || colAtSpot == -1) {
             return new Promise<void>((resolve, _reject) => resolve);
         }
 
@@ -304,10 +309,12 @@ export class Bot {
         } else {
             return new Promise<void>(async (resolve, _reject) => {
 
-                const arr: IPixel = {x,y,col,brush,protect,force};
+                const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot};
                 this.unverifiedPixels.push(arr);
 
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+
+                this.canvas.pixelData?.set(x, y, col);
                 
                 this.lastPlaced = Date.now();
                 setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
