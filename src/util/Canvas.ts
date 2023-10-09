@@ -139,22 +139,14 @@ export class Canvas {
 
     async getDimensions(): Promise<{ [key: string]: number }> {
         const res: Response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
-          "headers": {
-            "accept": "application/json, text/javascript, */*; q=0.01",
-            "accept-language": "en-US,en;q=0.9",
-            "sec-ch-ua": "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Opera GX\";v=\"102\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "x-requested-with": "XMLHttpRequest",
-            "Referer": "https://pixelplace.io/7-pixels-world-war",
-            "Referrer-Policy": "strict-origin-when-cross-origin"
-          },
-          "body": null,
-          "method": "GET"
+            headers: {
+              "accept": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "Referer": "https://pixelplace.io/7-pixels-world-war",
+            },
+            method: "GET"
         });
+          
       
         const json = await res.json();
         const width = json.painting.width as number;
