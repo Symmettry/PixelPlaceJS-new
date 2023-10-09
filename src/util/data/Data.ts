@@ -12,7 +12,11 @@ export interface IUnverifiedPixel {
     data: IPixel;
     originalColor: number;
 }
-
+export interface IAuthData {
+    authKey: string;
+    authToken: string;
+    authId: string;
+}
 export interface IImage {
     x: number;
     y: number;

@@ -7,6 +7,7 @@ import { Modes } from '../util/drawing/Modes.js';
 import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';
+import { constant } from '../util/Constant.js';
 
 export class Bot {
 
@@ -22,6 +23,8 @@ export class Bot {
     private sendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
 
+    private customDrawingMode: Function = () => { throw new Error("Drawing mode Modes.CUSTOM is not defined yet! bot.assignCustomDrawingMode(Function);"); };
+
     autoRestart: boolean;
 
     uidman: UIDManager;
@@ -29,11 +32,11 @@ export class Bot {
     private connection!: Connection;
 
     constructor(auth: Auth, autoRestart: boolean = true) {
-        Object.defineProperty(this, 'authKey', {value: auth.authKey, writable: false, enumerable: true, configurable: false});
-        Object.defineProperty(this, 'authToken', {value: auth.authToken, writable: false, enumerable: true, configurable: false});
-        Object.defineProperty(this, 'authId', {value: auth.authId, writable: false, enumerable: true, configurable: false});
+        constant(this, 'authKey', auth.authKey);
+        constant(this, 'authToken', auth.authToken);
+        constant(this, 'authId', auth.authId);
 
-        Object.defineProperty(this, 'boardId', {value: auth.boardId, writable: false, enumerable: true, configurable: false});
+        constant(this, 'boardId', auth.boardId);
         
         this.lastPlaced = 0;
         this.prevPlaceValue = 0;
@@ -62,8 +65,8 @@ export class Bot {
         return this.connection.canvas.pixelData?.get(x, y);
     }
 
-    getColorId(r: number, g: number, b: number): number {
-        return this.connection.canvas?.getColorId(r, g, b);
+    getClosestColorId(r: number, g: number, b: number): number {
+        return this.connection.canvas?.getClosestColorId(r, g, b);
     }
 
     verifyPixels() {
@@ -185,6 +188,10 @@ export class Bot {
     emit(key: Packets, value: any): void {
         this.connection.emit(key, value);
     }
+
+    assignCustomDrawingMode(func: Function): void {
+        this.customDrawingMode = func;
+    }
     
     async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
         let image: IImage;
@@ -210,7 +217,7 @@ export class Bot {
     private async drawImageInternal(image: IImage) {
         this.stats.images.drawing++;
 
-        const drawer: ImageDrawer = new ImageDrawer(this, image);
+        const drawer: ImageDrawer = new ImageDrawer(this, image, this.customDrawingMode);
         await drawer.begin();
 
         this.stats.images.drawing--;

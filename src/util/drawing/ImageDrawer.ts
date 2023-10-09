@@ -5,6 +5,7 @@ import mime = require("mime-types");
 import { NdArray } from "ndarray";
 import { Modes } from "./Modes";
 import { IImage } from "../data/Data";
+import { constant } from "../Constant";
 
 export class ImageDrawer {
 
@@ -20,18 +21,22 @@ export class ImageDrawer {
     private protect!: boolean;
     private force!: boolean;
 
-    constructor(instance: Bot, image: IImage) {
-        Object.defineProperty(this, 'instance', {value: instance, writable: false, enumerable: true, configurable: false});
+    private customDrawingMode!: Function;
 
-        Object.defineProperty(this, 'path', {value: image.path, writable: false, enumerable: true, configurable: false});
+    constructor(instance: Bot, image: IImage, customDrawingMode: Function) {
+        constant(this, 'instance', instance);
 
-        Object.defineProperty(this, 'mode', {value: image.mode, writable: false, enumerable: true, configurable: false});
+        constant(this, 'path', image.path);
 
-        Object.defineProperty(this, 'x', {value: image.x, writable: false, enumerable: true, configurable: false});
-        Object.defineProperty(this, 'y', {value: image.y, writable: false, enumerable: true, configurable: false});
+        constant(this, 'mode', image.mode);
 
-        Object.defineProperty(this, 'protect', {value: image.protect, writable: false, enumerable: true, configurable: false});
-        Object.defineProperty(this, 'force', {value: image.force, writable: false, enumerable: true, configurable: false});
+        constant(this, 'x', image.x);
+        constant(this, 'y', image.y);
+
+        constant(this, 'protect', image.protect);
+        constant(this, 'force', image.force);
+
+        constant(this, 'customDrawingMode', customDrawingMode);
     }
 
     async draw(x: number, y: number, pixels: NdArray<Uint8Array>): Promise<void> {
@@ -211,7 +216,13 @@ export class ImageDrawer {
                             await this.draw(x, y, pixels);
                         }
                     },
-                    
+                    11: async (pixels: NdArray<Uint8Array>) => {
+                        const drawHook = (x: number, y: number, pixels: NdArray<Uint8Array>) => {
+                            return this.draw(x, y, pixels);
+                        }
+                        this.customDrawingMode(pixels, drawHook);
+                    },
+
                 };
                 
                 // Then, in your main code, you can call the appropriate strategy like this:

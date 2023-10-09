@@ -6,13 +6,10 @@ PixelPlace JS v2 basically
 // example import
 import { PixelPlace, Packets, Auth, Modes } from "pixelplacejs-new";
 
-// Create auths
+// Auth data
+// Fill values, IAuthData = { authKey: "", authToken: "", authId: "" }
 var auths = [
-    new Auth({
-        authKey: "", // Fill this
-        authToken: "", // Fill this
-        authId: "", // Fill this
-    }, boardId), // Assign board id
+    new Auth(IAuthData, boardId), // Assign board id
 ]
 
 // Create PixelPlace instances
@@ -54,9 +51,8 @@ pp.bots[index].on(Packet, (value) => {});
 // this will give the pixel color prior to it being updated from the pixel event
 pp.bots[index].getPixelAt(x, y);
 
-// returns the color id of the r, g, and b
-// returns -1 if non-existent
-pp.bots[index].getColorId(r, g, b);
+// returns the color id of the color closest to the r, g, and b values inputted
+pp.bots[index].getClosestColorId(r, g, b);
 
 // emits 42["packet", value] through the socket
 // "Packet" refers to a string; use 'Packets' imported from the library
@@ -91,7 +87,18 @@ Modes.FROM_CENTER // Draws from the center outward
 Modes.TO_CENTER // Draws outward to the center
 
 Modes.RAND // Draws randomly
+Modes.CUSTOM // Custom mode, will throw an error if custom mode is not defined
 
+// Custom drawing mode
+// this will assign Modes.CUSTOM to this function
+pp.bots[index].assignCustomDrawingMode(async (pixels: NdArray<Uint8Array>, draw: Function) => {
+    // Implementation of Modes.TOP_LEFT_TO_RIGHT taken from the ImageDrawer.ts class
+    for (let y = 0; y < pixels.shape[1]; y++) {
+        for (let x = 0; x < pixels.shape[0]; x++) {
+            await draw(x, y, pixels);
+        }
+    }
+});
 
 // Packet categories
 // (replace <NAME> with the actual packet name of course!)
@@ -123,9 +130,7 @@ import { PixelPlace, Auth, Modes, Packets } from "pixelplacejs-new";
     
     console.log("Pixel Place initiated!");
 
-    pp.bots[0].setPlacementSpeed((prevValue) => {
-        return prevValue == 30 ? 20 : 30;
-    })
+    pp.bots[0].setPlacementSpeed(48);
 
     await pp.bots[0].drawImage(x, y, "my image file", Modes.FROM_CENTER),
 

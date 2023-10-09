@@ -6,6 +6,7 @@ import WebSocket from "ws";
 import { Packets } from "../util/data/Packets";
 import { IStatistics } from "../util/data/Data";
 import { Protector } from '../util/Protector';
+import { constant } from '../util/Constant.js';
 
 export class Connection {
 
@@ -37,9 +38,9 @@ export class Connection {
         this.authId = authId;
         this.stats = stats;
 
-        Object.defineProperty(this, 'boardId', {value: boardId, writable: false, enumerable: true, configurable: false});
+        constant(this, 'boardId', boardId);
 
-        Object.defineProperty(this, 'listeners', {value: new Map(), writable: false, enumerable: true, configurable: false});
+        constant(this, 'listeners', new Map());
     }
 
     Init() {

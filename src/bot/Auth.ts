@@ -1,3 +1,5 @@
+import { IAuthData } from "../util/data/Data";
+
 export class Auth {
 
     authKey: string;
@@ -6,7 +8,7 @@ export class Auth {
 
     boardId: number;
 
-    constructor(authObj: {[key: string]: string}, boardId: number) {
+    constructor(authObj: IAuthData, boardId: number) {
         this.authKey = authObj.authKey;
         this.authToken = authObj.authToken;
         this.authId = authObj.authId;
