@@ -1,5 +1,4 @@
-import { getPalive } from '../util/ping/PAlive.js';
-import getTDelay from '../util/ping/TDelay.js';
+import { getPalive, getTDelay } from '../util/ping/PAlive.js';
 import * as Canvas from "../util/Canvas";
 import { Bot } from "./Bot";
 import WebSocket from "ws";

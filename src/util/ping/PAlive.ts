@@ -81,3 +81,15 @@ export function getPalive(tDelay: number): string {
     
     return result;
 }
+
+// this doesn't need to be in a separate class;
+
+export function getTDelay(serverTime: number): number {
+    const currentTime = new Date().getTime() / 1e3;
+    let tdelay = 0;
+    if (serverTime < currentTime) {
+      tdelay = serverTime - currentTime;
+    } else serverTime > currentTime && (tdelay = serverTime - currentTime);
+  
+    return Math.round(tdelay);
+};
