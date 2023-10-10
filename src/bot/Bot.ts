@@ -23,8 +23,6 @@ export class Bot {
     private sendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
 
-    private customDrawingMode: Function = () => { throw new Error("Drawing mode Modes.CUSTOM is not defined yet! bot.assignCustomDrawingMode(Function);"); };
-
     autoRestart: boolean;
 
     uidman: UIDManager;
@@ -188,10 +186,6 @@ export class Bot {
     emit(key: Packets, value: any): void {
         this.connection.emit(key, value);
     }
-
-    assignCustomDrawingMode(func: Function): void {
-        this.customDrawingMode = func;
-    }
     
     async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
         let image: IImage;
@@ -217,7 +211,7 @@ export class Bot {
     private async drawImageInternal(image: IImage) {
         this.stats.images.drawing++;
 
-        const drawer: ImageDrawer = new ImageDrawer(this, image, this.customDrawingMode);
+        const drawer: ImageDrawer = new ImageDrawer(this, image);
         await drawer.begin();
 
         this.stats.images.drawing--;

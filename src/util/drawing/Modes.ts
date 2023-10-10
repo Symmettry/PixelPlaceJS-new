@@ -17,6 +17,4 @@ export enum Modes {
 
     RAND = 10,
 
-    CUSTOM = 11,
-
 }

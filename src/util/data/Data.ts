@@ -21,7 +21,7 @@ export interface IImage {
     x: number;
     y: number;
     path: string;
-    mode: Modes,
+    mode: Modes | Function,
     protect: boolean;
     force: boolean;
 }

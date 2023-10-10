@@ -87,18 +87,14 @@ Modes.FROM_CENTER // Draws from the center outward
 Modes.TO_CENTER // Draws outward to the center
 
 Modes.RAND // Draws randomly
-Modes.CUSTOM // Custom mode, will throw an error if custom mode is not defined
 
-// Custom drawing mode
-// this will assign Modes.CUSTOM to this function
-pp.bots[index].assignCustomDrawingMode(async (pixels: NdArray<Uint8Array>, draw: Function) => {
-    // Implementation of Modes.TOP_LEFT_TO_RIGHT taken from the ImageDrawer.ts class
-    for (let y = 0; y < pixels.shape[1]; y++) {
-        for (let x = 0; x < pixels.shape[0]; x++) {
-            await draw(x, y, pixels);
-        }
-    }
-});
+// Custom mode
+// pixels is a 2d array with shape of the image. pixels.shape[0] = x, pixels.shape[1] = y
+// x and y are offset by the images initial x and y assigned in drawImage()
+// await draw(x, y, pixels) - will draw at x,y with the colored pixel at that location in pixels
+// getColorAt(x, y, pixels) - will return the color at x,y in the image, this is the color that draw() places
+await pp.bots[index].drawImage((x, y, "path_to_image", async (pixels: NdArray<Uint8Array>, draw: Function, getColorAt: Function) => { }, protect?, force?) | IImage);
+
 
 // Packet categories
 // (replace <NAME> with the actual packet name of course!)
