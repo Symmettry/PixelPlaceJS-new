@@ -32,6 +32,7 @@ export interface IStatistics {
             placed: number,
             attempted: number,
             failed: number,
+            first_time: number,
             per_second: number,
         },
         protection: {
@@ -65,12 +66,13 @@ export function defaultStatistics(): IStatistics {
                 placed: 0,
                 attempted: 0,
                 failed: 0,
-                per_second: 0,
+                first_time: -1,
+                per_second: -1,
             },
             protection: {
                 protected: 0,
                 repaired: 0,
-                last_repair: 0,
+                last_repair: -1,
             },
             colors: { },
         },
@@ -79,9 +81,9 @@ export function defaultStatistics(): IStatistics {
             finished: 0,
         },
         session: {
-            time: 0,
+            time: -1,
             errors: 0,
-            beginTime: 0,
+            beginTime: -1,
         },
         socket: {
             sent: 0,

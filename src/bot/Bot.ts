@@ -204,7 +204,7 @@ export class Bot {
         } else {
             throw new Error('Invalid arguments for drawImage.');
         }
-
+        if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
         return this.drawImageInternal(image);
     }
     
@@ -223,7 +223,8 @@ export class Bot {
     getStatistics(): IStatistics {
         // updating values
         this.stats.session.time = Date.now() - this.stats.session.beginTime;
-        this.stats.pixels.placing.per_second = this.stats.pixels.placing.placed / (this.stats.session.time / 1000);
+        const timeSinceFirstPixel = Date.now() - this.stats.pixels.placing.first_time;
+        this.stats.pixels.placing.per_second = this.stats.pixels.placing.placed / (timeSinceFirstPixel * 0.001);
         return this.stats;
     }
 
