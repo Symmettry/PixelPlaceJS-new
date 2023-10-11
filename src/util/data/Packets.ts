@@ -37,6 +37,16 @@ enum RECEIVED {
     SAVE_TRACKING_CACHE = "save.tracking.cache",
     AUCTION_WIN_NOTIFICATION = "auction.notification.win",
     AUCTION_NEW_BID = "auction.new.bid",
+    AUCTION_LOST_BID = "auction.lost.bid",
+    AREA_FIGHT_BONUS_CHEST = "area_fight_bonus_chest",
+    QUEUE = "queue",
+    PREMIUM_MOD = "premium.mod",
+    PAINTING_PLAYERS = "painting.players",
+    CHAT_CUSTOM_MESSAGE = "chat.custom.message",
+    CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
+    CHAT_PAINTING_DELETE = "chat.painting.delete",
+    SAVE_TRACKING_PENDING = "save.tracking.pending",
+    CHAT_COMMAND = "chat.command",
 }
 
 // packets the client can send
@@ -50,18 +60,6 @@ enum SENT {
     USERNAME = "username",
 }
 
-// I don't know which ones these are.
-enum UNKNOWN {
-    PREMIUM_MOD = "premium.mod",
-    SAVE_TRACKING_PENDING = "save.tracking.pending",
-    QUEUE = "queue",
-    PAINTING_PLAYERS = "painting.players",
-    CHAT_CUSTOM_MESSAGE = "chat.custom.message",
-    CHAT_CUSTOM_ANNOUNCE = "chat.custom.announce",
-    CHAT_PAINTING_DELETE = "chat.painting.delete",
-    CHAT_COMMAND = "chat.command",
-}
-
 // Library packets
 enum LIBRARY {
     SOCKET_CLOSE = "socket_close",
@@ -71,7 +69,6 @@ enum LIBRARY {
 export class Packets {
     static RECEIVED: typeof RECEIVED = RECEIVED;
     static SENT: typeof SENT = SENT;
-    static UNKNOWN: typeof UNKNOWN = UNKNOWN;
     static LIBRARY: typeof LIBRARY = LIBRARY;
     static ALL: string = "*";
 }

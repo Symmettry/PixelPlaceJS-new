@@ -100,7 +100,6 @@ await pp.bots[index].drawImage((x, y, "path_to_image", async (pixels: NdArray<Ui
 // (replace <NAME> with the actual packet name of course!)
 Packets.RECEIVED.<NAME> // Packets received by the server
 Packets.SENT.<NAME> // Packets sent by the client
-Packets.UNKNOWN.<NAME> // Obscure packets that I'm unsure if they're sent or received
 Packets.LIBRARY.<NAME> // Library packets, such as errors and socket closing
 Packets.ALL // All packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
 ```
