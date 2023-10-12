@@ -2,7 +2,7 @@ import ndarray, { NdArray } from 'ndarray';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
 import getPixels = require('get-pixels');
-import { IRGB } from './data/Data';
+import { IRGBColor } from './data/Data';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -60,7 +60,7 @@ export class Canvas {
         });
     }
 
-    getClosestColorId(rgb: IRGB): number {
+    getClosestColorId(rgb: IRGBColor): number {
         const { r, g, b } = rgb;
 
         let minDistance = Infinity;
@@ -79,7 +79,7 @@ export class Canvas {
         return closestColorId;
     }
 
-    getColorId(rgb: IRGB): number {
+    getColorId(rgb: IRGBColor): number {
         const { r, g, b } = rgb;
         return this.colors[`${r},${g},${b}`] != null ? this.colors[`${r},${g},${b}`] : -1;
     }

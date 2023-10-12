@@ -4,7 +4,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/drawing/Modes.js';
-import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGB } from '../util/data/Data.js';
+import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';
 import { constant } from '../util/Constant.js';
@@ -63,7 +63,7 @@ export class Bot {
         return this.connection.canvas.pixelData?.get(x, y);
     }
 
-    getClosestColorId(rgb: IRGB): number {
+    getClosestColorId(rgb: IRGBColor): number {
         return this.connection.canvas?.getClosestColorId(rgb);
     }
 

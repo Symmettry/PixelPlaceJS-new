@@ -52,7 +52,7 @@ pp.bots[index].on(Packet, (value) => {});
 pp.bots[index].getPixelAt(x, y);
 
 // returns the color id of the color closest to the r, g, and b values inputted via IRGB, aka {r, g, b}
-pp.bots[index].getClosestColorId(IRGB);
+pp.bots[index].getClosestColorId(IRGBColor);
 
 // emits 42["packet", value] through the socket
 // "Packet" refers to a string; use 'Packets' imported from the library
@@ -122,7 +122,7 @@ IAuthData = {
     authId: string; // auth id for pxp
 }
 
-IRGB = {
+IRGBColor = {
     r: number; // red value of color
     b: number; // blue value of color
     g: number; // green value of color

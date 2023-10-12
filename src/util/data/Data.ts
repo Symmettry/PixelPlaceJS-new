@@ -28,7 +28,7 @@ export interface IAuthData {
     authId: string;
 }
 
-export interface IRGB {
+export interface IRGBColor {
     r: number;
     b: number;
     g: number;
