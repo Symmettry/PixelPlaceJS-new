@@ -28,6 +28,12 @@ export interface IAuthData {
     authId: string;
 }
 
+export interface IRGB {
+    r: number;
+    b: number;
+    g: number;
+}
+
 export interface IStatistics {
     pixels: {
         placing: {

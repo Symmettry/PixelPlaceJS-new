@@ -42,6 +42,15 @@ export class Connection {
         constant(this, 'listeners', new Map());
     }
 
+    ping() {
+        fetch("https://pixelplace.io/api/ping.php", {
+            headers:{
+                Origin: "https://pixelplace.io/",
+                Cookie: `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`
+            }
+        })
+    }
+
     Init() {
         return new Promise<void>((resolve, _reject) => {
             // Connect to PixelPlace
@@ -102,7 +111,7 @@ export class Connection {
                         switch(key) {
                             case Packets.RECEIVED.CHAT_STATS: // sent once initiated
                                 if(this.isWorld && !this.bot.protector) {
-                                    await this.canvas.init();
+                                    await this.canvas.Init();
                                     this.bot.protector = new Protector(this.bot, this.stats); // pass in the bot instance & private statistics variable
                                     await this.canvas.loadCanvasPicture();
                                 }
@@ -125,6 +134,8 @@ export class Connection {
                                 this.stats.session.beginTime = Date.now();
                                 resolve();
                                 loadedCanvas = true;
+
+                                setInterval(this.ping, 250000);
                                 break;
                             case Packets.RECEIVED.SERVER_TIME:
                                 this.tDelay = getTDelay(value);

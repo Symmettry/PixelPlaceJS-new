@@ -2,6 +2,7 @@ import ndarray, { NdArray } from 'ndarray';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
 import getPixels = require('get-pixels');
+import { IRGB } from './data/Data';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -40,7 +41,7 @@ export class Canvas {
         }
     }
 
-    async init(): Promise<void> {
+    async Init(): Promise<void> {
         return new Promise<void>(async (resolve, _reject) => {
             const dimensions = await this.getDimensions();
 
@@ -59,13 +60,15 @@ export class Canvas {
         });
     }
 
-    getClosestColorId(r: number, g: number, b: number): number {
+    getClosestColorId(rgb: IRGB): number {
+        const { r, g, b } = rgb;
+
         let minDistance = Infinity;
         let closestColorId = -1;
     
         for (let color in this.colors) {
-            let [r2, g2, b2] = color.split(',').map(Number);
-            let distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
+            const [r2, g2, b2] = color.split(',').map(Number);
+            const distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
     
             if (distance < minDistance) {
                 minDistance = distance;
@@ -76,7 +79,8 @@ export class Canvas {
         return closestColorId;
     }
 
-    getColorId(r: number, g: number, b: number): number {
+    getColorId(rgb: IRGB): number {
+        const { r, g, b } = rgb;
         return this.colors[`${r},${g},${b}`] != null ? this.colors[`${r},${g},${b}`] : -1;
     }
 
@@ -106,7 +110,7 @@ export class Canvas {
                                     const g = pixels.get(x, y, 1);
                                     const b = pixels.get(x, y, 2);
                                     if(!(r == 204 && g == 204 && b == 204)) {
-                                        const colId = this.getColorId(r,g,b);
+                                        const colId = this.getColorId({r,g,b});
                                         if(colId == -1) {
                                             console.log("ERR:",r,g,b);
                                         } else {

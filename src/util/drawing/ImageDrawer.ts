@@ -40,7 +40,7 @@ export class ImageDrawer {
         const g = pixels.get(x, y, 1);
         const b = pixels.get(x, y, 2);
         
-        const closestColorId: number = this.instance.getCanvas().getClosestColorId(r, g, b);
+        const closestColorId: number = this.instance.getCanvas().getClosestColorId({r, g, b});
         return closestColorId;
     }
 

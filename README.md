@@ -29,10 +29,10 @@ await pp.Init();
 // pp.bots[index].setPlacementSpeed((previous) => previous > 30 ? previous / 2 : previous * 2);
 pp.bots[index].setPlacementSpeed(number | Function, supress?);
 
-// places a pixel at x,y with id col
-// if brush isn't set, it will default to 1
-// if protect isn't set, it will default to false
-// if force isn't set, it will default to false
+// places a pixel at x,y with color id col
+// if brush isn't set, it will default to 1 (Brush used to place pixels)
+// if protect isn't set, it will default to false (Should it be protected?)
+// if force isn't set, it will default to false (Should it place over pixels of the same color?)
 await pp.bots[index].placePixel((x, y, col, brush?, protect?, force?) | IPixel);
 
 // draws the image at "path_to_image" at starting point x and y (This is not central, it is the top left of the final drawing)
@@ -51,20 +51,14 @@ pp.bots[index].on(Packet, (value) => {});
 // this will give the pixel color prior to it being updated from the pixel event
 pp.bots[index].getPixelAt(x, y);
 
-// returns the color id of the color closest to the r, g, and b values inputted
-pp.bots[index].getClosestColorId(r, g, b);
+// returns the color id of the color closest to the r, g, and b values inputted via IRGB, aka {r, g, b}
+pp.bots[index].getClosestColorId(IRGB);
 
 // emits 42["packet", value] through the socket
 // "Packet" refers to a string; use 'Packets' imported from the library
 pp.bots[index].emit(Packet, value);
 
 // returns 'IStatistics' interface
-// stats.pixels.placing.placed, stats.pixels.placing.attempted, stats.pixels.placing.failed, stats.pixels.placing.per_second
-// stats.pixels.protection.protected, stats.pixels.protection.repaired
-// stats.pixels.colors[<Color ID>] = amount of color id placed
-// stats.images.drawing, stats.images.finished
-// stats.session.time, stats.session.errors
-// stats.socket.sent, stats.socket.received
 pp.bots[index].getStatistics();
 
 // Returns the username of a UID; string | number (For premium accounts, if the account is not premium it will throw an error)
@@ -102,6 +96,70 @@ Packets.RECEIVED.<NAME> // Packets received by the server
 Packets.SENT.<NAME> // Packets sent by the client
 Packets.LIBRARY.<NAME> // Library packets, such as errors and socket closing
 Packets.ALL // All packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
+
+// Interfaces (Objects, e.g. IRGB is {red, green, blue})
+IPixel = {
+    x: number; // pixel placement x
+    y: number; // pixel placement y
+    col: number; // color of placement
+    brush: number; // brush used (Default is 1)
+    protect: boolean; // protect the pixel
+    force: boolean; // force place over pixels of the same color
+}
+
+IImage = {
+    x: number; // initial X (Top left)
+    y: number; // initial Y (Top left)
+    path: string; // path to image file
+    mode: Modes | Function, // the mode (see MODES), or a function for custom modes
+    protect: boolean; // if the image should be protected
+    force: boolean; // force place over pixels of the same color
+}
+
+IAuthData = {
+    authKey: string; // auth key for pxp
+    authToken: string; // auth token for pxp
+    authId: string; // auth id for pxp
+}
+
+IRGB = {
+    r: number; // red value of color
+    b: number; // blue value of color
+    g: number; // green value of color
+}
+
+IStatistics = {
+    pixels: {
+        placing: {
+            placed: number, // amount of pixels succesfully placed by the client
+            attempted: number, // amount of pixels attempted to be placed by the client
+            failed: number, // amount of pixels attempted to be place by the client that weren't registered by pxp
+            first_time: number, // first pixel placed (Used for per_second calculation)
+            per_second: number, // placed / (first_time * 0.001)
+        },
+        protection: {
+            protected: number, // pixels protected
+            repaired: number, // pixels repaired
+            last_repair: number, // last repair time
+        }
+        colors: {
+            [color: number]: number, // array of all colors and the amount placed, placing 10 white (0) would be { '0': 10 }; colors[0] = 10
+        }
+    },
+    images: {
+        drawing: number, // amount of images currently being drawn
+        finished: number, // amount of images finished drawing
+    },
+    session: {
+        time: number, // time the bot has been online
+        errors: number, // errors encountered
+        beginTime: number, // as soon as await Init() is resolved
+    },
+    socket: {
+        sent: number, // packets sent through the client
+        received: number, // packets received from the server
+    }
+}
 ```
 
 ### Full Bot
