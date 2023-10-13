@@ -185,7 +185,7 @@ import { PixelPlace, Auth, Modes, Packets } from "pixelplacejs-new";
 
     pp.bots[0].setPlacementSpeed(48);
 
-    await pp.bots[0].drawImage(x, y, "my image file", Modes.FROM_CENTER),
+    await pp.bots[0].drawImage(x, y, "my image file", Modes.FROM_CENTER);
 
     // IImage implementation
     //await pp.bots[0].drawImage({ x: x, y: y, path: "my image file",
