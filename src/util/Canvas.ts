@@ -116,6 +116,8 @@ export class Canvas {
                                         } else {
                                             this.pixelData?.set(x, y, colId);
                                         }
+                                    } else {
+                                        this.pixelData?.set(x, y, -1);
                                     }
                                 }
                             }

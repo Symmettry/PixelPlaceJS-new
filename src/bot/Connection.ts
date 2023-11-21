@@ -24,8 +24,6 @@ export class Connection {
 
     private socket!: WebSocket;
 
-    packets: Array<[string, any]> | undefined;
-
     private stats: IStatistics;
 
     canvas!: Canvas.Canvas;
@@ -63,12 +61,17 @@ export class Connection {
             // Create the canvas
             this.canvas = Canvas.getCanvas(this.boardId);
 
-            this.packets = [];
-            let loadedCanvas = false;
+            let resolved = false;
 
             // currently redundant
             //this.socket.on('open', () => {
             //});
+
+            setTimeout(() => {
+                if(!resolved) {
+                    console.log("Pixelplace has not responded in 10 seconds! Verify your auth data is correct and that pixelplace is online!");
+                }
+            }, 10000);
 
             this.socket.on('message', async (buffer: Buffer) => {
                 const data: string = buffer.toString(); // buffer -> string
@@ -101,10 +104,6 @@ export class Connection {
                         // Packet listeners
                         this.listen(key, value);
 
-                        if(!loadedCanvas) {
-                            this.packets?.push([key, value]);
-                        }
-
                         this.stats.socket.received++;
 
                         // built-in functions, e.g. keepalive and pixels.
@@ -133,7 +132,7 @@ export class Connection {
                                 if(this.isWorld)this.canvas.loadCanvasData(value);
                                 this.stats.session.beginTime = Date.now();
                                 resolve();
-                                loadedCanvas = true;
+                                resolved = true;
 
                                 setInterval(this.ping, 250000);
                                 break;
@@ -160,7 +159,7 @@ export class Connection {
 
             this.socket.on('error', (error: Error) => {
                 if(this.listeners.has(Packets.LIBRARY.ERROR)) {
-                    this.listeners.get(Packets.LIBRARY.ERROR)?.forEach(listener => listener());
+                    this.listeners.get(Packets.LIBRARY.ERROR)?.forEach(listener => listener(error));
                 }
 
                 // statistics
@@ -183,16 +182,6 @@ export class Connection {
     on(key: string, func: Function) {
         if(!this.listeners.has(key)) this.listeners.set(key, []);
         this.listeners.get(key)?.push(func);
-        if(key != Packets.ALL) {
-            this.on(Packets.ALL, func);
-        }
-
-        if(Date.now() - this.stats.session.beginTime < 500) {
-            this.packets?.forEach(packetData => {
-                this.listen(packetData[0], packetData[1]);
-            });
-            this.packets = undefined;
-        }
     }
 
     emit(key: Packets, value: any) {

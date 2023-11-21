@@ -1,88 +1,59 @@
-// taken from npm module "pixelplacejs" - thanks shuffle
+// pingalive code recreated through deobfuscating pixelplace code
 
-function getCurrentTimeInSeconds(): number {
-    return Math.floor(new Date().getTime() / 1000);
+function randomString2(num: number) {
+    let arr = [];
+    let charList = 'gmbonjklezcfxta1234567890GMBONJKLEZCFXTA';
+    for (let i = 0; i < num; i++) {
+        arr.push(charList.charAt(Math.floor(Math.random() * charList.length)));
+    }
+    return arr.join('');
 }
-  
-  function getRandomIntInRange(min: number, max: number): number {
+function randomString1(num: number) {
+    let arr = [];
+    let charList = 'abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let i = 0; i < num; i++) {
+        arr.push(charList.charAt(Math.floor(Math.random() * charList.length)));
+    }
+    return arr.join('');
+}
+
+function randInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-  
-function generateRandomString(length: number): string {
-    const characters = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const characterCount = characters.length;
-    const result: string[] = [];
-    
-    for (let i = 0; i < length; i++) {
-        result.push(characters.charAt(Math.floor(Math.random() * characterCount)));
-    }
-    
-    return result.join('');
+
+const paliveCharmap: {[key: string]: string} = {
+    "0": "g",
+    "1": "n",
+    "2": "b",
+    "3": "r",
+    "4": "z",
+    "5": "s",
+    "6": "l",
+    "7": "x",
+    "8": "i",
+    "9": "o"
 }
-  
-function generateComplexString(length: number): string {
-    const characters = "gmbonjklezcfxta1234567890GMBONJKLEZCFXTA";
-    const characterCount = characters.length;
-    const result: string[] = [];
-    
-    for (let i = 0; i < length; i++) {
-        result.push(characters.charAt(Math.floor(Math.random() * characterCount)));
-    }
-    
-    return result.join('');
-}
-  
-const numberToCharMap: Record<number, string> = {
-    0: 'g',
-    1: 'n',
-    2: 'b',
-    3: 'r',
-    4: 'z',
-    5: 's',
-    6: 'l',
-    7: 'x',
-    8: 'i',
-    9: 'a',
-};
-  
-const userId = 5;
-  
-export function getPalive(tDelay: number): string {
-    const stringLengths = [6, 5, 9, 4, 5, 3, 6, 6, 3];
-    const currentTime = getCurrentTimeInSeconds() + tDelay - 5400;
-    const currentTimeStr = currentTime.toString();
-    const currentTimeDigits = currentTimeStr.split('');
+export function getPalive(tDelay: number) {
+    const sequenceLengths = [6, 5, 9, 4, 5, 3, 6, 6, 3];
+    const currentTimestamp = Math.floor(Date.now() / 1000) + tDelay - 5400;
+    const timestampString = currentTimestamp.toString();
+    const timestampCharacters = timestampString.split('');
+
     let result = '';
-    let index = 0;
-    
-    while (index < stringLengths.length) {
-        if (getRandomIntInRange(0, 1) === 1) {
-            result += generateComplexString(stringLengths[index]);
-        } else {
-            result += generateRandomString(stringLengths[index]);
-        }
-      
-        if (Math.floor(Math.random() * 2) === 0) {
-            result += numberToCharMap[parseInt(currentTimeDigits[index])]?.toUpperCase() || '';
-        } else {
-            result += numberToCharMap[parseInt(currentTimeDigits[index])] || '';
-        }
-      
-        index++;
+    for(let i=0;i<sequenceLengths.length;i++) {
+        const sequenceNumber = sequenceLengths[i];
+        result += randInt(0, 1) == 1 ? randomString2(sequenceNumber) : randomString1(sequenceNumber);
+
+        const letter = paliveCharmap[parseInt(timestampCharacters[i])];
+        result += randInt(0, 1) == 0 ? letter.toUpperCase() : letter;
     }
-    
-    if (getRandomIntInRange(0, 1) === 1) {
-        result += userId + generateComplexString(getRandomIntInRange(4, 20));
-    } else {
-        result += userId + generateRandomString(getRandomIntInRange(4, 25));
-    }
-    
-    result += '0=';
-    
-    return result;
+
+    result += 2 + (randInt(0, 1) == 1 ? randomString2(randInt(4, 20)) : randomString1(randInt(4, 25)));
+
+    return result + "0=";
 }
 
-// this doesn't need to be in a separate class;
+// this doesn't need to be in a separate file; taken from shuffleperson's original ppjs
 
 export function getTDelay(serverTime: number): number {
     const currentTime = new Date().getTime() / 1e3;
