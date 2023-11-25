@@ -42,6 +42,7 @@ export interface IStatistics {
             failed: number,
             first_time: number,
             per_second: number,
+            last_pos: number[],
         },
         protection: {
             protected: number,
@@ -76,6 +77,7 @@ export function defaultStatistics(): IStatistics {
                 failed: 0,
                 first_time: -1,
                 per_second: -1,
+                last_pos: [-1, -1],
             },
             protection: {
                 protected: 0,

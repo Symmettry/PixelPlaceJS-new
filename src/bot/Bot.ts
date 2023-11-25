@@ -167,6 +167,9 @@ export class Bot {
                 const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot || 0};
                 this.unverifiedPixels.push(arr);
 
+                this.stats.pixels.placing.last_pos[0] = x;
+                this.stats.pixels.placing.last_pos[1] = y;
+                
                 this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
 
                 this.connection.canvas?.pixelData?.set(x, y, col);
