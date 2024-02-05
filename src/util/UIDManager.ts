@@ -30,18 +30,17 @@ export default class UIDManager {
         if(!this.premium) {
             console.error(`~~ERROR~~ Attempted access on getUsername(${uid}), but the account is not premium!`);
             return undefined;
-        } else {
-            if(typeof uid == 'string')uid = parseFloat(uid);
-            const val = this.uidMap.get(uid);
-            return val == "---" ? undefined : val;
         }
+        if(typeof uid == 'string')uid = parseFloat(uid);
+        const val = this.uidMap.get(uid);
+        return val == "---" ? undefined : val;
     }
 
     register(uid: number) {
-        if(this.uidMap.get(uid) == undefined) {
-            this.pp.emit(Packets.SENT.USERNAME, uid);
-            this.uidMap.set(uid, "---");
-        }
+        if(this.uidMap.get(uid) != undefined) return;
+        
+        this.pp.emit(Packets.SENT.USERNAME, uid);
+        this.uidMap.set(uid, "---");
     }
 
 }

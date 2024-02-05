@@ -15,17 +15,17 @@ export class Protector {
 
     protect(x: number, y: number, col: number): void {
         const protectColor = this.getColor(x, y);
-        if (protectColor == undefined || protectColor != col) {
-            this.protectedPixels.set(`${x},${y}`, col);
-            if(protectColor == undefined)this.stats.pixels.protection.protected++;
-        }
+        if (protectColor != undefined && protectColor == col) return;
+
+        this.protectedPixels.set(`${x},${y}`, col);
+        if(protectColor == undefined) this.stats.pixels.protection.protected++;
     }
     unprotect(x: number, y: number): void {
         const protectColor = this.getColor(x, y);
-        if (protectColor != undefined) {
-            this.protectedPixels.delete(`${x},${y}`);
-            this.stats.pixels.protection.protected--;
-        }
+        if (protectColor == undefined) return;
+        
+        this.protectedPixels.delete(`${x},${y}`);
+        this.stats.pixels.protection.protected--;
     }
 
     getColor(x: number, y: number): number | undefined {

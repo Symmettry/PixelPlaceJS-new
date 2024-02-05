@@ -9,6 +9,7 @@ export class Auth {
     boardId: number;
 
     constructor(authObj: IAuthData, boardId: number) {
+        // pixelplace auth data
         this.authKey = authObj.authKey;
         this.authToken = authObj.authToken;
         this.authId = authObj.authId;

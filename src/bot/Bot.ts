@@ -93,15 +93,15 @@ export class Bot {
     }
     private userDefPlaceSpeed: Function = () => 30;
 
-    setPlacementSpeed(arg: Function | number, supress: boolean=false) {
-        if(typeof arg == 'function') {
-            this.userDefPlaceSpeed = arg;
-        } else {
-            if(!supress && arg < 20) {
+    setPlacementSpeed(arg: Function | number, suppress: boolean=false) {
+        if(typeof arg != 'function') {
+            if(!suppress && arg < 20) {
                 console.warn(`~~WARN~~ Placement speed under 20 may lead to rate limit or even a ban! (Suppress with setPlacementSpeed(${arg}, true); not recommended)`);
             }
             this.userDefPlaceSpeed = () => arg;
+            return;
         }
+        this.userDefPlaceSpeed = arg;
     }
 
     async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
@@ -161,29 +161,28 @@ export class Bot {
                     resolve();
                 }, newPlacementSpeed - deltaTime + 1);
             })
-        } else {
-            return new Promise<void>(async (resolve, _reject) => {
-
-                const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot || 0};
-                this.unverifiedPixels.push(arr);
-
-                this.stats.pixels.placing.last_pos[0] = x;
-                this.stats.pixels.placing.last_pos[1] = y;
-                
-                this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
-
-                this.connection.canvas?.pixelData?.set(x, y, col);
-                
-                this.lastPlaced = Date.now();
-                setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
-
-                // statistics
-                this.stats.pixels.placing.attempted++;
-
-                if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
-                this.stats.pixels.colors[col]++;
-            });
         }
+        return new Promise<void>(async (resolve, _reject) => {
+
+            const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot || 0};
+            this.unverifiedPixels.push(arr);
+
+            this.stats.pixels.placing.last_pos[0] = x;
+            this.stats.pixels.placing.last_pos[1] = y;
+            
+            this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
+
+            this.connection.canvas?.pixelData?.set(x, y, col);
+            
+            this.lastPlaced = Date.now();
+            setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
+
+            // statistics
+            this.stats.pixels.placing.attempted++;
+
+            if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
+            this.stats.pixels.colors[col]++;
+        });
     }
 
     emit(key: Packets, value: any): void {
@@ -207,6 +206,7 @@ export class Bot {
         } else {
             throw new Error('Invalid arguments for drawImage.');
         }
+        
         if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
         return this.drawImageInternal(image);
     }

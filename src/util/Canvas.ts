@@ -7,12 +7,9 @@ import { IRGBColor } from './data/Data';
 const canvases: Map<number, Canvas> = new Map();
 
 export function getCanvas(boardId: number): Canvas {
-    if(hasCanvas(boardId)) {
-        return canvases.get(boardId) || new Canvas(boardId);
-    } else{
-        return new Canvas(boardId);
-    }
+    return hasCanvas(boardId) ? canvases.get(boardId) || new Canvas(boardId) : new Canvas(boardId);
 }
+
 export function hasCanvas(boardId: number): boolean {
     return canvases.has(boardId);
 }
@@ -70,10 +67,11 @@ export class Canvas {
             const [r2, g2, b2] = color.split(',').map(Number);
             const distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
     
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestColorId = this.colors[color];
-            }
+            if (distance >= minDistance) continue;
+
+            minDistance = distance;
+            closestColorId = this.colors[color];
+        
         }
     
         return closestColorId;
@@ -109,15 +107,15 @@ export class Canvas {
                                     const r = pixels.get(x, y, 0);
                                     const g = pixels.get(x, y, 1);
                                     const b = pixels.get(x, y, 2);
-                                    if(!(r == 204 && g == 204 && b == 204)) {
-                                        const colId = this.getColorId({r,g,b});
-                                        if(colId == -1) {
-                                            console.log("ERR:",r,g,b);
-                                        } else {
-                                            this.pixelData?.set(x, y, colId);
-                                        }
-                                    } else {
+
+                                    if(r == 204 && g == 204 && b == 204) { // ocean
                                         this.pixelData?.set(x, y, -1);
+                                        continue;
+                                    }
+
+                                    const colId = this.getColorId({r,g,b});
+                                    if(colId != -1) {
+                                        this.pixelData?.set(x, y, colId);
                                     }
                                 }
                             }
@@ -135,12 +133,12 @@ export class Canvas {
         if(this.pixelData == undefined) {
             if(this.pixelPreData == undefined) this.pixelPreData = [];
             this.pixelPreData.push(pixels);
-        } else {
-            pixels.forEach(pixel => {
-                const [x, y, col] = pixel;
-                this.pixelData.set(x, y, col);
-            });
+            return;
         }
+        pixels.forEach(pixel => {
+            const [x, y, col] = pixel;
+            this.pixelData.set(x, y, col);
+        });
     }
 
     async getDimensions(): Promise<{ [key: string]: number }> {
