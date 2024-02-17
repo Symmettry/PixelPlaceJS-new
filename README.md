@@ -8,7 +8,7 @@ import { PixelPlace, Packets, Auth, Modes } from "pixelplacejs-new";
 
 // Auth data
 // Fill values, IAuthData = { authKey: "", authToken: "", authId: "" }
-var auths = [
+const auths = [
     new Auth(IAuthData, boardId), // Assign board id
 ]
 

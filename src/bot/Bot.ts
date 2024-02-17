@@ -71,15 +71,16 @@ export class Bot {
         let successful = this.unverifiedPixels.length;
         for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
             const pixel = this.unverifiedPixels[i];
-            if(this.getPixelAt(pixel.data.x, pixel.data.y) != pixel.data.col) {
-                this.sendQueue.push(pixel.data); // pixels were not sent, redo them
-                this.connection.canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
 
-                // statistics
-                this.stats.pixels.placing.failed++;
-                this.stats.pixels.colors[pixel.data.col]--;
-                successful--;
-            }
+            if(this.getPixelAt(pixel.data.x, pixel.data.y) == pixel.data.col) continue;
+
+            this.sendQueue.push(pixel.data); // pixels were not sent, redo them
+            this.connection.canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
+
+            // statistics
+            this.stats.pixels.placing.failed++;
+            this.stats.pixels.colors[pixel.data.col]--;
+            successful--;
         }
         this.stats.pixels.placing.placed += successful;
         this.unverifiedPixels = [];
@@ -91,6 +92,7 @@ export class Bot {
         this.prevPlaceValue = newValue;
         return newValue;
     }
+
     private userDefPlaceSpeed: Function = () => 30;
 
     setPlacementSpeed(arg: Function | number, suppress: boolean=false) {
@@ -118,9 +120,7 @@ export class Bot {
                 protect: args[4] as boolean || false,
                 force: args[5] as boolean || false
             };
-        } else {
-            throw new Error('Invalid arguments for placePixel.');
-        }
+        } else throw new Error('Invalid arguments for placePixel.');
 
         return this.placePixelInternal(pixel);
     }
@@ -203,9 +203,7 @@ export class Bot {
                 protect: args[4] as boolean || false,
                 force: args[5] as boolean || false
             };
-        } else {
-            throw new Error('Invalid arguments for drawImage.');
-        }
+        } else throw new Error('Invalid arguments for drawImage.');
         
         if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
         return this.drawImageInternal(image);
