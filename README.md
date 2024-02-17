@@ -1,5 +1,6 @@
 # ppjs-new
 PixelPlace JS v2 basically
+https://www.npmjs.com/package/pixelplacejs-new
 
 ### Usage
 ```js
