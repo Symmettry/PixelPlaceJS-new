@@ -52,7 +52,7 @@ export class Connection {
 
     Init() {
 
-        if(this.socket != null)throw new Error("Bot already initialized.");
+        if(this.socket != null && this.socket.readyState == 1)throw new Error("Bot already initialized.");
 
         return new Promise<void>((resolve, _reject) => {
             // connect to PixelPlace
