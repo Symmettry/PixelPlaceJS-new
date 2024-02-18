@@ -188,6 +188,9 @@ export class Bot {
     emit(key: Packets, value: any): void {
         this.connection.emit(key, value);
     }
+    send(value: any): void {
+        this.connection.send(value);
+    }
     
     async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
         let image: IImage;

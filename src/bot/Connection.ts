@@ -200,5 +200,11 @@ export class Connection {
         // statistics
         this.stats.socket.sent++;
     }
+    send(value: any) {
+        this.socket.send(value);
+
+        // statistics
+        this.stats.socket.sent++;
+    }
     
 }
