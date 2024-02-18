@@ -3,7 +3,7 @@ import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
-import { Modes } from '../util/drawing/Modes.js';
+import { Modes } from '../util/data/Modes.js';
 import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';

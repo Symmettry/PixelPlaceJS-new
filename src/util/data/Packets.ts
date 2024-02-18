@@ -14,8 +14,8 @@ enum RECEIVED {
     QUEUE = "queue",
     PREMIUM_MOD = "premium.mod",
 
-    ERROR_SPECIAL = "throw.error.special",
     ERROR = "throw.error",
+    ERROR_SPECIAL = "throw.error.special",
     ERROR_CONNECT = "connect_error",
 
     SAVE_TRACKING_CACHE = "save.tracking.cache",

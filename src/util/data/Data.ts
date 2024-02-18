@@ -1,4 +1,4 @@
-import { Modes } from "../drawing/Modes";
+import { Modes } from "./Modes";
 
 export interface IPixel {
     x: number;
