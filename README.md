@@ -20,7 +20,7 @@ const pp = new PixelPlace(auths, autoRestart?);
 // Initiate all bots
 await pp.Init();
 
-// index is the bot, e.g. bots[0] is similar to auths[0]
+// index is the bot, e.g. bots[0] is auths[0]
 
 // assigns pixel placement speed to a function or a number
 // For function, it will include the previous placement value.
@@ -166,7 +166,7 @@ IStatistics = {
 ### Full Bot
 
 ```js
-import { PixelPlace, Auth, Modes, Packets } from "pixelplacejs-new";
+import { PixelPlace, Auth, Modes, Packets, Colors } from "pixelplacejs-new";
 
 (async () => {
     const boardId = 7;
@@ -184,21 +184,16 @@ import { PixelPlace, Auth, Modes, Packets } from "pixelplacejs-new";
     
     console.log("Pixel Place initiated!");
 
+    // 48 ms between each pixel
     pp.bots[0].setPlacementSpeed(48);
 
-    await pp.bots[0].drawImage(x, y, "my image file", Modes.FROM_CENTER);
+    // draws image at path "C:/my image.png"
+    await pp.bots[0].drawImage(x, y, "C:/my image.png", Modes.FROM_CENTER);
 
-    // IImage implementation
-    //await pp.bots[0].drawImage({ x: x, y: y, path: "my image file",
-    //      mode: Modes.FROM_CENTER, protect: false, force: false, });
-
+    // places a 10x10 area of white
     for(var x=0;x<10;x++) {
         for(var y=0;y<10;y++) {
-            await pp.bots[0].placePixel(1000 + x, 1000 + y, 0);
-
-            // IPixel implementation
-            // await pp.bots[0].placePixel({ x: 1000 + x, y: 1000 + y, col: 0, brush: 1,
-            //       protect: false, force: false })
+            await pp.bots[0].placePixel(1000 + x, 1000 + y, Colors.WHITE);
         }
     }
 })();
