@@ -14,11 +14,11 @@ export default class UIDManager {
 
     onPixels(pixels: number[][]) {
         pixels.forEach((pixel: number[]) => {
-            if(pixel.length == 5) {
-                const uid = pixel[4];
-                this.register(uid);
-                this.premium = true;
-            }
+            if(pixel.length != 5) return;
+
+            const uid = pixel[4];
+            this.register(uid);
+            this.premium = true;
         })
     }
     onUsername(id: number, name: string) {
@@ -31,7 +31,9 @@ export default class UIDManager {
             console.error(`~~ERROR~~ Attempted access on getUsername(${uid}), but the account is not premium!`);
             return undefined;
         }
+
         if(typeof uid == 'string')uid = parseFloat(uid);
+        
         const val = this.uidMap.get(uid);
         return val == "---" ? undefined : val;
     }

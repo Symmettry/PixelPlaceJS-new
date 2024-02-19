@@ -86,4 +86,5 @@ export class Packets {
     static SENT: typeof SENT = SENT;
     static LIBRARY: typeof LIBRARY = LIBRARY;
     static ALL: string = "*";
+    static RAW: string = "**";
 }

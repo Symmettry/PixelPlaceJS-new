@@ -35,7 +35,7 @@ export class Protector {
     async detectPixels(pixels: number[][]): Promise<void> {
         await Promise.all(
             pixels.map(async (pixel) => {
-                const [x, y, col] = pixel;
+                const [x, y] = pixel;
                 const protectColor = this.getColor(x, y);
                 if (protectColor !== undefined) {
                     this.stats.pixels.protection.repaired++;

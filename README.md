@@ -20,6 +20,12 @@ const pp = new PixelPlace(auths, autoRestart?);
 // Initiate all bots
 await pp.Init();
 
+// Alternatively, you can do this
+await pp.bots[0].Connect();
+await pp.bots[0].Load();
+// Why? If you wait for Connect(), you can then add a RAW or ALL packet listener before Load() and then see every single packet through the socket
+// the Load() waits until it receives "canvas" which is also not sent through Packets.ALL here. So if you want all that data including old chat messages, you do this.
+
 // index is the bot, e.g. bots[0] is auths[0]
 
 // assigns pixel placement speed to a function or a number
@@ -96,7 +102,8 @@ await pp.bots[index].drawImage((x, y, "path_to_image", async (pixels: NdArray<Ui
 Packets.RECEIVED.<NAME> // Packets received by the server
 Packets.SENT.<NAME> // Packets sent by the client
 Packets.LIBRARY.<NAME> // Library packets, such as errors and socket closing
-Packets.ALL // All packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
+Packets.ALL // All 42 id packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
+Packets.RAW // Raw packet data is transferred through this. Only has (value) => {}
 
 // Interfaces (Objects, e.g. IRGB is {red, green, blue})
 IPixel = {

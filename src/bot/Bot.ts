@@ -55,8 +55,21 @@ export class Bot {
     }
 
     async Init(): Promise<void> {
+        return new Promise<void>(async (resolve, _reject) => {
+            await this.Connect();
+            await this.Load();
+            resolve();
+        });
+    }
+
+    async Connect(): Promise<void> {
         this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats);
-        return this.connection.Init();
+        return this.connection.Connect();
+    }
+
+    async Load(): Promise<void> {
+        if(!this.connection) throw "Connection not initialized.";
+        return this.connection.Load();
     }
 
     getPixelAt(x: number, y: number): number | undefined {

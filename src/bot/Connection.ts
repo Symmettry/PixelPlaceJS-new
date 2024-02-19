@@ -50,11 +50,11 @@ export class Connection {
         })
     }
 
-    Init() {
+    async Connect() {
 
-        if(this.socket != null && this.socket.readyState == 1)throw new Error("Bot already initialized.");
+        if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
 
-        return new Promise<void>((resolve, _reject) => {
+        return new Promise<void>(async (resolve, _reject) => {
             // connect to PixelPlace
             this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
 
@@ -65,16 +65,27 @@ export class Connection {
             // create the canvas
             this.canvas = Canvas.getCanvas(this.boardId);
 
-            this.socket.on('message', async (buffer: Buffer) => {
-                await this.evaluatePacket(buffer, resolve);
-            });
-
             this.socket.on('close', () => {
                 this.socketClosed();
             });
 
+            this.socket.on('open', () => {
+                resolve();
+            });
+
             this.socket.on('error', (error: Error) => {
                 this.socketError(error);
+            });
+        });
+    }
+
+    async Load() {
+
+        if(!this.socket) throw "Bot has not connected yet.";
+
+        return new Promise<void>(async (resolve, _reject) => {
+            this.socket.on('message', async (buffer: Buffer) => {
+                await this.evaluatePacket(buffer, resolve);
             });
         });
     }
@@ -84,7 +95,8 @@ export class Connection {
             this.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener());
         }
         if(this.bot.autoRestart) {
-            this.Init();
+            this.Connect();
+            this.Load();
         }
     }
 
@@ -98,6 +110,10 @@ export class Connection {
     }
     private async evaluatePacket(buffer: Buffer, resolve: Function) {
         const data: string = buffer.toString(); // buffer -> string
+
+        if(this.listeners.has(Packets.RAW)) {
+            this.listeners.get(Packets.RAW)?.forEach(listener => listener(data));
+        }
                 
         // Gets the data and ID of the response
         let index = data.indexOf("{");
