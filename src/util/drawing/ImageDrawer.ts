@@ -179,6 +179,7 @@ export class ImageDrawer {
     }
 
     getColorAt(x: number, y: number, pixels: NdArray<Uint8Array>): number {
+        if(x > pixels.shape[0] || y > pixels.shape[1] || x < 0 || y < 0) throw `Out of bounds pixel: [${x},${y}]`;
         const r = pixels.get(x, y, 0);
         const g = pixels.get(x, y, 1);
         const b = pixels.get(x, y, 2);
@@ -189,24 +190,24 @@ export class ImageDrawer {
 
     async draw(x: number, y: number, pixels: NdArray<Uint8Array>): Promise<void> {
         const closestColorId = this.getColorAt(x, y, pixels);
-        if(closestColorId !== -1) {
-            const nx = this.x + x;
-            const ny = this.y + y;
+        if(closestColorId == -1) return;
 
-            if(this.instance.getPixelAt(nx, ny) != closestColorId) {
-                return this.instance.placePixel({
-                    x: nx,
-                    y: ny,
-                    col: closestColorId,
-                    brush: 1,
-                    protect: this.protect,
-                    force: this.force
-                });
-            }
-            
-            if (this.protect) {
-                return this.instance.protect(nx, ny, closestColorId);
-            }
+        const nx = this.x + x;
+        const ny = this.y + y;
+
+        if(this.instance.getPixelAt(nx, ny) != closestColorId) {
+            return this.instance.placePixel({
+                x: nx,
+                y: ny,
+                col: closestColorId,
+                brush: 1,
+                protect: this.protect,
+                force: this.force
+            });
+        }
+        
+        if (this.protect) {
+            return this.instance.protect(nx, ny, closestColorId);
         }
     }
 

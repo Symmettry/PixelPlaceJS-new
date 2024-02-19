@@ -2,6 +2,10 @@
 PixelPlace JS v2 basically
 https://www.npmjs.com/package/pixelplacejs-new
 
+Extremely versatile NodeJS library for pixelplace.
+Easily capable of drawing 3000x3000 images (May have a delay on hefty sorting like FROM_CENTER or TO_CENTER)
+Able to do many many things unlike most bots (Like chat bots -- Erebot is made in this)
+
 ### Usage
 ```js
 // example import
