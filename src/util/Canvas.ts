@@ -79,7 +79,7 @@ export class Canvas {
 
     getColorId(rgb: IRGBColor): number {
         const { r, g, b } = rgb;
-        return this.colors[`${r},${g},${b}`] != null ? this.colors[`${r},${g},${b}`] : -1;
+        return this.colors[`${r},${g},${b}`] || -1;
     }
 
     async loadCanvasPicture(): Promise<void> {
