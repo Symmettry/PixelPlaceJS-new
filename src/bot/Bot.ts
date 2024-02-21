@@ -17,12 +17,13 @@ export class Bot {
     private authId!: string;
     private boardId!: number;
 
-    private lastPlaced!: number;
-    private prevPlaceValue!: number;
+    private prevPlaceValue: number = 0;
 
     private sendQueue: Array<IQueuedPixel> = [];
     private resendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
+    private trueQueueSize: number = 0;
+    private goingThroughQueue: number = 0;
 
     autoRestart: boolean;
 
@@ -37,8 +38,6 @@ export class Bot {
 
         constant(this, 'boardId', auth.boardId);
         
-        this.lastPlaced = 0;
-        this.prevPlaceValue = 0;
         this.autoRestart = autoRestart;
         this.uidman = new UIDManager(this);
     }
@@ -145,24 +144,30 @@ export class Bot {
     }
 
     private goThroughPixels() {
+
+        if(this.trueQueueSize == 0)return;
+
         const queuedPixel = this.sendQueue.shift();
 
-        if(queuedPixel == null) return;
+        if(queuedPixel == null)return; // shouldn't but just in case
+
+        this.goingThroughQueue++;
 
         setTimeout(() => {
             const {x, y, col, brush, protect, force} = queuedPixel.data;
+
+            this.trueQueueSize--;
+            this.goThroughPixels();
+            queuedPixel.resolve();
+            this.goingThroughQueue--;
 
             const colAtSpot = this.getPixelAt(x, y);
             if((!force && colAtSpot == col)) {
                 return;
             }
 
-            queuedPixel.resolve();
-
             this.emit(Packets.SENT.PIXEL, `[${x},${y},${col},${brush}]`);
             this.connection.canvas?.pixelData?.set(x, y, col);
-            
-            this.lastPlaced = Date.now();
 
             const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: colAtSpot || 0};
             this.unverifiedPixels.push(arr);
@@ -175,9 +180,15 @@ export class Bot {
 
             if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
             this.stats.pixels.colors[col]++;
-            
-            this.goThroughPixels();
         }, queuedPixel.speed);
+    }
+
+    private addToSendQueue(p: IQueuedPixel): void {
+        this.trueQueueSize++;
+        this.sendQueue.push(p);
+        if(this.goingThroughQueue <= 1) {
+            this.goThroughPixels();
+        }
     }
 
     private async placePixelInternal(p: IPixel, forcePlacementSpeed: number=-1): Promise<void> {
@@ -197,22 +208,7 @@ export class Bot {
             this.protector.protect(x, y, col);
         }
 
-        const deltaTime = Date.now() - this.lastPlaced;
-        if(deltaTime < placementSpeed) {
-            return new Promise<void>(async (resolve, _reject) => {
-                const newPlacementSpeed = this.getPlacementSpeed();
-                setTimeout(async () => {
-                    await this.placePixelInternal(p, newPlacementSpeed);
-                    resolve();
-                }, newPlacementSpeed - deltaTime + 1);
-            })
-        }
-        return new Promise<void>(async (resolve, _reject) => {
-            this.sendQueue.push({data: p, speed: placementSpeed - (deltaTime - placementSpeed) + 1, resolve});
-            if(this.sendQueue.length == 1) {
-                this.goThroughPixels();
-            }
-        });
+        return new Promise<void>((resolve, _reject) => this.addToSendQueue({data: p, speed: placementSpeed, resolve}) );
     }
 
     emit(key: Packets, value: string): void {
