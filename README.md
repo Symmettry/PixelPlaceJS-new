@@ -1,9 +1,12 @@
 # ppjs-new
 PixelPlace JS v2 basically
+
 https://www.npmjs.com/package/pixelplacejs-new
 
 Extremely versatile NodeJS library for pixelplace.
+
 Easily capable of drawing 3000x3000 images (May have a delay on hefty sorting like FROM_CENTER or TO_CENTER)
+
 Able to do many many things unlike most bots (Like chat bots -- Erebot is made in this)
 
 ### Usage
@@ -34,23 +37,23 @@ await pp.bots[0].Load();
 
 // assigns pixel placement speed to a function or a number
 // For function, it will include the previous placement value.
-// supress?: suppress console warning for pixel speed under 20, defaults to false
+// suppress?: suppress console warning for pixel speed under 20, defaults to false
 // pp.bots[index].setPlacementSpeed(30);
 // pp.bots[index].setPlacementSpeed(() => Math.floor(Math.random() * 10) + 20);
 // pp.bots[index].setPlacementSpeed((previous) => previous > 30 ? previous / 2 : previous * 2);
-pp.bots[index].setPlacementSpeed(number | Function, supress?);
+pp.bots[index].setPlacementSpeed(number | Function, suppress?);
 
 // places a pixel at x,y with color id col
 // if brush isn't set, it will default to 1 (Brush used to place pixels)
 // if protect isn't set, it will default to false (Should it be protected?)
 // if force isn't set, it will default to false (Should it place over pixels of the same color?)
-await pp.bots[index].placePixel((x, y, col, brush?, protect?, force?) | IPixel);
+await pp.bots[index].placePixel(x, y, col, brush?, protect?, force?);
 
 // draws the image at "path_to_image" at starting point x and y (This is not central, it is the top left of the final drawing)
 // mode?: drawing mode, (See "Image Drawing Modes"), defaults to Modes.TOP_LEFT_TO_RIGHT
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
-await pp.bots[index].drawImage((x, y, "path_to_image", mode?, protect?, force?) | IImage);
+await pp.bots[index].drawImage(x, y, "path_to_image", mode?, protect?, force?);
 
 // will run the function with its value when 'key' is received from the socket
 // you can also use a string for it, but it's recommended to use 'Packets' imported from the library
@@ -63,7 +66,7 @@ pp.bots[index].on(Packet, (value) => {});
 pp.bots[index].getPixelAt(x, y);
 
 // returns the color id of the color closest to the r, g, and b values inputted via IRGB, aka {r, g, b}
-pp.bots[index].getClosestColorId(IRGBColor);
+pp.bots[index].getClosestColorId({r, g, b});
 
 // emits 42["packet", value] through the socket
 // "Packet" refers to a string; use 'Packets' imported from the library
