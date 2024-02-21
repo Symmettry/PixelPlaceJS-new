@@ -11,23 +11,22 @@ export class Connection {
 
     private bot: Bot;
 
-    private isWorld: boolean = true;
-
     private boardId!: number;
+    private isWorld: boolean = true;
+    canvas!: Canvas.Canvas;
+
     private authKey!: string;
     private authToken!: string;
     private authId!: string;
 
-    private listeners!: Map<string, Function[]>;
-
-    private tDelay: number = 0;
+    private stats: IStatistics;
 
     private socket!: WebSocket;
     private connected: boolean = false;
+    private listeners!: Map<string, Function[]>;
 
-    private stats: IStatistics;
-
-    canvas!: Canvas.Canvas;
+    private tDelay: number = 0;
+    private econnrefusedTimer: number = 0;
 
     constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics) {
         this.bot = bot;
@@ -48,6 +47,14 @@ export class Connection {
                 Cookie: `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`
             }
         })
+    }
+
+    async Start() {
+        return new Promise<void>(async (resolve, _reject) => {
+            await this.Connect();
+            await this.Load();
+            resolve();
+        });
     }
 
     async Connect() {
@@ -75,6 +82,11 @@ export class Connection {
 
             this.socket.on('error', (error: Error) => {
                 this.socketError(error);
+                if(error.message.startsWith("connect ECONNREFUSED") && Date.now() - this.econnrefusedTimer > 10000) { // this means it couldn't connect
+                    this.econnrefusedTimer = Date.now();
+                    this.socket.close();
+                    console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds if continuing." : ""}`);
+                }
             });
         });
     }
@@ -95,8 +107,7 @@ export class Connection {
             this.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener());
         }
         if(this.bot.autoRestart) {
-            this.Connect();
-            this.Load();
+            setTimeout(() => this.Start(), 1000);
         }
     }
 
@@ -135,7 +146,7 @@ export class Connection {
 
                 setTimeout(() => {
                     if(!this.connected) {
-                        console.log("Pixelplace has not responded in 10 seconds! Verify your auth data is correct and that pixelplace is online!");
+                        console.error("Pixelplace has not responded in 10 seconds! Verify your auth data is correct and that pixelplace is online!");
                     }
                 }, 10000);
                 break;
