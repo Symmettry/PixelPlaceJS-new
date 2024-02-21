@@ -12,6 +12,11 @@ export interface IUnverifiedPixel {
     data: IPixel;
     originalColor: number;
 }
+export interface IQueuedPixel {
+    data: IPixel;
+    speed: number;
+    resolve: Function;
+}
 
 export interface IImage {
     x: number;

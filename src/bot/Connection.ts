@@ -209,12 +209,10 @@ export class Connection {
         this.listeners.get(key)?.push(func);
     }
 
-    emit(key: Packets, value: any) {
-        const data = `42["${key}",${value.toString()}]`;
-        this.socket.send(data);
-
-        // statistics
-        this.stats.socket.sent++;
+    emit(key: Packets, value: string) {
+        const data = `42["${key}",${value}]`;
+    
+        this.send(data);
     }
     send(value: any) {
         this.socket.send(value);

@@ -4,7 +4,7 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/data/Modes.js';
-import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor } from '../util/data/Data.js';
+import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';
 import { constant } from '../util/Constant.js';
@@ -20,7 +20,8 @@ export class Bot {
     private lastPlaced!: number;
     private prevPlaceValue!: number;
 
-    private sendQueue: Array<IPixel> = [];
+    private sendQueue: Array<IQueuedPixel> = [];
+    private resendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
 
     autoRestart: boolean;
@@ -87,7 +88,7 @@ export class Bot {
 
             if(this.getPixelAt(pixel.data.x, pixel.data.y) == pixel.data.col) continue;
 
-            this.sendQueue.push(pixel.data); // pixels were not sent, redo them
+            this.resendQueue.push(pixel.data); // pixels were not sent, redo them
             this.connection.canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
 
             // statistics
@@ -143,10 +144,46 @@ export class Bot {
         this.protector.protect(x, y, col);
     }
 
+    private goThroughPixels() {
+        const queuedPixel = this.sendQueue.shift();
+
+        if(queuedPixel == null) return;
+
+        setTimeout(() => {
+            const {x, y, col, brush, protect, force} = queuedPixel.data;
+
+            const colAtSpot = this.getPixelAt(x, y);
+            if((!force && colAtSpot == col)) {
+                return;
+            }
+
+            queuedPixel.resolve();
+
+            this.emit(Packets.SENT.PIXEL, `[${x},${y},${col},${brush}]`);
+            this.connection.canvas?.pixelData?.set(x, y, col);
+            
+            this.lastPlaced = Date.now();
+
+            const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: colAtSpot || 0};
+            this.unverifiedPixels.push(arr);
+
+            // statistics
+            this.stats.pixels.placing.attempted++;
+
+            this.stats.pixels.placing.last_pos[0] = x;
+            this.stats.pixels.placing.last_pos[1] = y;
+
+            if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
+            this.stats.pixels.colors[col]++;
+            
+            this.goThroughPixels();
+        }, queuedPixel.speed);
+    }
+
     private async placePixelInternal(p: IPixel, forcePlacementSpeed: number=-1): Promise<void> {
 
-        if(this.sendQueue.length > 0) {
-            const pixel: IPixel | undefined = this.sendQueue.shift();
+        if(this.resendQueue.length > 0) {
+            const pixel: IPixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
                 await this.placePixelInternal(pixel);
             }
@@ -160,11 +197,6 @@ export class Bot {
             this.protector.protect(x, y, col);
         }
 
-        const colAtSpot = this.getPixelAt(x, y)
-        if((!force && colAtSpot == col)) {
-            return;
-        }
-
         const deltaTime = Date.now() - this.lastPlaced;
         if(deltaTime < placementSpeed) {
             return new Promise<void>(async (resolve, _reject) => {
@@ -176,29 +208,14 @@ export class Bot {
             })
         }
         return new Promise<void>(async (resolve, _reject) => {
-
-            const arr: IUnverifiedPixel = {data: {x,y,col,brush,protect,force}, originalColor: colAtSpot || 0};
-            this.unverifiedPixels.push(arr);
-
-            this.stats.pixels.placing.last_pos[0] = x;
-            this.stats.pixels.placing.last_pos[1] = y;
-            
-            this.emit("p", `[${x}, ${y}, ${col}, ${brush}]`);
-
-            this.connection.canvas?.pixelData?.set(x, y, col);
-            
-            this.lastPlaced = Date.now();
-            setTimeout(resolve, placementSpeed - (deltaTime - placementSpeed) + 1);
-
-            // statistics
-            this.stats.pixels.placing.attempted++;
-
-            if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
-            this.stats.pixels.colors[col]++;
+            this.sendQueue.push({data: p, speed: placementSpeed - (deltaTime - placementSpeed) + 1, resolve});
+            if(this.sendQueue.length == 1) {
+                this.goThroughPixels();
+            }
         });
     }
 
-    emit(key: Packets, value: any): void {
+    emit(key: Packets, value: string): void {
         this.connection.emit(key, value);
     }
     send(value: any): void {

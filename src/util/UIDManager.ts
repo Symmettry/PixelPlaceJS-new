@@ -33,7 +33,7 @@ export default class UIDManager {
         }
 
         if(typeof uid == 'string')uid = parseFloat(uid);
-        
+
         const val = this.uidMap.get(uid);
         return val == "---" ? undefined : val;
     }
@@ -41,7 +41,7 @@ export default class UIDManager {
     register(uid: number) {
         if(this.uidMap.get(uid) != undefined) return;
         
-        this.pp.emit(Packets.SENT.USERNAME, uid);
+        this.pp.emit(Packets.SENT.USERNAME, uid.toString());
         this.uidMap.set(uid, "---");
     }
 
