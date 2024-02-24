@@ -153,34 +153,38 @@ export class Bot {
 
         this.goingThroughQueue++;
 
-        setTimeout(() => {
-            const {x, y, col, brush, protect, force} = queuedPixel.data;
+        if(queuedPixel.speed > 0) {
+            return setTimeout(() => this.sendPixel(queuedPixel), queuedPixel.speed);
+        }
+        this.sendPixel(queuedPixel);
+    }
+    private sendPixel(queuedPixel: IQueuedPixel): void {
+        const {x, y, col, brush, protect, force} = queuedPixel.data;
 
-            this.trueQueueSize--;
-            this.goThroughPixels();
-            queuedPixel.resolve();
-            this.goingThroughQueue--;
+        this.trueQueueSize--;
+        this.goThroughPixels();
+        queuedPixel.resolve();
+        this.goingThroughQueue--;
 
-            const colAtSpot = this.getPixelAt(x, y);
-            if((!force && colAtSpot == col)) {
-                return;
-            }
+        const colAtSpot = this.getPixelAt(x, y);
+        if(!force && colAtSpot == col) {
+            return;
+        }
 
-            this.emit(Packets.SENT.PIXEL, `[${x},${y},${col},${brush}]`);
-            this.connection.canvas?.pixelData?.set(x, y, col);
+        this.emit(Packets.SENT.PIXEL, `[${x},${y},${col},${brush}]`);
+        this.connection.canvas?.pixelData?.set(x, y, col);
 
-            const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: colAtSpot || 0};
-            this.unverifiedPixels.push(arr);
+        const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: colAtSpot || 0};
+        this.unverifiedPixels.push(arr);
 
-            // statistics
-            this.stats.pixels.placing.attempted++;
+        // statistics
+        this.stats.pixels.placing.attempted++;
 
-            this.stats.pixels.placing.last_pos[0] = x;
-            this.stats.pixels.placing.last_pos[1] = y;
+        this.stats.pixels.placing.last_pos[0] = x;
+        this.stats.pixels.placing.last_pos[1] = y;
 
-            if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
-            this.stats.pixels.colors[col]++;
-        }, queuedPixel.speed);
+        if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
+        this.stats.pixels.colors[col]++;
     }
 
     private addToSendQueue(p: IQueuedPixel): void {
