@@ -7,13 +7,15 @@ import { Modes } from "../data/Modes";
 import { IImage } from "../data/Data";
 import { constant } from "../Constant";
 
+export type DrawingFunction = (pixels: NdArray<Uint8Array>, drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>, getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number) => Promise<void>;
+
 export class ImageDrawer {
 
     private instance!: Bot;
 
     private path!: string;
 
-    private mode!: Modes | Function;
+    private mode!: Modes | DrawingFunction;
 
     private x!: number;
     private y!: number;
@@ -104,7 +106,7 @@ export class ImageDrawer {
                 const centerY = Math.floor(pixels.shape[1] / 2);
 
                 // create an array to hold pixels and their distances from the center
-                let pixelDistances = [];
+                const pixelDistances = [];
 
                 // calculate the distance of each pixel from the center
                 for (let x = 0; x < pixels.shape[0]; x++) {
@@ -131,7 +133,7 @@ export class ImageDrawer {
                 const centerY = Math.floor(pixels.shape[1] / 2);
 
                 // create an array to hold pixels and their distances from the center
-                let pixelDistances = [];
+                const pixelDistances = [];
 
                 // calculate the distance of each pixel from the center
                 for (let x = 0; x < pixels.shape[0]; x++) {
@@ -224,7 +226,7 @@ export class ImageDrawer {
 
         const buffer = fs.readFileSync(this.path);
 
-        return new Promise<void>((resolve, _reject) => {
+        return new Promise<void>((resolve) => {
             getPixels(buffer, type, async (err: Error | null, pixels: NdArray<Uint8Array>) => {
                 if (err) {
                     console.error(err);

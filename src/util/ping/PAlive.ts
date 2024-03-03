@@ -1,16 +1,16 @@
 // pingalive code recreated through deobfuscating pixelplace code
 
 function randomString2(num: number) {
-    let arr = [];
-    let charList = 'gmbonjklezcfxta1234567890GMBONJKLEZCFXTA';
+    const arr = [];
+    const charList = 'gmbonjklezcfxta1234567890GMBONJKLEZCFXTA';
     for (let i = 0; i < num; i++) {
         arr.push(charList.charAt(Math.floor(Math.random() * charList.length)));
     }
     return arr.join('');
 }
 function randomString1(num: number) {
-    let arr = [];
-    let charList = 'abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const arr = [];
+    const charList = 'abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     for (let i = 0; i < num; i++) {
         arr.push(charList.charAt(Math.floor(Math.random() * charList.length)));
     }
@@ -63,4 +63,4 @@ export function getTDelay(serverTime: number): number {
     } else serverTime > currentTime && (tdelay = serverTime - currentTime);
   
     return Math.round(tdelay);
-};
+}

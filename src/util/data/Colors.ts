@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 export enum Colors { // ordered based on how they are shown in the pxp sidebar
 
     WHITE = 0,

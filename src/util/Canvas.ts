@@ -39,21 +39,24 @@ export class Canvas {
     }
 
     async Init(): Promise<void> {
-        return new Promise<void>(async (resolve, _reject) => {
-            const dimensions = await this.getDimensions();
-
-            this.canvasWidth = dimensions.width;
-            this.canvasHeight = dimensions.height;
+        return new Promise<void>((resolve, reject) => {
+            this.getDimensions().then(dimensions => {
+                this.canvasWidth = dimensions.width;
+                this.canvasHeight = dimensions.height;
     
-            this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(-1), [this.canvasWidth, this.canvasHeight]);
-            if(this.pixelPreData) {
-                await Promise.all(this.pixelPreData.map(preData => {
+                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(-1), [this.canvasWidth, this.canvasHeight]);
+                if(!this.pixelPreData) {
+                    canvases.set(this.boardId, this);
+                    return resolve();
+                }
+                Promise.all(this.pixelPreData.map(preData => {
                     this.loadCanvasData(preData);
-                }));
-                this.pixelPreData = [];
-            }
-            canvases.set(this.boardId, this);
-            resolve();
+                })).then(() => {
+                    this.pixelPreData = [];
+                    canvases.set(this.boardId, this);
+                    resolve();
+                }).catch(reject);
+            }).catch(reject);
         });
     }
 
@@ -63,7 +66,7 @@ export class Canvas {
         let minDistance = Infinity;
         let closestColorId = -1;
     
-        for (let color in this.colors) {
+        for (const color in this.colors) {
             const [r2, g2, b2] = color.split(',').map(Number);
             const distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
     
@@ -83,7 +86,7 @@ export class Canvas {
     }
 
     async loadCanvasPicture(): Promise<void> {
-        return new Promise<void>((resolve, _reject) => {
+        return new Promise<void>((resolve) => {
             const imageUrl = `https://pixelplace.io/canvas/${this.boardId}.png?t200000=${Date.now()}`;
 
             https.get(imageUrl, (response: IncomingMessage) => {

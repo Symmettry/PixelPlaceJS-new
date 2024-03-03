@@ -142,7 +142,11 @@ export class Connection {
                 this.socket.send("40");
                 break;
             case "40": // socket.io finish
-                this.socket.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
+                if(this.authKey == "-") {
+                    this.socket.send(`42["init",{"authKey":undefined,"authToken":undefined,"authId":undefined,"boardId":${this.boardId}}]`);
+                } else {
+                    this.socket.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
+                }
 
                 setTimeout(() => {
                     if(!this.connected) {

@@ -1,4 +1,5 @@
 import { Modes } from "./Modes";
+import { DrawingFunction } from "../drawing/ImageDrawer";
 
 export interface IPixel {
     x: number;
@@ -15,14 +16,14 @@ export interface IUnverifiedPixel {
 export interface IQueuedPixel {
     data: IPixel;
     speed: number;
-    resolve: Function;
+    resolve: (value: void | PromiseLike<void>) => void;
 }
 
 export interface IImage {
     x: number;
     y: number;
     path: string;
-    mode: Modes | Function,
+    mode: Modes | DrawingFunction,
     protect: boolean;
     force: boolean;
 }
