@@ -7,6 +7,7 @@ Extremely versatile NodeJS library for pixelplace.
 
 Easily capable of drawing 3000x3000 images (May have a delay on hefty sorting like FROM_CENTER or TO_CENTER)
 
+
 Able to do many many things unlike most bots (Like chat bots -- Erebot is made in this)
 
 ### Usage
@@ -37,11 +38,15 @@ await pp.bots[0].Load();
 
 // assigns pixel placement speed to a function or a number
 // For function, it will include the previous placement value.
-// suppress?: suppress console warning for pixel speed under 20, defaults to false
+// autoFix?: automatically update the rate to the rate_change value
+// suppress?: suppress console warning for pixel speed under rate_change, defaults to false
 // pp.bots[index].setPlacementSpeed(30);
 // pp.bots[index].setPlacementSpeed(() => Math.floor(Math.random() * 10) + 20);
 // pp.bots[index].setPlacementSpeed((previous) => previous > 30 ? previous / 2 : previous * 2);
-pp.bots[index].setPlacementSpeed(number | Function, suppress?);
+pp.bots[index].setPlacementSpeed(number | Function, autoFix?, suppress?);
+
+// Also related to this, you can manually access the rate value if you want it.
+pp.bots[index].rate
 
 // places a pixel at x,y with color id col
 // if brush isn't set, it will default to 1 (Brush used to place pixels)
@@ -101,8 +106,10 @@ Modes.RAND // Draws randomly
 // x and y are offset by the images initial x and y assigned in drawImage()
 // await draw(x, y, pixels) - will draw at x,y with the colored pixel at that location in pixels
 // getColorAt(x, y, pixels) - will return the color at x,y in the image, this is the color that draw() places
-await pp.bots[index].drawImage((x, y, "path_to_image", async (pixels: NdArray<Uint8Array>, draw: Function, getColorAt: Function) => { }, protect?, force?) | IImage);
+await pp.bots[index].drawImage(x, y, "path_to_image", DrawingFunction, protect?, force?);
 
+// Drawing function type -- directly taken from the code
+type DrawingFunction = (pixels: NdArray<Uint8Array>, drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>, getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number) => Promise<void>;
 
 // Packet categories
 // (replace <NAME> with the actual packet name of course!)
@@ -126,7 +133,7 @@ IImage = {
     x: number; // initial X (Top left)
     y: number; // initial Y (Top left)
     path: string; // path to image file
-    mode: Modes | Function, // the mode (see MODES), or a function for custom modes
+    mode: Modes | DrawingFunction, // the mode (see MODES), or a function for custom modes
     protect: boolean; // if the image should be protected
     force: boolean; // force place over pixels of the same color
 }
@@ -198,13 +205,13 @@ import { PixelPlace, Auth, Modes, Packets, Colors } from "pixelplacejs-new";
     
     console.log("Pixel Place initiated!");
 
-    // 48 ms between each pixel
-    pp.bots[0].setPlacementSpeed(48);
+    // 16 ms between each pixel (Default rate)
+    pp.bots[0].setPlacementSpeed(pp.bots[0].rate);
 
-    // draws image at path "C:/my image.png"
+    // draws image at path "C:/my image.png" (will throw an error if it doesn't exist)
     await pp.bots[0].drawImage(x, y, "C:/my image.png", Modes.FROM_CENTER);
 
-    // places a 10x10 area of white
+    // places a 10x10 area of white (You should probably remove this; it's just an example)
     for(var x=0;x<10;x++) {
         for(var y=0;y<10;y++) {
             await pp.bots[0].placePixel(1000 + x, 1000 + y, Colors.WHITE);

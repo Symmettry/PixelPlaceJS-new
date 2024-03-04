@@ -18,6 +18,9 @@ export class Canvas {
 
     private boardId: number;
 
+    private canvasState: number = 0;
+    private canvasPacketData: number[][] = [];
+
     private colors: { [key: string]: number };
 
     private pixelPreData!: number[][][];
@@ -122,6 +125,10 @@ export class Canvas {
                                     }
                                 }
                             }
+                            if(this.canvasState == 1) {
+                                this.loadCanvasData(this.canvasPacketData);
+                            }
+                            this.canvasState = 2;
                             resolve();
                         });
                     })
@@ -133,6 +140,11 @@ export class Canvas {
     }
 
     loadCanvasData(pixels: number[][]): void {
+        if(this.canvasState == 0) {
+            this.canvasPacketData = pixels;
+            this.canvasState = 1;
+            return;
+        }
         if(this.pixelData == undefined) {
             if(this.pixelPreData == undefined) this.pixelPreData = [];
             this.pixelPreData.push(pixels);

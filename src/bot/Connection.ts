@@ -28,6 +28,8 @@ export class Connection {
     private tDelay: number = 0;
     private econnrefusedTimer: number = 0;
 
+    chatLoaded: boolean = false;
+
     constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics) {
         this.bot = bot;
         this.authKey = authKey;
@@ -103,6 +105,7 @@ export class Connection {
     }
 
     private socketClosed() {
+        this.chatLoaded = false;
         if(this.listeners.has(Packets.LIBRARY.SOCKET_CLOSE)) {
             this.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener());
         }
@@ -168,12 +171,25 @@ export class Connection {
 
                 // built-in functions, e.g. keepalive and pixels.
                 switch(key) {
-                    case Packets.RECEIVED.CHAT_STATS: // sent once initiated
-                        if(this.isWorld && !this.bot.protector) {
-                            await this.canvas.Init();
-                            this.bot.protector = new Protector(this.bot, this.stats); // pass in the bot instance & private statistics variable
-                            await this.canvas.loadCanvasPicture();
+                    case Packets.RECEIVED.RATE_CHANGE:
+                        this.bot.rate = value;
+
+                        if(this.bot.checkRate == -2) {
+                            this.bot.setPlacementSpeed(value, true, this.bot.suppress);
                         }
+
+                        if(this.bot.checkRate < 0 || this.bot.suppress) break;
+
+                        if(this.bot.checkRate < value) {
+                            console.warn(`~~WARN~~ (Rate change) Placement speed under ${value} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
+                        }
+                        break;
+                    case Packets.RECEIVED.CHAT_STATS: // Although repeated frequently, this is the first packet sent after init, so we'll use it.
+                        if(!this.isWorld || this.bot.protector) break;
+
+                        await this.canvas.Init();
+                        this.bot.protector = new Protector(this.bot, this.stats); // pass in the bot instance & private statistics variable
+                        await this.canvas.loadCanvasPicture();
                         break;
                     case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
                         this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
@@ -202,6 +218,9 @@ export class Connection {
                     case Packets.RECEIVED.USERNAME:
                         // pass the username data to the uid manager
                         this.bot.uidman.onUsername(value.id, value.name);
+                        break;
+                    case Packets.RECEIVED.CHAT_LOADED:
+                        this.chatLoaded = true;
                         break;
                 }
                 break;

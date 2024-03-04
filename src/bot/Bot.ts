@@ -30,6 +30,7 @@ export class Bot {
     uidman: UIDManager;
 
     private connection!: Connection;
+    rate: number = -1;
 
     constructor(auth: Auth, autoRestart: boolean = true) {
         constant(this, 'authKey', auth.authKey);
@@ -106,17 +107,28 @@ export class Bot {
         return newValue;
     }
 
-    private userDefPlaceSpeed: Function = () => 30;
+    private userDefPlaceSpeed: Function = () => 16;
+    suppress: boolean = false;
+    checkRate: number = -2;
 
-    setPlacementSpeed(arg: Function | number, suppress: boolean=false) {
+    setPlacementSpeed(arg: Function | number, autoFix: boolean=true, suppress: boolean=false) {
+        this.suppress = suppress;
         if(typeof arg != 'function') {
-            if(!suppress && arg < 20) {
-                console.warn(`~~WARN~~ Placement speed under 20 may lead to rate limit or even a ban! (Suppress with setPlacementSpeed(${arg}, true); not recommended)`);
+            if(this.rate == -1) {
+                console.warn(`~~WARN~~ The rate_change packet has not been received yet, so the placement speed cannot be verified for if it works. You likely shouldn't be setting this value right now.`);
+            } else if(!suppress && arg < this.rate) {
+                console.warn(`~~WARN~~ Placement speed under ${this.rate} (Current rate_change value) may lead to rate limit or even a ban! (Suppress with setPlacementSpeed(${arg}, ${autoFix}, true); not recommended)`);
             }
             this.userDefPlaceSpeed = () => arg;
+            if(autoFix) {
+                this.checkRate = -2;
+            } else {
+                this.checkRate = arg;
+            }
             return;
         }
         this.userDefPlaceSpeed = arg;
+        this.checkRate = -1;
     }
 
     async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
