@@ -41,6 +41,7 @@ export class Bot {
         
         this.autoRestart = autoRestart;
         this.uidman = new UIDManager(this);
+        this.Load = this.Load.bind(this);
     }
 
     getUsername(uid: string | number): string | undefined {
@@ -51,16 +52,12 @@ export class Bot {
         return this.connection.canvas;
     }
 
-    on(key: string, func: Function): void {
+    on(key: string, func: (...args: unknown[]) => void): void {
         this.connection.on(key, func);
     }
 
     async Init(): Promise<void> {
-        return new Promise<void>(async (resolve, _reject) => {
-            await this.Connect();
-            await this.Load();
-            resolve();
-        });
+        return new Promise<void>((resolve) => this.Connect().then(this.Load).then(resolve));
     }
 
     async Connect(): Promise<void> {
@@ -69,16 +66,18 @@ export class Bot {
     }
 
     async Load(): Promise<void> {
-        if(!this.connection) throw "Connection not initialized.";
+        if (!this.connection) {
+            throw new Error("Connection not initialized.");
+        }
         return this.connection.Load();
     }
 
     getPixelAt(x: number, y: number): number | undefined {
-        return this.connection.canvas.pixelData?.get(x, y);
+        return this.getCanvas()?.pixelData?.get(x, y);
     }
 
     getClosestColorId(rgb: IRGBColor): number {
-        return this.connection.canvas?.getClosestColorId(rgb);
+        return this.getCanvas()?.getClosestColorId(rgb);
     }
 
     verifyPixels() {
@@ -107,11 +106,11 @@ export class Bot {
         return newValue;
     }
 
-    private userDefPlaceSpeed: Function = () => 16;
+    private userDefPlaceSpeed: (prevValue?: number) => number = () => 16;
     suppress: boolean = false;
     checkRate: number = -2;
 
-    setPlacementSpeed(arg: Function | number, autoFix: boolean=true, suppress: boolean=false) {
+    setPlacementSpeed(arg: (prevValue?: number) => number | number, autoFix: boolean=true, suppress: boolean=false) {
         this.suppress = suppress;
         if(typeof arg != 'function') {
             if(this.rate == -1) {
@@ -151,11 +150,18 @@ export class Bot {
     }
 
     // alternative protect in case of bugs
-    protect(x: number, y: number, col: number) {
+    protect(x: number, y: number, col: number): void {
         this.protector.protect(x, y, col);
     }
 
-    private goThroughPixels() {
+    private resolvePacket(queuedPixel: IQueuedPixel): void {
+        this.trueQueueSize--;
+        this.goThroughPixels();
+        queuedPixel.resolve();
+        this.goingThroughQueue--;
+    }
+
+    private goThroughPixels(): void {
 
         if(this.trueQueueSize == 0)return;
 
@@ -165,28 +171,27 @@ export class Bot {
 
         this.goingThroughQueue++;
 
-        if(queuedPixel.speed > 0) {
-            return setTimeout(() => this.sendPixel(queuedPixel), queuedPixel.speed);
+        const colAtSpot = this.getPixelAt(queuedPixel.data.x, queuedPixel.data.y);
+        if(colAtSpot == null || (!queuedPixel.data.force && colAtSpot == queuedPixel.data.col) || colAtSpot == 65535) { // 65535 is ocean.
+            this.resolvePacket(queuedPixel);
+            return this.goThroughPixels();
         }
-        this.sendPixel(queuedPixel);
-    }
-    private sendPixel(queuedPixel: IQueuedPixel): void {
-        const {x, y, col, brush, protect, force} = queuedPixel.data;
 
-        this.trueQueueSize--;
-        this.goThroughPixels();
-        queuedPixel.resolve();
-        this.goingThroughQueue--;
-
-        const colAtSpot = this.getPixelAt(x, y);
-        if(!force && colAtSpot == col) {
+        if(queuedPixel.speed > 0) {
+            setTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
             return;
         }
+        this.sendPixel(queuedPixel, colAtSpot);
+    }
+    private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
+        const {x, y, col, brush } = queuedPixel.data;
+
+        this.resolvePacket(queuedPixel);
 
         this.emit(Packets.SENT.PIXEL, `[${x},${y},${col},${brush}]`);
         this.connection.canvas?.pixelData?.set(x, y, col);
 
-        const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: colAtSpot || 0};
+        const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
         this.unverifiedPixels.push(arr);
 
         // statistics
@@ -209,6 +214,12 @@ export class Bot {
 
     private async placePixelInternal(p: IPixel, forcePlacementSpeed: number=-1): Promise<void> {
 
+        const {x, y, col, protect } = p;
+
+        if(x > this.connection.canvas.canvasWidth || x < 0 || y > this.connection.canvas.canvasHeight || y < 0) {
+            throw `Out of bounds pixel: ${x},${y}`;
+        }
+
         if(this.resendQueue.length > 0) {
             const pixel: IPixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
@@ -216,21 +227,19 @@ export class Bot {
             }
         }
 
-        const {x, y, col, brush, protect, force} = p;
-
         const placementSpeed = forcePlacementSpeed == -1 ? this.getPlacementSpeed() : forcePlacementSpeed;
 
         if(protect) {
             this.protector.protect(x, y, col);
         }
 
-        return new Promise<void>((resolve, _reject) => this.addToSendQueue({data: p, speed: placementSpeed, resolve}) );
+        return new Promise<void>((resolve) => this.addToSendQueue({data: p, speed: placementSpeed, resolve}) );
     }
 
     emit(key: Packets, value: string): void {
         this.connection.emit(key, value);
     }
-    send(value: any): void {
+    send(value: string | unknown[] | Buffer | Uint8Array): void {
         this.connection.send(value);
     }
     

@@ -23,7 +23,9 @@ export class Connection {
 
     private socket!: WebSocket;
     private connected: boolean = false;
-    private listeners!: Map<string, Function[]>;
+    private canvasPictureLoaded: boolean = false;
+    private canvasValue!: number[][];
+    private listeners!: Map<string, ((...args: unknown[]) => void)[]>;
 
     private tDelay: number = 0;
     private econnrefusedTimer: number = 0;
@@ -52,18 +54,14 @@ export class Connection {
     }
 
     async Start() {
-        return new Promise<void>(async (resolve, _reject) => {
-            await this.Connect();
-            await this.Load();
-            resolve();
-        });
+        return new Promise<void>((resolve) => this.Connect().then(this.Load).then(resolve));
     }
 
     async Connect() {
 
         if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
 
-        return new Promise<void>(async (resolve, _reject) => {
+        return new Promise<void>((resolve) => {
             // connect to PixelPlace
             this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
 
@@ -97,7 +95,7 @@ export class Connection {
 
         if(!this.socket) throw "Bot has not connected yet.";
 
-        return new Promise<void>(async (resolve, _reject) => {
+        return new Promise<void>((resolve) => {
             this.socket.on('message', async (buffer: Buffer) => {
                 await this.evaluatePacket(buffer, resolve);
             });
@@ -105,6 +103,7 @@ export class Connection {
     }
 
     private socketClosed() {
+        this.connected = false;
         this.chatLoaded = false;
         if(this.listeners.has(Packets.LIBRARY.SOCKET_CLOSE)) {
             this.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener());
@@ -122,7 +121,17 @@ export class Connection {
         // statistics
         this.stats.session.errors++;
     }
-    private async evaluatePacket(buffer: Buffer, resolve: Function) {
+
+    private async loadCanvas(value: number[][], resolve: (value: void | PromiseLike<void>) => void) {
+        if(this.isWorld)await this.canvas.loadCanvasData(value);
+        this.stats.session.beginTime = Date.now();
+
+        setInterval(this.ping, 250000);
+
+        setTimeout(resolve, 1000);
+    }
+
+    private async evaluatePacket(buffer: Buffer, resolve: (value: void | PromiseLike<void>) => void) {
         const data: string = buffer.toString(); // buffer -> string
 
         if(this.listeners.has(Packets.RAW)) {
@@ -160,7 +169,7 @@ export class Connection {
             case "2": // socket.io keepalive
                 this.socket.send("3");
                 break;
-            case "42": // message
+            case "42": {// message
                 const key = message[0];
                 const value = message[1];
 
@@ -190,6 +199,11 @@ export class Connection {
                         await this.canvas.Init();
                         this.bot.protector = new Protector(this.bot, this.stats); // pass in the bot instance & private statistics variable
                         await this.canvas.loadCanvasPicture();
+                        this.canvasPictureLoaded = true;
+                        if(this.connected) {
+                            if(this.canvasValue == null) throw "Something bad happened. Please make an issue report on the github.";
+                            this.loadCanvas(this.canvasValue, resolve);
+                        }
                         break;
                     case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
                         this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
@@ -204,14 +218,14 @@ export class Connection {
                         // go through and verify if the pixels the bot placed were actually sent
                         this.bot.verifyPixels();
                         break;
-                    case Packets.RECEIVED.CANVAS: // canvas
-                        if(this.isWorld)this.canvas.loadCanvasData(value);
-                        this.stats.session.beginTime = Date.now();
-                        resolve();
+                    case Packets.RECEIVED.CANVAS: { // canvas
                         this.connected = true;
-
-                        setInterval(this.ping, 250000);
+                        this.canvasValue = value;
+                        if(this.canvasPictureLoaded) {
+                            return this.loadCanvas(value, resolve);
+                        }
                         break;
+                    }
                     case Packets.RECEIVED.SERVER_TIME:
                         this.tDelay = getTDelay(value); // ping.alive stuff
                         break;
@@ -224,10 +238,11 @@ export class Connection {
                         break;
                 }
                 break;
+            }
         }
     }
 
-    private listen(key: string, value: any) {
+    private listen(key: string, value: unknown) {
         // per-key
         if(this.listeners.has(key)) { // if there are listeners for this key
             this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
@@ -238,7 +253,7 @@ export class Connection {
         }
     }
 
-    on(key: string, func: Function) {
+    on(key: string, func: (...args: unknown[]) => void) {
         if(!this.listeners.has(key)) this.listeners.set(key, []);
         this.listeners.get(key)?.push(func);
     }
@@ -248,7 +263,7 @@ export class Connection {
     
         this.send(data);
     }
-    send(value: any) {
+    send(value: Buffer | Uint8Array | string | unknown[]) {
         this.socket.send(value);
 
         // statistics

@@ -102,7 +102,7 @@ export class Canvas {
                     .on('end', () => {
                         const buffer = Buffer.concat(chunks);
 
-                        getPixels(buffer, 'image/png', (err: Error | null, pixels: NdArray<Uint8Array>) => {
+                        getPixels(buffer, 'image/png', async (err: Error | null, pixels: NdArray<Uint8Array>) => {
                             if (err) {
                                 console.error(err);
                                 return;
@@ -126,7 +126,7 @@ export class Canvas {
                                 }
                             }
                             if(this.canvasState == 1) {
-                                this.loadCanvasData(this.canvasPacketData);
+                                await this.loadCanvasData(this.canvasPacketData);
                             }
                             this.canvasState = 2;
                             resolve();
@@ -139,20 +139,23 @@ export class Canvas {
         });
     }
 
-    loadCanvasData(pixels: number[][]): void {
-        if(this.canvasState == 0) {
-            this.canvasPacketData = pixels;
-            this.canvasState = 1;
-            return;
-        }
-        if(this.pixelData == undefined) {
-            if(this.pixelPreData == undefined) this.pixelPreData = [];
-            this.pixelPreData.push(pixels);
-            return;
-        }
-        pixels.forEach(pixel => {
-            const [x, y, col] = pixel;
-            this.pixelData.set(x, y, col);
+    loadCanvasData(pixels: number[][]): Promise<void> {
+        return new Promise<void>((resolve) => {
+            if(this.canvasState == 0) {
+                this.canvasPacketData = pixels;
+                this.canvasState = 1;
+                return resolve();
+            }
+            if(this.pixelData == undefined) {
+                if(this.pixelPreData == undefined) this.pixelPreData = [];
+                this.pixelPreData.push(pixels);
+                return resolve();
+            }
+            pixels.forEach(pixel => {
+                const [x, y, col] = pixel;
+                this.pixelData.set(x, y, col);
+            });
+            resolve();
         });
     }
 
