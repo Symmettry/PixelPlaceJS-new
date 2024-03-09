@@ -7,6 +7,8 @@ import { IStatistics } from "../util/data/Data";
 import { Protector } from '../util/Protector';
 import { constant } from '../util/Constant.js';
 import { ErrorMessages, PPError } from '../util/data/Errors.js';
+import fs from 'fs';
+import path from 'path';
 
 export class Connection {
 
@@ -53,6 +55,9 @@ export class Connection {
         authKey = authKey == "deleted" ? "" : authKey;
         authToken = authToken == "deleted" ? "" : authToken;
         return async () => {
+            if(authKey != "") {
+                console.log("~~Refreshing auth data~~");
+            }
             const authData = `authId=${authId};authKey=${authKey};authToken=${authToken}`;
             try {
                 const response = await fetch("https://pixelplace.io/api/relog.php", {
@@ -83,7 +88,13 @@ export class Connection {
         
                     this.relog = this.relogGenerator(authKey, authToken, authId);
 
-                    return {authKey, authToken, authId};
+                    const newAuthData = {authKey, authToken, authId};
+                    
+                    if(authKey != "deleted") {
+                        fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${newAuthData.authKey.substring(0, 5)}.txt`), `new Auth(${JSON.stringify(newAuthData, null, 4)}, ${this.boardId})`);
+                        console.log("~~Great! Auth data refreshed and saved~~");
+                    }
+                    return newAuthData;
                 }
             } catch(err) {
                 console.log("Error when getting auth data:", err);
