@@ -36,8 +36,8 @@ export class Canvas {
             '159,0,0': 19,'107,0,0': 18,'255,117,95': 23,'160,106,66': 15,'99,60,31': 17,'153,83,13': 16,'187,79,0': 22,'255,196,159': 24,
             '255,223,204': 25,'255,167,209': 26,'207,110,228': 27,'125,38,205': 45,'236,8,236': 28,'130,0,128': 29,'51,0,119': 46,'2,7,99': 31,
             '81,0,255': 30,'0,0,234': 32,'4,75,255': 33,'0,91,161': 47,'101,131,207': 34,'54,186,255': 35,'0,131,199': 36,'0,211,221': 37,
-            '69,255,200': 38,'181,232,238': 48
-        }
+            '69,255,200': 38,'181,232,238': 48,
+        };
     }
 
     async Init(): Promise<void> {
@@ -75,7 +75,7 @@ export class Canvas {
 
     getColorId(rgb: IRGBColor): number {
         const { r, g, b } = rgb;
-        return this.colors[`${r},${g},${b}`] || -1;
+        return this.colors.hasOwnProperty(`${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : -1;
     }
 
     async loadCanvasPicture(): Promise<void> {
@@ -85,53 +85,50 @@ export class Canvas {
             https.get(imageUrl, (response: IncomingMessage) => {
                 const chunks: Buffer[] = [];
 
-                response
-                    .on('data', (chunk: Buffer) => {
-                        chunks.push(chunk);
-                    })
-                    .on('end', () => {
-                        const buffer = Buffer.concat(chunks);
+                response.on('data', (chunk: Buffer) => {
+                    chunks.push(chunk);
+                }).on('end', () => {
+                    const buffer = Buffer.concat(chunks);
 
-                        getPixels(buffer, 'image/png', async (err: Error | null, pixels: NdArray<Uint8Array>) => {
-                            if (err) {
-                                console.error(err);
-                                return;
-                            }
+                    getPixels(buffer, 'image/png', async (err: Error | null, pixels: NdArray<Uint8Array>) => {
+                        if (err) {
+                            console.error(err);
+                            return;
+                        }
 
-                            for (let x = 0; x < pixels.shape[0]; x++) {
-                                for (let y = 0; y < pixels.shape[1]; y++) {
-                                    const r = pixels.get(x, y, 0);
-                                    const g = pixels.get(x, y, 1);
-                                    const b = pixels.get(x, y, 2);
+                        for (let x = 0; x < pixels.shape[0]; x++) {
+                            for (let y = 0; y < pixels.shape[1]; y++) {
+                                const r = pixels.get(x, y, 0);
+                                const g = pixels.get(x, y, 1);
+                                const b = pixels.get(x, y, 2);
 
-                                    if(r == 204 && g == 204 && b == 204) { // ocean
-                                        this.pixelData?.set(x, y, -1);
-                                        continue;
-                                    }
+                                if(r == 204 && g == 204 && b == 204) { // ocean
+                                    this.pixelData?.set(x, y, -1);
+                                    continue;
+                                }
 
-                                    const colId = this.getColorId({r,g,b});
-                                    if(colId != -1) {
-                                        this.pixelData?.set(x, y, colId);
-                                    }
+                                const colId = this.getColorId({r,g,b});
+                                if(colId != -1) {
+                                    this.pixelData?.set(x, y, colId);
                                 }
                             }
-                            if(this.canvasState == 1) {
-                                await this.loadCanvasData(this.canvasPacketData);
-                            }
-                            this.canvasState = 2;
-                            resolve();
-                        });
-                    })
-                    .on('error', (error: Error) => {
-                        console.error(error);
+                        }
+                        if(this.canvasState == 1) {
+                            await this.loadCanvasData(this.canvasPacketData);
+                        }
+                        this.canvasState = 2;
+                        resolve();
                     });
+                }).on('error', (error: Error) => {
+                    console.error(error);
+                });
             });
         });
     }
 
     loadCanvasData(pixels: number[][]): Promise<void> {
         return new Promise<void>((resolve) => {
-            if(this.canvasState == 0) {
+            if(this.canvasState == 0 || !this.pixelData) {
                 this.canvasPacketData = pixels;
                 this.canvasState = 1;
                 return resolve();
