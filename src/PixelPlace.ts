@@ -5,11 +5,11 @@ class PixelPlace {
 
     bots: Bot[];
 
-    constructor(auths: Auth[], autoRestart: boolean = true) {
+    constructor(auths: Auth[], autoRestart: boolean = true, handleErrors: boolean = true) {
         this.bots = [];
         auths.forEach(auth => {
-            this.bots.push(new Bot(auth, autoRestart)); // create each bot instance
-        })
+            this.bots.push(new Bot(auth, autoRestart, handleErrors)); // create each bot instance
+        });
     }
 
     async Init(): Promise<void> {
