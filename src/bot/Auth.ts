@@ -3,9 +3,9 @@ import { IAuthData } from "../util/data/Data";
 export class Auth {
 
     boardId: number;
-    authKey: () => string = () => "-";
-    authToken: () => string = () => "-";
-    authId: () => string = () => "-";
+    authKey: () => string = () => "";
+    authToken: () => string = () => "";
+    authId: () => string = () => "";
 
     constructor(authObj: IAuthData | null, boardId: number) {
         // pixelplace auth data

@@ -1,5 +1,5 @@
 // Taken directly from the source code :)
-export enum Errors {
+export enum PPError {
     LOGGED_OUT = 0,
     SESSION_EXPIRE = 1,
     SELECT_USERNAME = 2,

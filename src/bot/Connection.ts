@@ -6,7 +6,7 @@ import { Packets } from "../util/data/Packets";
 import { IStatistics } from "../util/data/Data";
 import { Protector } from '../util/Protector';
 import { constant } from '../util/Constant.js';
-import { ErrorMessages, Errors } from '../util/data/Errors.js';
+import { ErrorMessages, PPError } from '../util/data/Errors.js';
 
 export class Connection {
 
@@ -31,6 +31,8 @@ export class Connection {
     private tDelay: number = 0;
     private econnrefusedTimer: number = 0;
 
+    private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
+
     chatLoaded: boolean = false;
 
     constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics) {
@@ -43,6 +45,59 @@ export class Connection {
         constant(this, 'boardId', boardId);
 
         constant(this, 'listeners', new Map());
+
+        this.relog = this.relogGenerator(this.authKey, this.authToken, this.authId);
+    }
+
+    private relogGenerator(authKey: string, authToken: string, authId: string): () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
+        authKey = authKey == "deleted" ? "" : authKey;
+        authToken = authToken == "deleted" ? "" : authToken;
+        return async () => {
+            const authData = `authId=${authId};authKey=${authKey};authToken=${authToken}`;
+            try {
+                const response = await fetch("https://pixelplace.io/api/relog.php", {
+                    method: "GET",
+                    headers: {
+                        "accept": "application/json",
+                        "Cookie": authData
+                    },
+                    referrer: "https://pixelplace.io/7-pixels-world-war",
+                    referrerPolicy: "strict-origin-when-cross-origin",
+                    body: null,
+                    mode: "cors",
+                    credentials: "include"
+                })
+                const headers: { [key: string]: string } = {};
+                response.headers.forEach((value, name) => {
+                    headers[name] = value;
+                });
+                const setCookie = headers['set-cookie'];
+                if(setCookie.startsWith("authKey=deleted")) {
+                    console.log("Could not relog. Get new auth data and try again.");
+                    return {};
+                } else {
+                    // if an error is thrown from tryna get [][1] it's fine since that's intentional (as it's an error lmao)
+                    const authId = (setCookie.match(/authId=([^;]+)/) || [])[1];
+                    const authKey = (setCookie.match(/authKey=([^;]+)/) || [])[1];
+                    const authToken = (setCookie.match(/authToken=([^;]+)/) || [])[1];
+        
+                    this.relog = this.relogGenerator(authKey, authToken, authId);
+
+                    return {authKey, authToken, authId};
+                }
+            } catch(err) {
+                console.log("Error when getting auth data:", err);
+                return {};
+            }
+        }
+    }
+
+    private async newInit() {
+        const authData = await this.relog();
+        if(!authData || Object.keys(authData).length == 0 || !authData.authId) {
+            process.exit();
+        }
+        this.sendInit(null, null, authData.authId, this.boardId);
     }
 
     private ping() {
@@ -132,6 +187,14 @@ export class Connection {
         setTimeout(resolve, 1000);
     }
 
+    private sendInit(authKey: string | null, authToken: string | null, authId: string, boardId: number): void {
+        if(authKey == null && authToken == null) {
+            this.send(`42["init",{"authId":"${authId}","boardId":${boardId}}]`);
+            return;
+        }
+        this.send(`42["init",{"authKey":"${authKey}","authToken":"${authToken}","authId":"${authId}","boardId":${boardId}}]`);
+    }
+
     private async evaluatePacket(buffer: Buffer, resolve: (value: void | PromiseLike<void>) => void) {
         const data: string = buffer.toString(); // buffer -> string
 
@@ -155,10 +218,10 @@ export class Connection {
                 this.send("40");
                 break;
             case "40": // socket.io finish
-                if(this.authKey == "-") {
-                    this.send(`42["init",{"authKey":undefined,"authToken":undefined,"authId":undefined,"boardId":${this.boardId}}]`);
+                if(this.authKey == "" && this.authToken == "" && this.authId == "") {
+                    await this.newInit(); // will generate a default auth value
                 } else {
-                    this.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
+                    this.sendInit(this.authKey, this.authToken, this.authId, this.boardId);
                 }
                 this.authKey = this.authToken = this.authId = "[REDACTED]";
 
@@ -183,56 +246,62 @@ export class Connection {
                 // built-in functions, e.g. keepalive and pixels.
                 switch(key) {
                     case Packets.RECEIVED.ERROR: {
+
+                        // process before checking handle errors
+                        if(value == PPError.INVALID_AUTH) {
+                            this.newInit();
+                            break;
+                        }
+
                         if(!this.bot.handleErrors)break;
                         const errorMessage = ErrorMessages[value as keyof typeof ErrorMessages];
                         switch(value) {
-                            case Errors.INVALID_AUTH:
-                            case Errors.LOGGED_OUT:
-                                console.error("Auth data was invalid. throw.error", value);
+                            case PPError.LOGGED_OUT:
+                                console.error("Auth data was invalid.");
                                 process.exit();
                             // eslint-disable-next-line no-fallthrough
-                            case Errors.TOO_MANY_INSTANCES:
-                            case Errors.TOO_MANY_USERS_INTERNET:
-                            case Errors.SELECT_USERNAME:
-                            case Errors.PIXELPLACE_DISABLED:
+                            case PPError.TOO_MANY_INSTANCES:
+                            case PPError.TOO_MANY_USERS_INTERNET:
+                            case PPError.SELECT_USERNAME:
+                            case PPError.PIXELPLACE_DISABLED:
                                 console.error(errorMessage);
                                 process.exit();
                             // eslint-disable-next-line no-fallthrough
-                            case Errors.CANVAS_DISABLED:
-                            case Errors.PREMIUM_ENDED_CANVAS:
-                            case Errors.PRIVATE_CANVAS:
-                            case Errors.NEED_CANVAS_APPROVAL:
-                            case Errors.SESSION_EXPIRE:
-                            case Errors.CANVAS_TERMINATED:
-                            case Errors.SERVERS_FULL_AGAIN:
-                            case Errors.SERVERS_FULL_LIMITED_PER_INTERNET:
-                            case Errors.SERVERS_FULL_LIMITED_PER_USER:
-                            case Errors.SERVER_FULL:
-                            case Errors.RELOADING:
-                            case Errors.ACCOUNT_DISABLED:
-                            case Errors.PAINTING_ARCHIVED:
+                            case PPError.CANVAS_DISABLED:
+                            case PPError.PREMIUM_ENDED_CANVAS:
+                            case PPError.PRIVATE_CANVAS:
+                            case PPError.NEED_CANVAS_APPROVAL:
+                            case PPError.SESSION_EXPIRE:
+                            case PPError.CANVAS_TERMINATED:
+                            case PPError.SERVERS_FULL_AGAIN:
+                            case PPError.SERVERS_FULL_LIMITED_PER_INTERNET:
+                            case PPError.SERVERS_FULL_LIMITED_PER_USER:
+                            case PPError.SERVER_FULL:
+                            case PPError.RELOADING:
+                            case PPError.ACCOUNT_DISABLED:
+                            case PPError.PAINTING_ARCHIVED:
                                 console.error(errorMessage);
                                 this.socket.close();
                                 break;
-                            case Errors.INVALID_COLOR:
-                            case Errors.COOLDOWN:
-                            case Errors.ERROR_CANVAS_ACCESS_DATA:
-                            case Errors.ERROR_CANVAS_DATA:
-                            case Errors.INVALID_COORDINATES:
-                            case Errors.PLACING_TOO_FAST:
-                            case Errors.PREMIUM_COLOR:
-                            case Errors.PREMIUM_ISLAND_MESSAGE:
-                            case Errors.USER_OFFLINE:
-                            case Errors.NEED_TO_BE_CONNECTED:
-                            case Errors.MESSAGES_TOO_FAST:
-                            case Errors.ACCOUNT_SUSPENDED_FROM_CHAT:
-                            case Errors.ACCOUNT_BANNED_FROM_CHAT:
-                            case Errors.NEED_USERNAME:
-                            case Errors.CANT_SEND_COMMANDS:
-                            case Errors.NEED_JOIN_GUILD:
-                            case Errors.NEED_PREMIUM:
-                            case Errors.GUILD_DISBANDED:
-                            case Errors.KICKED_FROM_GUILD:
+                            case PPError.INVALID_COLOR:
+                            case PPError.COOLDOWN:
+                            case PPError.ERROR_CANVAS_ACCESS_DATA:
+                            case PPError.ERROR_CANVAS_DATA:
+                            case PPError.INVALID_COORDINATES:
+                            case PPError.PLACING_TOO_FAST:
+                            case PPError.PREMIUM_COLOR:
+                            case PPError.PREMIUM_ISLAND_MESSAGE:
+                            case PPError.USER_OFFLINE:
+                            case PPError.NEED_TO_BE_CONNECTED:
+                            case PPError.MESSAGES_TOO_FAST:
+                            case PPError.ACCOUNT_SUSPENDED_FROM_CHAT:
+                            case PPError.ACCOUNT_BANNED_FROM_CHAT:
+                            case PPError.NEED_USERNAME:
+                            case PPError.CANT_SEND_COMMANDS:
+                            case PPError.NEED_JOIN_GUILD:
+                            case PPError.NEED_PREMIUM:
+                            case PPError.GUILD_DISBANDED:
+                            case PPError.KICKED_FROM_GUILD:
                                 console.error(errorMessage);
                                 break;
                         }

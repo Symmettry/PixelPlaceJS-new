@@ -7,7 +7,6 @@ Extremely versatile NodeJS library for pixelplace.
 
 Easily capable of drawing 3000x3000 images (May have a delay on hefty sorting like FROM_CENTER or TO_CENTER)
 
-
 Able to do many many things unlike most bots (Like chat bots -- Erebot is made in this)
 
 ### Usage
@@ -23,7 +22,8 @@ const auths = [
 
 // Create PixelPlace instances
 // autoRestart?: if the bots should automatically attempt to reconnect when the socket closes, defaults to true
-const pp = new PixelPlace(auths, autoRestart?);
+// handleErrors?: if an error is received from pixelplace, should it be handled (recommended), defaults to true -- Note: throw.error of id 49 will always be processed; as it gets new auth data
+const pp = new PixelPlace(auths, autoRestart?, handleErrors?);
 
 // Initiate all bots
 await pp.Init();
@@ -43,7 +43,7 @@ await pp.bots[0].Load();
 // pp.bots[index].setPlacementSpeed(30);
 // pp.bots[index].setPlacementSpeed(() => Math.floor(Math.random() * 10) + 20);
 // pp.bots[index].setPlacementSpeed((previous) => previous > 30 ? previous / 2 : previous * 2);
-pp.bots[index].setPlacementSpeed(number | Function, autoFix?, suppress?);
+pp.bots[index].setPlacementSpeed(number | (prevValue?: number) => number, autoFix?, suppress?);
 
 // Also related to this, you can manually access the rate value if you want it.
 pp.bots[index].rate
@@ -113,11 +113,16 @@ type DrawingFunction = (pixels: NdArray<Uint8Array>, drawHook: (x: number, y: nu
 
 // Packet categories
 // (replace <NAME> with the actual packet name of course!)
-Packets.RECEIVED.<NAME> // Packets received by the server
-Packets.SENT.<NAME> // Packets sent by the client
-Packets.LIBRARY.<NAME> // Library packets, such as errors and socket closing
-Packets.ALL // All 42 id packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
-Packets.RAW // Raw packet data is transferred through this. Only has (value) => {}
+Packets.RECEIVED.<NAME> // Packets received by the server. Example: Packets.RECEIVED.PIXEL = all received pixel data within 300ms
+Packets.SENT.<NAME> // Packets sent by the client. Example: Packets.SENT.PIXEL = sent pixel data
+Packets.LIBRARY.<NAME> // Library packets, such as errors and socket closing. Example: Packets.LIBRARY.SOCKET_CLOSED = called when socket is clsosed
+Packets.LIBRARY.ALL // All 42 id packets will be sent through this, the function has a key and a value; pp.bots[index].on(Packets.ALL, (key, value) => {});
+Packets.LIBRARY.RAW // Raw received packet data is transferred through this. Only has (value) => {}
+Packets.LIBRARY.SENT // Raw sent packet data. Only has (value) => {}
+
+// Errors
+PPError.<NAME> // Error packets; these are names mapped to the ids sent through Packets.RECEIVED.ERROR. Example PPError.INVALID_AUTH
+ErrorMessages[ID] // The messages for these errors. This is not an enum. Example: ErrorMessages[PPError.INVALID_AUTH] = error message for invalid auth
 
 // Interfaces (Objects, e.g. IRGB is {red, green, blue})
 IPixel = {
@@ -187,7 +192,7 @@ IStatistics = {
 ### Full Bot
 
 ```js
-import { PixelPlace, Auth, Modes, Packets, Colors } from "pixelplacejs-new";
+import { PixelPlace, Auth, Modes, Packets, Colors, Errors } from "pixelplacejs-new";
 
 (async () => {
     const boardId = 7;
