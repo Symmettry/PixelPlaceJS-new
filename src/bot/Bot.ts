@@ -389,4 +389,11 @@ export class Bot {
         return this.stats;
     }
 
+    /**
+     * @returns If the chat is loaded or not. (true/false)
+     */
+    isChatLoaded(): boolean {
+        return this.connection.chatLoaded;
+    }
+
 }
