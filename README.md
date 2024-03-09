@@ -119,7 +119,7 @@ import { PixelPlace, Auth, Modes, Packets, Colors, Errors } from "pixelplacejs-n
     console.log("Pixel Place initiated!");
 
     // 16 ms between each pixel (Default rate)
-    pp.bots[0].setPlacementSpeed(pp.bots[0].rate);
+    pp.bots[0].setPlacementSpeed(pp.bots[0].getRate());
 
     // draws image at path "C:/my image.png" (will throw an error if it doesn't exist)
     await pp.bots[0].drawImage(x, y, "C:/my image.png", Modes.FROM_CENTER);

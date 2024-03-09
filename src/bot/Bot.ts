@@ -31,7 +31,7 @@ export class Bot {
     autoRestart: boolean;
     handleErrors: boolean;
 
-    uidman!: UIDManager;
+    private uidman!: UIDManager;
 
     private connection!: Connection;
     rate: number = -1;
@@ -394,6 +394,20 @@ export class Bot {
      */
     isChatLoaded(): boolean {
         return this.connection.chatLoaded;
+    }
+
+    /**
+     * @returns Pixeling rate requested by pixelplace
+     */
+    getRate(): number {
+        return this.rate;
+    }
+
+    /**
+     * @returns The uid manager.
+     */
+    getUidManager(): UIDManager {
+        return this.uidman;
     }
 
 }

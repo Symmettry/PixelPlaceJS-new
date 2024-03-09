@@ -354,8 +354,8 @@ export class Connection {
                         if(this.bot.protector)await this.bot.protector.detectPixels(value);
                         
                         // pass the pixel update to the uid manager
-                        if(this.bot.uidman && value.length > 0 && value[0].length == 5) {
-                            this.bot.uidman.onPixels(value);
+                        if(this.bot.getUidManager() && value.length > 0 && value[0].length == 5) {
+                            this.bot.getUidManager().onPixels(value);
                         }
 
                         // go through and verify if the pixels the bot placed were actually sent
@@ -374,8 +374,8 @@ export class Connection {
                         break;
                     case Packets.RECEIVED.USERNAME:
                         // pass the username data to the uid manager
-                        if(this.bot.uidman) {
-                            this.bot.uidman.onUsername(value.id, value.name);
+                        if(this.bot.getUidManager()) {
+                            this.bot.getUidManager().onUsername(value.id, value.name);
                         }
                         break;
                     case Packets.RECEIVED.CHAT_LOADED:
