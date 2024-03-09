@@ -23,7 +23,6 @@ export class Canvas {
 
     private colors: { [key: string]: number };
 
-    private pixelPreData!: number[][][];
     pixelData!: ndarray.NdArray<Uint16Array>;
 
     canvasWidth!: number;
@@ -48,17 +47,8 @@ export class Canvas {
                 this.canvasHeight = dimensions.height;
     
                 this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(-1), [this.canvasWidth, this.canvasHeight]);
-                if(!this.pixelPreData) {
-                    canvases.set(this.boardId, this);
-                    return resolve();
-                }
-                Promise.all(this.pixelPreData.map(preData => {
-                    this.loadCanvasData(preData);
-                })).then(() => {
-                    this.pixelPreData = [];
-                    canvases.set(this.boardId, this);
-                    resolve();
-                }).catch(reject);
+                canvases.set(this.boardId, this);
+                resolve();
             }).catch(reject);
         });
     }
@@ -144,11 +134,6 @@ export class Canvas {
             if(this.canvasState == 0) {
                 this.canvasPacketData = pixels;
                 this.canvasState = 1;
-                return resolve();
-            }
-            if(this.pixelData == undefined) {
-                if(this.pixelPreData == undefined) this.pixelPreData = [];
-                this.pixelPreData.push(pixels);
                 return resolve();
             }
             pixels.forEach(pixel => {
