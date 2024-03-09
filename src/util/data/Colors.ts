@@ -1,4 +1,7 @@
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
+/**
+ * A map of colors to their ID.
+ */
 export enum Colors { // ordered based on how they are shown in the pxp sidebar
 
     WHITE = 0,

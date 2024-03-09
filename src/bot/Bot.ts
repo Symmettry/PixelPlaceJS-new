@@ -9,6 +9,9 @@ import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';
 import { constant } from '../util/Constant.js';
 
+/**
+ * The pixelplace bot.
+ */
 export class Bot {
 
     protector!: Protector;
@@ -28,11 +31,17 @@ export class Bot {
     autoRestart: boolean;
     handleErrors: boolean;
 
-    uidman: UIDManager;
+    uidman!: UIDManager;
 
     private connection!: Connection;
     rate: number = -1;
 
+    /**
+     * Creates a bot instance
+     * @param auth Auth data for pixelplace
+     * @param autoRestart If the bot should restart when it closes. Defaults to true
+     * @param handleErrors If errors should be handled when received -- invalid auth id will be processed regardless of this value. Defaults to true
+     */
     constructor(auth: Auth, autoRestart: boolean = true, handleErrors: boolean = true) {
         this.authKey = auth.authKey();
         this.authToken = auth.authToken();
@@ -42,35 +51,67 @@ export class Bot {
         
         this.autoRestart = autoRestart;
         this.handleErrors = handleErrors;
-        this.uidman = new UIDManager(this);
+
+        if(auth.uidManager) {
+            this.uidman = new UIDManager(this);
+        }
 
         this.Load = this.Load.bind(this);
         this.Connect = this.Connect.bind(this);
         this.Init = this.Init.bind(this);
     }
 
+    /**
+     * Gets an account username from the uid. Requires the uid manager enabled.
+     * @param uid The uid of the account.
+     * @returns The username from the uid.
+     */
     getUsername(uid: string | number): string | undefined {
+        if(!this.uidman) {
+            throw "This bot does not have the uid manager enabled. new Auth(authObj, boardId, true)";
+        }
         return this.uidman.getUsername(uid);
     }
 
+    /**
+     * Canvas
+     * @returns The canvas the bot is on.
+     */
     getCanvas(): Canvas.Canvas {
         return this.connection.canvas;
     }
 
-    on(key: string, func: (...args: unknown[]) => void): void {
-        this.connection.on(key, func);
+    /**
+     * Enables a listener for a packet. When the packet is received, the function will be called.
+     * @param packet The packet to listen for.
+     * @param func The function to execute upon receiving it.
+     */
+    on(packet: string | Packets, func: (...args: unknown[]) => void): void {
+        this.connection.on(packet, func);
     }
 
+    /**
+     * Initiates the bot.
+     * @returns A promise that will resolve once the bot connects and is fully loaded.
+     */
     async Init(): Promise<void> {
         return new Promise<void>((resolve) => this.Connect().then(this.Load).then(resolve));
     }
 
+    /**
+     * Connects the bot to pixelplace.
+     * @returns A promise that will resolve once the socket opens.
+     */
     async Connect(): Promise<void> {
         this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats);
         this.authKey = this.authToken = this.authId = "[REDACTED]";
         return this.connection.Connect();
     }
 
+    /**
+     * Loads the bot fully. This should always be ran directly after Connect() or the bot won't function.
+     * @returns A promise that will resolve once the bot is fully loaded.
+     */
     async Load(): Promise<void> {
         if (!this.connection) {
             throw new Error("Connection not initialized.");
@@ -78,14 +119,28 @@ export class Bot {
         return this.connection.Load();
     }
 
+    /**
+     * Gets the color of the pixel at x,y coordinates.
+     * @param x The x coordinate of the pixel.
+     * @param y The y coordinate of the pixel.
+     * @returns The color of the pixel at x,y.
+     */
     getPixelAt(x: number, y: number): number | undefined {
         return this.getCanvas()?.pixelData?.get(x, y);
     }
 
+    /**
+     * Gets the closest color to an r,g,b value
+     * @param rgb The rgb values. {r,g,b}
+     * @returns The closest color to rgb
+     */
     getClosestColorId(rgb: IRGBColor): number {
         return this.getCanvas()?.getClosestColorId(rgb);
     }
 
+    /**
+     * This function is used by the connection for verifying pixels. This shouldn't be used outside of that.
+     */
     verifyPixels() {
         let successful = this.unverifiedPixels.length;
         for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
@@ -116,7 +171,13 @@ export class Bot {
     suppress: boolean = false;
     checkRate: number = -2;
 
-    setPlacementSpeed(arg: (prevValue?: number) => number | number, autoFix: boolean=true, suppress: boolean=false) {
+    /**
+     * Sets the placement speed of the bot
+     * @param arg Either a direct number or a function for the pixeling
+     * @param autoFix If the rate should automatically be updated to be rate_change value -- won't do anything if you use a function
+     * @param suppress Suppress warnings if the number is below bot.rate
+     */
+    setPlacementSpeed(arg: (prevValue?: number) => number | number, autoFix: boolean=true, suppress: boolean=false): void {
         this.suppress = suppress;
         if(typeof arg != 'function') {
             if(this.rate == -1) {
@@ -136,6 +197,16 @@ export class Bot {
         this.checkRate = -1;
     }
 
+    /**
+     * Places a pixel
+     * @param x The x coordinate of the pixel.
+     * @param y The y coordinate of the pixel.
+     * @param col The color of the pixel.
+     * @param brush The brush to place the pixel. Defaults to 1.
+     * @param protect Whether the pixel should be replaced when changed. Defaults to false.
+     * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
+     * @returns A promise that resolves upon the pixel being sent.
+     */
     async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
         let pixel: IPixel;
 
@@ -155,7 +226,12 @@ export class Bot {
         return this.placePixelInternal(pixel);
     }
 
-    // alternative protect in case of bugs
+    /**
+     * Directly protects a pixel. It can help with certain bugs.
+     * @param x The x coordinate of the pixel.
+     * @param y The y coordinate of the pixel.
+     * @param col The color of the pixel.
+     */
     protect(x: number, y: number, col: number): void {
         this.protector.protect(x, y, col);
     }
@@ -242,13 +318,33 @@ export class Bot {
         return new Promise<void>((resolve) => this.addToSendQueue({data: p, speed: placementSpeed, resolve}) );
     }
 
-    emit(key: Packets, value: string): void {
-        this.connection.emit(key, value);
+    /**
+     * Emits a value through the socket. Kinda bugged, probably shouldn't use.
+     * @param key The packet to send.
+     * @param value The value to send.
+     */
+    emit(key: Packets, ...args: unknown[]): void {
+        this.connection.emit(key, args);
     }
+
+    /**
+     * Sends a value through the socket.
+     * @param value The value to send.
+     */
     send(value: string | unknown[] | Buffer | Uint8Array): void {
         this.connection.send(value);
     }
     
+    /**
+     * Draws an image.
+     * @param x The x coordinate of the left.
+     * @param y The y coordinate of the top.
+     * @param path The path of the image.
+     * @param mode The mode to draw. Can also be DrawingFunction.
+     * @param protect If the pixels should be replaced when changed.
+     * @param force If the pixel packet should still be sent if it doesn't change the color.
+     * @returns A promise that resolves once the image is done drawing.
+     */
     async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
         let image: IImage;
 
@@ -281,6 +377,10 @@ export class Bot {
 
     private stats: IStatistics = defaultStatistics();
 
+    /**
+     * Statistics
+     * @returns The statistics of the bot.
+     */
     getStatistics(): IStatistics {
         // updating values
         this.stats.session.time = Date.now() - this.stats.session.beginTime;

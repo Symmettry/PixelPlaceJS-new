@@ -14,8 +14,6 @@ export default class UIDManager {
 
     onPixels(pixels: number[][]) {
         pixels.forEach((pixel: number[]) => {
-            if(pixel.length != 5) return;
-
             const uid = pixel[4];
             this.register(uid);
             this.premium = true;

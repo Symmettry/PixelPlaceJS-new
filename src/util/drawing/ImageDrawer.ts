@@ -7,8 +7,22 @@ import { Modes } from "../data/Modes";
 import { IImage } from "../data/Data";
 import { constant } from "../Constant";
 
-export type DrawingFunction = (pixels: NdArray<Uint8Array>, drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>, getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number) => Promise<void>;
+/**
+ * Represents a drawing mode that draws on a pixel array.
+ * @param pixels - The pixel array to draw on.
+ * @param drawHook - A function that allows drawing at a specific coordinate.
+ * @param getColorAtHook - A function that gets the color at a specific coordinate.
+ * @returns A promise which resolves when the image is done drawing.
+ */
+export type DrawingFunction = (
+    pixels: NdArray<Uint8Array>,
+    drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>,
+    getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number
+) => Promise<void>;
 
+/**
+ * Utility function for drawing images.
+ */
 export class ImageDrawer {
 
     private instance!: Bot;
@@ -180,7 +194,7 @@ export class ImageDrawer {
         });
     }
 
-    getColorAt(x: number, y: number, pixels: NdArray<Uint8Array>): number {
+    private getColorAt(x: number, y: number, pixels: NdArray<Uint8Array>): number {
         if(x > pixels.shape[0] || y > pixels.shape[1] || x < 0 || y < 0) throw `Out of bounds pixel: [${x},${y}]`;
         const r = pixels.get(x, y, 0);
         const g = pixels.get(x, y, 1);

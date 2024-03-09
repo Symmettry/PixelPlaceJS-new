@@ -1,6 +1,9 @@
 import { Bot } from "../bot/Bot";
 import { IStatistics } from "./data/Data";
 
+/**
+ * Utility functions for protecting pixels.
+ */
 export class Protector {
 
     private protectedPixels: Map<string, number>;

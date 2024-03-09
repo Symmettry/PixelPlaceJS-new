@@ -14,6 +14,9 @@ export function hasCanvas(boardId: number): boolean {
     return canvases.has(boardId);
 }
 
+/** 
+ * Pixelplace canvas data.
+ */
 export class Canvas {
 
     private boardId: number;
@@ -75,7 +78,7 @@ export class Canvas {
 
     getColorId(rgb: IRGBColor): number {
         const { r, g, b } = rgb;
-        return this.colors.hasOwnProperty(`${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : -1;
+        return Object.prototype.hasOwnProperty.call(this.colors, `${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : -1;
     }
 
     async loadCanvasPicture(): Promise<void> {

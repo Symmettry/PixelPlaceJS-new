@@ -1,4 +1,6 @@
-// Taken directly from the source code :)
+/**
+ * All error codes from throw.error (that are useful)
+ */
 export enum PPError {
     LOGGED_OUT = 0,
     SESSION_EXPIRE = 1,
@@ -39,6 +41,9 @@ export enum PPError {
     KICKED_FROM_GUILD = 36,
     INVALID_AUTH = 49,
 }
+/**
+ * A mapping of error codes to the message.
+ */
 export const ErrorMessages = {
     0: "You need to login on pixelplace.io first. Create an account, it's free !",
     1: "Your session expired, please refresh the page",

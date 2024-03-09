@@ -10,6 +10,9 @@ import { ErrorMessages, PPError } from '../util/data/Errors.js';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * Handles the connection between the bot and pixelplace. Not really useful for the developer.
+ */
 export class Connection {
 
     private bot: Bot;
@@ -28,7 +31,7 @@ export class Connection {
     private connected: boolean = false;
     private canvasPictureLoaded: boolean = false;
     private canvasValue!: number[][];
-    private listeners!: Map<string, ((...args: unknown[]) => void)[]>;
+    private listeners!: Map<string | Packets, ((...args: unknown[]) => void)[]>;
 
     private tDelay: number = 0;
     private econnrefusedTimer: number = 0;
@@ -91,7 +94,7 @@ export class Connection {
                     const newAuthData = {authKey, authToken, authId};
                     
                     if(authKey != "deleted") {
-                        fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${newAuthData.authKey.substring(0, 5)}.txt`), `new Auth(${JSON.stringify(newAuthData, null, 4)}, ${this.boardId})`);
+                        fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${newAuthData.authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
                         console.log("~~Great! Auth data refreshed and saved~~");
                     }
                     return newAuthData;
@@ -351,7 +354,9 @@ export class Connection {
                         if(this.bot.protector)await this.bot.protector.detectPixels(value);
                         
                         // pass the pixel update to the uid manager
-                        this.bot.uidman.onPixels(value);
+                        if(this.bot.uidman && value.length > 0 && value[0].length == 5) {
+                            this.bot.uidman.onPixels(value);
+                        }
 
                         // go through and verify if the pixels the bot placed were actually sent
                         this.bot.verifyPixels();
@@ -369,7 +374,9 @@ export class Connection {
                         break;
                     case Packets.RECEIVED.USERNAME:
                         // pass the username data to the uid manager
-                        this.bot.uidman.onUsername(value.id, value.name);
+                        if(this.bot.uidman) {
+                            this.bot.uidman.onUsername(value.id, value.name);
+                        }
                         break;
                     case Packets.RECEIVED.CHAT_LOADED:
                         this.chatLoaded = true;
@@ -391,15 +398,13 @@ export class Connection {
         }
     }
 
-    on(key: string, func: (...args: unknown[]) => void) {
+    on(key: string | Packets, func: (...args: unknown[]) => void) {
         if(!this.listeners.has(key)) this.listeners.set(key, []);
         this.listeners.get(key)?.push(func);
     }
 
-    emit(key: Packets, value: string) {
-        const data = `42["${key}",${value}]`;
-    
-        this.send(data);
+    emit(key: Packets, ...value: unknown[]) {
+        this.socket.emit(key.toString(), value);
     }
     send(value: Buffer | Uint8Array | string | unknown[]) {
         if(this.listeners.has(Packets.LIBRARY.SENT)) {
