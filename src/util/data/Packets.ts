@@ -1,7 +1,7 @@
 /**
  * Packets that are received from pixelplace.
  */
-enum RECEIVED {
+export enum RECEIVED {
     /** Includes pixel data. [[x,y,brush,col,userId?],etc.] */
     PIXEL = "p",
     /** The minimum rate of pixeling that the bot should follow. */
@@ -120,7 +120,7 @@ enum RECEIVED {
 /**
  * Packets sent from the client.
  */
-enum SENT {
+export enum SENT {
     /** Contains auth data. */
     INIT = "init",
     /** Contains pixel data. */
@@ -140,7 +140,7 @@ enum SENT {
 /**
  * Events for pixelplacejs-new library.
  */
-enum LIBRARY {
+export enum LIBRARY {
     /** All 42[] packets */
     ALL = "*",
     /** All packets */
