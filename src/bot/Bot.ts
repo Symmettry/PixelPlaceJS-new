@@ -26,22 +26,27 @@ export class Bot {
     private goingThroughQueue: number = 0;
 
     autoRestart: boolean;
+    handleErrors: boolean;
 
     uidman: UIDManager;
 
     private connection!: Connection;
     rate: number = -1;
 
-    constructor(auth: Auth, autoRestart: boolean = true) {
-        constant(this, 'authKey', auth.authKey);
-        constant(this, 'authToken', auth.authToken);
-        constant(this, 'authId', auth.authId);
+    constructor(auth: Auth, autoRestart: boolean = true, handleErrors: boolean = true) {
+        this.authKey = auth.authKey();
+        this.authToken = auth.authToken();
+        this.authId = auth.authId();
 
         constant(this, 'boardId', auth.boardId);
         
         this.autoRestart = autoRestart;
+        this.handleErrors = handleErrors;
         this.uidman = new UIDManager(this);
+
         this.Load = this.Load.bind(this);
+        this.Connect = this.Connect.bind(this);
+        this.Init = this.Init.bind(this);
     }
 
     getUsername(uid: string | number): string | undefined {
@@ -62,6 +67,7 @@ export class Bot {
 
     async Connect(): Promise<void> {
         this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats);
+        this.authKey = this.authToken = this.authId = "[REDACTED]";
         return this.connection.Connect();
     }
 

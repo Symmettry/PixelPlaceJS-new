@@ -6,6 +6,7 @@ import { Packets } from "../util/data/Packets";
 import { IStatistics } from "../util/data/Data";
 import { Protector } from '../util/Protector';
 import { constant } from '../util/Constant.js';
+import { ErrorMessages, Errors } from '../util/data/Errors.js';
 
 export class Connection {
 
@@ -134,8 +135,8 @@ export class Connection {
     private async evaluatePacket(buffer: Buffer, resolve: (value: void | PromiseLike<void>) => void) {
         const data: string = buffer.toString(); // buffer -> string
 
-        if(this.listeners.has(Packets.RAW)) {
-            this.listeners.get(Packets.RAW)?.forEach(listener => listener(data));
+        if(this.listeners.has(Packets.LIBRARY.RAW)) {
+            this.listeners.get(Packets.LIBRARY.RAW)?.forEach(listener => listener(data));
         }
                 
         // Gets the data and ID of the response
@@ -151,14 +152,15 @@ export class Connection {
         const message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
         switch(id) {
             case "0": // socket.io start
-                this.socket.send("40");
+                this.send("40");
                 break;
             case "40": // socket.io finish
                 if(this.authKey == "-") {
-                    this.socket.send(`42["init",{"authKey":undefined,"authToken":undefined,"authId":undefined,"boardId":${this.boardId}}]`);
+                    this.send(`42["init",{"authKey":undefined,"authToken":undefined,"authId":undefined,"boardId":${this.boardId}}]`);
                 } else {
-                    this.socket.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
+                    this.send(`42["init",{"authKey":"${this.authKey}","authToken":"${this.authToken}","authId":"${this.authId}","boardId":${this.boardId}}]`);
                 }
+                this.authKey = this.authToken = this.authId = "[REDACTED]";
 
                 setTimeout(() => {
                     if(!this.connected) {
@@ -167,7 +169,7 @@ export class Connection {
                 }, 10000);
                 break;
             case "2": // socket.io keepalive
-                this.socket.send("3");
+                this.send("3");
                 break;
             case "42": {// message
                 const key = message[0];
@@ -180,6 +182,62 @@ export class Connection {
 
                 // built-in functions, e.g. keepalive and pixels.
                 switch(key) {
+                    case Packets.RECEIVED.ERROR: {
+                        if(!this.bot.handleErrors)break;
+                        const errorMessage = ErrorMessages[value as keyof typeof ErrorMessages];
+                        switch(value) {
+                            case Errors.INVALID_AUTH:
+                            case Errors.LOGGED_OUT:
+                                console.error("Auth data was invalid. throw.error", value);
+                                process.exit();
+                            // eslint-disable-next-line no-fallthrough
+                            case Errors.TOO_MANY_INSTANCES:
+                            case Errors.TOO_MANY_USERS_INTERNET:
+                            case Errors.SELECT_USERNAME:
+                            case Errors.PIXELPLACE_DISABLED:
+                                console.error(errorMessage);
+                                process.exit();
+                            // eslint-disable-next-line no-fallthrough
+                            case Errors.CANVAS_DISABLED:
+                            case Errors.PREMIUM_ENDED_CANVAS:
+                            case Errors.PRIVATE_CANVAS:
+                            case Errors.NEED_CANVAS_APPROVAL:
+                            case Errors.SESSION_EXPIRE:
+                            case Errors.CANVAS_TERMINATED:
+                            case Errors.SERVERS_FULL_AGAIN:
+                            case Errors.SERVERS_FULL_LIMITED_PER_INTERNET:
+                            case Errors.SERVERS_FULL_LIMITED_PER_USER:
+                            case Errors.SERVER_FULL:
+                            case Errors.RELOADING:
+                            case Errors.ACCOUNT_DISABLED:
+                            case Errors.PAINTING_ARCHIVED:
+                                console.error(errorMessage);
+                                this.socket.close();
+                                break;
+                            case Errors.INVALID_COLOR:
+                            case Errors.COOLDOWN:
+                            case Errors.ERROR_CANVAS_ACCESS_DATA:
+                            case Errors.ERROR_CANVAS_DATA:
+                            case Errors.INVALID_COORDINATES:
+                            case Errors.PLACING_TOO_FAST:
+                            case Errors.PREMIUM_COLOR:
+                            case Errors.PREMIUM_ISLAND_MESSAGE:
+                            case Errors.USER_OFFLINE:
+                            case Errors.NEED_TO_BE_CONNECTED:
+                            case Errors.MESSAGES_TOO_FAST:
+                            case Errors.ACCOUNT_SUSPENDED_FROM_CHAT:
+                            case Errors.ACCOUNT_BANNED_FROM_CHAT:
+                            case Errors.NEED_USERNAME:
+                            case Errors.CANT_SEND_COMMANDS:
+                            case Errors.NEED_JOIN_GUILD:
+                            case Errors.NEED_PREMIUM:
+                            case Errors.GUILD_DISBANDED:
+                            case Errors.KICKED_FROM_GUILD:
+                                console.error(errorMessage);
+                                break;
+                        }
+                        break;
+                    }
                     case Packets.RECEIVED.RATE_CHANGE:
                         this.bot.rate = value;
 
@@ -206,7 +264,7 @@ export class Connection {
                         }
                         break;
                     case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
-                        this.socket.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
+                        this.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
                         break;
                     case Packets.RECEIVED.PIXEL: // pixels
                         if(this.isWorld)this.canvas.loadCanvasData(value);
@@ -248,8 +306,8 @@ export class Connection {
             this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
         }
         // all-keys
-        if(this.listeners.has(Packets.ALL)) {
-            this.listeners.get(Packets.ALL)?.forEach(listener => listener(key, value));
+        if(this.listeners.has(Packets.LIBRARY.ALL)) {
+            this.listeners.get(Packets.LIBRARY.ALL)?.forEach(listener => listener(key, value));
         }
     }
 
@@ -264,6 +322,9 @@ export class Connection {
         this.send(data);
     }
     send(value: Buffer | Uint8Array | string | unknown[]) {
+        if(this.listeners.has(Packets.LIBRARY.SENT)) {
+            this.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener(value));
+        }
         this.socket.send(value);
 
         // statistics

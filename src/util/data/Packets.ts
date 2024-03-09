@@ -77,6 +77,9 @@ enum SENT {
 
 // Library packets
 enum LIBRARY {
+    ALL = "*",
+    RAW = "**",
+    SENT = "***",
     SOCKET_CLOSE = "socket_close",
     ERROR = "error",
 }
@@ -85,6 +88,4 @@ export class Packets {
     static RECEIVED: typeof RECEIVED = RECEIVED;
     static SENT: typeof SENT = SENT;
     static LIBRARY: typeof LIBRARY = LIBRARY;
-    static ALL: string = "*";
-    static RAW: string = "**";
 }
