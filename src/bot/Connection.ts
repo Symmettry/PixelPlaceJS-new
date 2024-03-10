@@ -106,12 +106,12 @@ export class Connection {
         }
     }
 
-    private async newInit() {
+    private async newInit(loggedIn: boolean) {
         const authData = await this.relog();
         if(!authData || Object.keys(authData).length == 0 || !authData.authId) {
             process.exit();
         }
-        this.sendInit(null, null, authData.authId, this.boardId);
+        this.sendInit(loggedIn ? authData.authKey ?? null : null, loggedIn ? authData.authToken ?? null : null, authData.authId, this.boardId);
     }
 
     private ping() {
@@ -120,7 +120,9 @@ export class Connection {
                 Origin: "https://pixelplace.io/",
                 Cookie: `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`
             }
-        })
+        }).catch(err => {
+            console.error(err);
+        });
     }
 
     async Start() {
@@ -233,7 +235,7 @@ export class Connection {
                 break;
             case "40": // socket.io finish
                 if(this.authKey == "" && this.authToken == "" && this.authId == "") {
-                    await this.newInit(); // will generate a default auth value
+                    await this.newInit(false); // will generate a default auth value
                 } else {
                     this.sendInit(this.authKey, this.authToken, this.authId, this.boardId);
                 }
@@ -263,7 +265,7 @@ export class Connection {
 
                         // process before checking handle errors
                         if(value == PPError.INVALID_AUTH) {
-                            this.newInit();
+                            this.newInit(true);
                             break;
                         }
 
