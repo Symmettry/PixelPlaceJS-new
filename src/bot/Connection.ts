@@ -52,6 +52,7 @@ export class Connection {
         constant(this, 'listeners', new Map());
 
         this.relog = this.relogGenerator(this.authKey, this.authToken, this.authId);
+        this.Load = this.Load.bind(this);
     }
 
     private relogGenerator(authKey: string, authToken: string, authId: string): () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
@@ -352,7 +353,7 @@ export class Connection {
                         this.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
                         break;
                     case Packets.RECEIVED.PIXEL: // pixels
-                        if(this.isWorld)this.canvas.loadCanvasData(value);
+                        if(this.isWorld)this.canvas.loadPixelData(value);
                         if(this.bot.protector)await this.bot.protector.detectPixels(value);
                         
                         // pass the pixel update to the uid manager
