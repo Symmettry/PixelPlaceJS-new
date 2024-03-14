@@ -171,14 +171,14 @@ export class Canvas {
         });
     }
 
-    private async getDimensions(): Promise<{ [key: string]: number }> {
+    private async getDimensions(): Promise<{ width: number, height: number }> {
         const res: Response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
             headers: {
               "accept": "application/json",
               "x-requested-with": "XMLHttpRequest",
               "Referer": "https://pixelplace.io/7-pixels-world-war",
             },
-            method: "GET"
+            method: "GET",
         });
           
       
