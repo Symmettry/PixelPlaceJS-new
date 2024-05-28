@@ -10,6 +10,7 @@ export interface IPixel {
     col: number;
     brush: number;
     protect: boolean;
+    wars: boolean;
     force: boolean;
 }
 
@@ -32,6 +33,7 @@ export interface IImage {
     path: string;
     mode: Modes | DrawingFunction,
     protect: boolean;
+    wars: boolean;
     force: boolean;
 }
 
@@ -60,6 +62,56 @@ export interface IRGBColor {
 }
 
 /**
+ * A war area
+ */
+export interface IArea {
+    /** Name of the area */
+    name: string;
+    /** 0 = not active, 1 = active */
+    state: number;
+    /** Guild or user that owns it */
+    ownedBy: string;
+    /** I have no idea. Possibly the guild of the user who won. */
+    ownedByGuild?: string;
+    /** Previous owner of the area. This will only exist if a war has occurred since the bot started. */
+    previousOwner?: string;
+    /** Canvas id of the guild or user that owns it */
+    canvas: number;
+    /** Unix timestamp that the fight ended at */
+    fightEndAt: number;
+    /** Time till next fight. It will be 0 if a fight hasn't occurred since the bot started, or 900 if one has. */
+    nextFightAt: number;
+    /** 0 = guild, 1 = user */
+    fightType: number;
+    /** Stats for each user / guild in the war. Will be empty if a fight hasn't occurred since the bot started */
+    stats: {
+        /** Guild name */
+        guild: string;
+        /** Pixels placed */
+        pixels: number;
+        /** Amount of users involved */
+        users: number;
+    }[];
+    /** Totals of the war. Will be empty if a war has not occurred since the bot started. */
+    total: {
+        /** Amount of guilds that participated */
+        guilds: number;
+        /** Amount of pixels placed */
+        pixels: number;
+        /** Amount of users that participated */
+        users: number;
+    };
+    /** Positions */ xStart: number;
+    /** Positions */ yStart: number;
+    /** Positions */ xEnd: number;
+    /** Positions */ yEnd: number;
+    /** Points earned from war */
+    points: number;
+    /** Unsure. It's probably if the previous owner & new owner are the same. */
+    defended?: boolean;
+}
+
+/**
  * Contains statistics data for pixelplace.
  */
 export interface IStatistics {
@@ -67,39 +119,55 @@ export interface IStatistics {
     pixels: {
         /** Statistics relating to placing pixels. */
         placing: {
-            placed: number, /** Number of pixels successfully placed. */
-            attempted: number, /** Number of pixel placement attempts. */
-            failed: number, /** Number of failed pixel placement attempts. */
-            first_time: number, /** Timestamp of the first pixel placement. */
-            per_second: number, /** Average pixels placed per second. */
-            last_pos: number[], /** Last pixel placement position. */
+            /** Number of pixels successfully placed. */
+            placed: number
+            /** Number of pixel placement attempts. */
+            attempted: number,
+            /** Number of failed pixel placement attempts. */
+            failed: number,
+            /** Timestamp of the first pixel placement. */
+            first_time: number,
+            /** Average pixels placed per second. */
+            per_second: number,
+            /** Last pixel placement position. */
+            last_pos: number[],
         },
         /** Statistics related to pixel protection. */
         protection: {
-            protected: number, /** Number of pixels protected. */
-            repaired: number, /** Number of pixels repaired. */
-            last_repair: number, /** Timestamp of the last pixel repair. */
+            /** Number of pixels protected. */
+            protected: number,
+            /** Number of pixels repaired. */
+            repaired: number,
+            /** Timestamp of the last pixel repair. */
+            last_repair: number,
         },
-        /** Statistics related to colors used. */
+        /** Object mapping color codes to pixel counts. */
         colors: {
-            [color: number]: number, /** Object mapping color codes to pixel counts. */
+            [color: number]: number,
         },
     },
     /** Statistics related to images. */
     images: {
-        drawing: number, /** Number of images being drawn. */
-        finished: number, /** Number of finished images. */
+        /** Number of images being drawn. */
+        drawing: number,
+        /** Number of finished images. */
+        finished: number,
     },
     /** Statistics related to the session. */
     session: {
-        time: number, /** Total session time. */
-        errors: number, /** Number of errors during the session. */
-        beginTime: number, /** Timestamp of session start. */
+        /** Total session time. */
+        time: number,
+        /** Number of errors during the session. */
+        errors: number,
+        /** Timestamp of session start. */
+        beginTime: number,
     },
     /** Statistics related to the socket. */
     socket: {
-        sent: number, /** Number of messages sent over the socket. */
-        received: number, /** Number of messages received over the socket. */
+        /** Number of messages sent over the socket. */
+        sent: number,
+        /** Number of messages received over the socket. */
+        received: number,
     },
 }
 

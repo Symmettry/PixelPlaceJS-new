@@ -3,7 +3,7 @@ import * as Canvas from "../util/Canvas";
 import { Bot } from "./Bot";
 import WebSocket from "ws";
 import { Packets } from "../util/data/Packets";
-import { IStatistics } from "../util/data/Data";
+import { IStatistics, IArea } from "../util/data/Data";
 import { Protector } from '../util/Protector';
 import { constant } from '../util/Constant.js';
 import { ErrorMessages, PPError } from '../util/data/Errors.js';
@@ -38,7 +38,11 @@ export class Connection {
 
     private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
 
-    chatLoaded: boolean = false;
+    private chatLoaded: boolean = false;
+
+    private areas: {[key: string]: IArea} = {};
+    private warOccurring: boolean = false;
+    private currentWarZone: string = "NONE";
 
     constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics) {
         this.bot = bot;
@@ -384,6 +388,44 @@ export class Connection {
                     case Packets.RECEIVED.CHAT_LOADED:
                         this.chatLoaded = true;
                         break;
+                    case Packets.RECEIVED.AREAS:
+                        value.forEach((element: IArea) => {
+                            this.areas[element.name] = element;
+                            if(element.state == 1) {
+                                this.currentWarZone = element.name;
+                                this.warOccurring = true;
+                            }
+                        });
+                        break;
+                    case Packets.RECEIVED.AREA_FIGHT_START: {
+                        const area = this.getAreaById(value.id);
+
+                        area.fightEndAt = value.fightEndAt;
+                        area.nextFightAt = value.nextFightAt;
+                        area.fightType = value.fightType;
+
+                        this.warOccurring = true;
+                        this.currentWarZone = area.name;
+                        break;
+                    }
+                    case Packets.RECEIVED.AREA_FIGHT_END: {
+                        const area = this.getAreaById(value.id);
+                        if(area == null) return; // something went wrong
+
+                        area.defended = value.defended;
+                        area.ownedBy = value.ownedBy;
+                        area.ownedByGuild = value.ownedByGuild;
+                        area.previousOwner = value.previousOwner;
+                        area.fightType = value.fightType;
+                        area.points = value.points;
+                        area.stats = value.stats;
+                        area.total = value.total;
+                        area.nextFightAt = value.nextFight; // owi, why? why nextFight and not nextFightAt like your areas packet???? WHY?! Basically the only reason I can't do area = value!
+                        area.canvas = value.canvas;
+
+                        this.warOccurring = false;
+                        break;
+                    }
                 }
                 break;
             }
@@ -406,9 +448,6 @@ export class Connection {
         this.listeners.get(key)?.push(func);
     }
 
-    emit(key: Packets, ...value: unknown[]) {
-        this.socket.emit(key.toString(), value);
-    }
     send(value: Buffer | Uint8Array | string | unknown[]) {
         if(this.listeners.has(Packets.LIBRARY.SENT)) {
             this.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener(value));
@@ -418,5 +457,25 @@ export class Connection {
         // statistics
         this.stats.socket.sent++;
     }
+
+    getAreas(): {[key: string]: IArea} {
+        return this.areas;
+    }
     
+    getAreaById(id: number): IArea {
+        return this.areas[Object.keys(this.areas)[id]];
+    }
+
+    isWarOccurring(): boolean {
+        return this.warOccurring;
+    }
+
+    isChatLoaded(): boolean {
+        return this.chatLoaded;
+    }
+
+    getCurrentWarZone(): string {
+        return this.currentWarZone;
+    }
+
 }

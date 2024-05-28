@@ -4,10 +4,11 @@ import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/data/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/data/Modes.js';
-import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel } from '../util/data/Data.js';
+import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';
 import { constant } from '../util/Constant.js';
+import { Bounds } from '../util/Bounds.js';
 
 /**
  * The pixelplace bot.
@@ -204,10 +205,11 @@ export class Bot {
      * @param col The color of the pixel.
      * @param brush The brush to place the pixel. Defaults to 1.
      * @param protect Whether the pixel should be replaced when changed. Defaults to false.
+     * @param wars Whether the pixel should be placed if it's in a war zone during a war. Defaults to false. (will get you banned if a mod sees)
      * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
      * @returns A promise that resolves upon the pixel being sent.
      */
-    async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?]): Promise<void> {
+    async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?, boolean?]): Promise<void> {
         let pixel: IPixel;
 
         if (args.length === 1 && typeof args[0] === 'object') {
@@ -219,7 +221,8 @@ export class Bot {
                 col: args[2] as number,
                 brush: args[3] as number || 1,
                 protect: args[4] as boolean || false,
-                force: args[5] as boolean || false
+                wars: args[5] as boolean || false,
+                force: args[6] as boolean || false
             };
         } else throw new Error('Invalid arguments for placePixel.');
 
@@ -245,16 +248,21 @@ export class Bot {
 
     private goThroughPixels(): void {
 
-        if(this.trueQueueSize == 0)return;
+        if(this.trueQueueSize == 0) return;
 
         const queuedPixel = this.sendQueue.shift();
 
-        if(queuedPixel == null)return; // shouldn't but just in case
+        if(queuedPixel == null) return; // shouldn't but just in case
 
         this.goingThroughQueue++;
 
-        const colAtSpot = this.getPixelAt(queuedPixel.data.x, queuedPixel.data.y);
-        if(colAtSpot == null || (!queuedPixel.data.force && colAtSpot == queuedPixel.data.col) || colAtSpot == 65535) { // 65535 is ocean.
+        const {x, y, col, wars, force} = queuedPixel.data;
+
+        const colAtSpot = this.getPixelAt(x, y);
+
+        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535 // 65535 is ocean.
+        const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
+        if(skippedColor || skippedWar) {
             this.resolvePacket(queuedPixel);
             return this.goThroughPixels();
         }
@@ -270,7 +278,7 @@ export class Bot {
 
         this.resolvePacket(queuedPixel);
 
-        this.emit(Packets.SENT.PIXEL, `[${x},${y},${col},${brush}]`);
+        this.send(`42["${Packets.SENT.PIXEL}", [${x},${y},${col},${brush}]]`);
         this.connection.canvas?.pixelData?.set(x, y, col);
 
         const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
@@ -319,15 +327,6 @@ export class Bot {
     }
 
     /**
-     * Emits a value through the socket. Kinda bugged, probably shouldn't use.
-     * @param key The packet to send.
-     * @param value The value to send.
-     */
-    emit(key: Packets, ...args: unknown[]): void {
-        this.connection.emit(key, args);
-    }
-
-    /**
      * Sends a value through the socket.
      * @param value The value to send.
      */
@@ -342,10 +341,11 @@ export class Bot {
      * @param path The path of the image.
      * @param mode The mode to draw. Can also be DrawingFunction.
      * @param protect If the pixels should be replaced when changed.
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it)
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      * @returns A promise that resolves once the image is done drawing.
      */
-    async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?]): Promise<void> {
+    async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?, boolean?]): Promise<void> {
         let image: IImage;
 
         if (args.length === 1 && typeof args[0] === 'object') {
@@ -357,7 +357,8 @@ export class Bot {
                 path: args[2] as string,
                 mode: args[3] as Modes || Modes.TOP_LEFT_TO_RIGHT,
                 protect: args[4] as boolean || false,
-                force: args[5] as boolean || false
+                wars: args[5] as boolean || false,
+                force: args[6] as boolean || false
             };
         } else throw new Error('Invalid arguments for drawImage.');
         
@@ -393,7 +394,7 @@ export class Bot {
      * @returns If the chat is loaded or not. (true/false)
      */
     isChatLoaded(): boolean {
-        return this.connection.chatLoaded;
+        return this.connection.isChatLoaded();
     }
 
     /**
@@ -408,6 +409,73 @@ export class Bot {
      */
     getUidManager(): UIDManager {
         return this.uidman;
+    }
+
+    /**
+     * @returns All war locations and stats on them.
+     */
+    getAreas(): {[key: string]: IArea} {
+        return this.connection.getAreas();
+    }
+
+    /**
+     * @param name The name of the area. E.g. "United States"
+     * @returns An IArea instance containing info on the area.
+     */
+    getArea(name: string): IArea | null {
+        return this.getAreas()[name];
+    }
+
+    /**
+     * This is used if you want to get the area from a raw packet since the packets give id's rather than names.
+     * @param id The id of an area
+     * @returns An IArea instance containing info on the area.
+     */
+    getAreaById(id: number): IArea {
+        return this.connection.getAreaById(id);
+    }
+
+    /**
+     * @returns If a war is occurring (true/false)
+     */
+    isWarOccurring(): boolean {
+        return this.connection.isWarOccurring();
+    }
+
+    /**
+     * This does not account for the current war zone or if a war is occuring.
+     * @param x X position of pixel
+     * @param y Y position of pixel
+     * @returns If a pixel is in a war zone (true/false)
+     */
+    isPixelInAnyWarZone(x: number, y: number): boolean {
+        const areas = this.getAreas();
+        Object.keys(areas).forEach(key => {
+            if(this.isPixelInWarZone(key, x, y)) {
+                return true;
+            } // else ignore
+        })
+        return false;
+    }
+
+    /**
+     * This does not account for if a war is occurring.
+     * You can check if a pixel is in the current war with isPixelInWarZone(bot.getCurrentWarZone(), x, y)
+     * @param name Name of the war zone
+     * @param x X position of pixel
+     * @param y Y position of pixel
+     * @returns If a pixel is within a specific war zone.
+     */
+    isPixelInWarZone(name: string, x: number, y: number): boolean {
+        const area = this.getAreas()[name];
+        return Bounds.isInBounds(area.xStart, area.yStart, area.xEnd, area.yEnd, x, y)
+    }
+
+    /**
+     * @returns The current war zone. Or "NONE" if a war is not found.
+     */
+    getCurrentWarZone(): string {
+        return this.connection.getCurrentWarZone();
     }
 
 }

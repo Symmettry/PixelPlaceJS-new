@@ -143,7 +143,7 @@ export enum SENT {
 export enum LIBRARY {
     /** All 42[] packets */
     ALL = "*",
-    /** All packets */
+    /** All received packets */
     RAW = "**",
     /** All sent packets */
     SENT = "***",

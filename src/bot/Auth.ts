@@ -21,6 +21,7 @@ export class Auth {
     constructor(authObj: IAuthData | null, boardId: number, uidManager: boolean = false) {
         // pixelplace auth data
         if(authObj != null) {
+            // data is redacted to prevent any eval() calls from stealing auth data. Protects chat bots that stupidly do this
             this.authKey = () => {
                 const data = authObj.authKey;
                 authObj.authKey = "[REDACTED]";

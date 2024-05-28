@@ -35,6 +35,7 @@ export class ImageDrawer {
     private y!: number;
 
     private protect!: boolean;
+    private wars!: boolean;
     private force!: boolean;
 
     private drawingStrategies!: {[key in Modes]: (pixels: NdArray<Uint8Array>) => Promise<void>};
@@ -50,6 +51,7 @@ export class ImageDrawer {
         constant(this, 'y', image.y);
 
         constant(this, 'protect', image.protect);
+        constant(this, 'wars', image.wars);
         constant(this, 'force', image.force);
 
         constant(this, "drawingStrategies", {
@@ -211,15 +213,8 @@ export class ImageDrawer {
         const nx = this.x + x;
         const ny = this.y + y;
 
-        if(this.instance.getPixelAt(nx, ny) != closestColorId) {
-            return this.instance.placePixel({
-                x: nx,
-                y: ny,
-                col: closestColorId,
-                brush: 1,
-                protect: this.protect,
-                force: this.force
-            });
+        if(this.force || this.instance.getPixelAt(nx, ny) != closestColorId) {
+            return this.instance.placePixel(nx, ny, closestColorId, 1, this.protect, this.wars, this.force);
         }
         
         if (this.protect) {
