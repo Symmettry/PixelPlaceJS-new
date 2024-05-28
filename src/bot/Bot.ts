@@ -252,6 +252,7 @@ export class Bot {
     private resolvePacket(queuedPixel: IQueuedPixel): void {
         queuedPixel.resolve();
         this.goingThroughQueue--;
+        this.goThroughPixels();
     }
 
     private goThroughPixels(): void {
@@ -268,29 +269,29 @@ export class Bot {
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535 // 65535 is ocean.
         if(skippedColor) {
-            this.resolvePacket(queuedPixel);
-            return this.goThroughPixels();
+            return this.resolvePacket(queuedPixel);
         }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
         if(skippedWar) {
             if(protect) {
                 this.sendAfterWarDone.push(queuedPixel.data);
             }
-            this.resolvePacket(queuedPixel);
-            return this.goThroughPixels();
+            return this.resolvePacket(queuedPixel);
         }
+        queuedPixel.speed -= this.nextSubtract;
         setTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
         return;
     }
     private lastPixel: number = Date.now();
+    private nextSubtract: number = 0;
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
 
-        // for testing purposes lol
-        /*const deltaTime = Date.now() - this.lastPixel;
-        if(deltaTime < this.rate) {
-            console.log(deltaTime);
+        this.nextSubtract = 0;
+        if(this.checkRate != -1) {
+            const deltaTime = Date.now() - this.lastPixel;
+            this.nextSubtract = Math.min(deltaTime - queuedPixel.speed, queuedPixel.speed / 2);
+            this.lastPixel = Date.now();
         }
-        this.lastPixel = Date.now();*/
 
         const {x, y, col, brush } = queuedPixel.data;
 
