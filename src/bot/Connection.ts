@@ -85,7 +85,7 @@ export class Connection {
                     headers[name] = value;
                 });
                 const setCookie = headers['set-cookie'];
-                if(setCookie.startsWith("authKey=deleted")) {
+                if(setCookie.startsWith("authToken=deleted")) {
                     console.log("Could not relog. Get new auth data and try again.");
                     return {};
                 } else {
@@ -98,7 +98,7 @@ export class Connection {
 
                     const newAuthData = {authKey, authToken, authId};
                     
-                    if(authKey != "deleted") {
+                    if(authToken != null && authToken != "deleted") {
                         fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
                         console.log("~~Great! Auth data refreshed and saved~~");
                     }
