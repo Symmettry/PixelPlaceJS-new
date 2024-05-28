@@ -1,6 +1,6 @@
 {
   "name": "pixelplacejs-new",
-  "version": "1.5.2",
+  "version": "1.5.2-fix",
   "description": "PixelPlace JS v2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
