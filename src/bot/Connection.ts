@@ -424,6 +424,8 @@ export class Connection {
                         area.canvas = value.canvas;
 
                         this.warOccurring = false;
+                        
+                        this.bot.onWarFinish();
                         break;
                     }
                 }
@@ -463,7 +465,7 @@ export class Connection {
     }
     
     getAreaById(id: number): IArea {
-        return this.areas[Object.keys(this.areas)[id]];
+        return this.areas[Object.keys(this.areas)[id]] || {};
     }
 
     isWarOccurring(): boolean {

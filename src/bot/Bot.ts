@@ -26,7 +26,7 @@ export class Bot {
     private sendQueue: Array<IQueuedPixel> = [];
     private resendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
-    private trueQueueSize: number = 0;
+    private sendAfterWarDone: Array<IPixel> = [];
     private goingThroughQueue: number = 0;
 
     autoRestart: boolean;
@@ -168,6 +168,16 @@ export class Bot {
         return newValue;
     }
 
+    /**
+     * This is used internally. Calling this probably won't do anything but I don't recommend it.
+     */
+    onWarFinish() {
+        this.sendAfterWarDone.forEach(pixel => {
+            this.resendQueue.push(pixel);
+        });
+        this.sendAfterWarDone = [];
+    }
+
     private userDefPlaceSpeed: (prevValue?: number) => number = () => 16;
     suppress: boolean = false;
     checkRate: number = -2;
@@ -240,15 +250,11 @@ export class Bot {
     }
 
     private resolvePacket(queuedPixel: IQueuedPixel): void {
-        this.trueQueueSize--;
-        this.goThroughPixels();
         queuedPixel.resolve();
         this.goingThroughQueue--;
     }
 
     private goThroughPixels(): void {
-
-        if(this.trueQueueSize == 0) return;
 
         const queuedPixel = this.sendQueue.shift();
 
@@ -256,24 +262,36 @@ export class Bot {
 
         this.goingThroughQueue++;
 
-        const {x, y, col, wars, force} = queuedPixel.data;
+        const {x, y, col, protect, wars, force} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535 // 65535 is ocean.
-        const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
-        if(skippedColor || skippedWar) {
+        if(skippedColor) {
             this.resolvePacket(queuedPixel);
             return this.goThroughPixels();
         }
-
-        if(queuedPixel.speed > 0) {
-            setTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
-            return;
+        const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
+        if(skippedWar) {
+            if(protect) {
+                this.sendAfterWarDone.push(queuedPixel.data);
+            }
+            this.resolvePacket(queuedPixel);
+            return this.goThroughPixels();
         }
-        this.sendPixel(queuedPixel, colAtSpot);
+        setTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
+        return;
     }
+    private lastPixel: number = Date.now();
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
+
+        // for testing purposes lol
+        /*const deltaTime = Date.now() - this.lastPixel;
+        if(deltaTime < this.rate) {
+            console.log(deltaTime);
+        }
+        this.lastPixel = Date.now();*/
+
         const {x, y, col, brush } = queuedPixel.data;
 
         this.resolvePacket(queuedPixel);
@@ -295,9 +313,8 @@ export class Bot {
     }
 
     private addToSendQueue(p: IQueuedPixel): void {
-        this.trueQueueSize++;
         this.sendQueue.push(p);
-        if(this.goingThroughQueue <= 1) {
+        if(this.goingThroughQueue == 0) {
             this.goThroughPixels();
         }
     }
