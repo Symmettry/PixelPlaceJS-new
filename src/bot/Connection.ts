@@ -259,9 +259,6 @@ export class Connection {
                 const key = message[0];
                 const value = message[1];
 
-                // Packet listeners
-                this.listen(key, value);
-
                 this.stats.socket.received++;
 
                 // built-in functions, e.g. keepalive and pixels.
@@ -372,7 +369,7 @@ export class Connection {
                         this.connected = true;
                         this.canvasValue = value;
                         if(this.canvasPictureLoaded) {
-                            return this.loadCanvas(value, resolve);
+                            this.loadCanvas(value, resolve);
                         }
                         break;
                     }
@@ -410,7 +407,6 @@ export class Connection {
                     }
                     case Packets.RECEIVED.AREA_FIGHT_END: {
                         const area = this.getAreaById(value.id);
-                        if(area == null) return; // something went wrong
 
                         area.defended = value.defended;
                         area.ownedBy = value.ownedBy;
@@ -429,6 +425,8 @@ export class Connection {
                         break;
                     }
                 }
+                // Packet listeners
+                this.listen(key, value);
                 break;
             }
         }
