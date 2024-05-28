@@ -99,7 +99,7 @@ export class Connection {
                     const newAuthData = {authKey, authToken, authId};
                     
                     if(authKey != "deleted") {
-                        fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${newAuthData.authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
+                        fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
                         console.log("~~Great! Auth data refreshed and saved~~");
                     }
                     return newAuthData;

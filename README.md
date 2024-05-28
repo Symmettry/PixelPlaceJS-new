@@ -57,6 +57,24 @@ await pp.bots[index].drawImage(x, y, "path_to_image", mode? | DrawingFunction?, 
 // Drawing function type -- directly taken from the code
 type DrawingFunction = (pixels: NdArray<Uint8Array>, drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>, getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number) => Promise<void>;
 
+// returns if chat is loaded or not
+pp.bots[index].isChatLoaded();
+
+// returns a list of IArea; which contains info on them
+pp.bots[index].getAreas()
+
+// gets an area by an id
+pp.bots[index].getAreaById(id)
+
+// gets an area by its name
+pp.bots[index].getArea(name)
+
+// returns if a war is currently occurring
+pp.bots[index].isWarOccurring()
+
+// gets the name of the current war
+pp.bots[index].getCurrentWarZone()
+
 // will run the function with its value when 'key' is received from the socket
 // you can also use a string for it, but it's recommended to use 'Packets' imported from the library
 // value won't be set for some packets, such as chat loaded
@@ -69,10 +87,6 @@ pp.bots[index].getPixelAt(x, y);
 
 // returns the color id of the color closest to the r, g, and b values inputted via IRGB, aka {r, g, b}
 pp.bots[index].getClosestColorId({r, g, b});
-
-// emits 42["packet", value] through the socket
-// "Packet" refers to a string; use 'Packets' imported from the library
-pp.bots[index].emit(Packet, value);
 
 // returns 'IStatistics' interface. JSDocs describe what each value is
 pp.bots[index].getStatistics();
