@@ -90,13 +90,13 @@ export class Connection {
                     return {};
                 } else {
                     // if an error is thrown from tryna get [][1] it's fine since that's intentional (as it's an error lmao)
-                    const authId = (setCookie.match(/authId=([^;]+)/) || [])[1];
-                    const authKey = (setCookie.match(/authKey=([^;]+)/) || [])[1];
+                    // ooohhh!!! you don't even get the authKey and sometimes authId now! FUCK YOU OWMINCE jk i love u bae <3
                     const authToken = (setCookie.match(/authToken=([^;]+)/) || [])[1];
+                    const nAuthId = (setCookie.match(/authId=([^;]+)/) || ["",authId])[1];
         
-                    this.relog = this.relogGenerator(authKey, authToken, authId);
+                    this.relog = this.relogGenerator(authKey, authToken, nAuthId);
 
-                    const newAuthData = {authKey, authToken, authId};
+                    const newAuthData = {authKey, authToken, authId: nAuthId};
                     
                     if(authToken != null && authToken != "deleted") {
                         fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));

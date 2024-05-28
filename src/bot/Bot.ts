@@ -274,7 +274,18 @@ export class Bot {
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
         if(skippedWar) {
             if(protect) {
-                this.sendAfterWarDone.push(queuedPixel.data);
+                let updated = false;
+                for (let i = 0; i < this.sendAfterWarDone.length; i++) {
+                    if (this.sendAfterWarDone[i].x === queuedPixel.data.x && this.sendAfterWarDone[i].y === queuedPixel.data.y) {
+                        this.sendAfterWarDone[i].col = queuedPixel.data.col;
+                        updated = true;
+                        break;
+                    }
+                }
+
+                if (!updated) {
+                    this.sendAfterWarDone.push(queuedPixel.data);
+                }
             }
             return this.resolvePacket(queuedPixel);
         }
@@ -289,7 +300,7 @@ export class Bot {
         this.nextSubtract = 0;
         if(this.checkRate != -1) {
             const deltaTime = Date.now() - this.lastPixel;
-            this.nextSubtract = Math.min(deltaTime - queuedPixel.speed, queuedPixel.speed / 2);
+            this.nextSubtract = Math.min(deltaTime - queuedPixel.speed, 0);
             this.lastPixel = Date.now();
         }
 
@@ -322,10 +333,19 @@ export class Bot {
 
     private async placePixelInternal(p: IPixel, forcePlacementSpeed: number=-1): Promise<void> {
 
-        const {x, y, col, protect } = p;
+        const {x, y, col, protect, force } = p;
 
         if(x > this.connection.canvas.canvasWidth || x < 0 || y > this.connection.canvas.canvasHeight || y < 0) {
             throw `Out of bounds pixel: ${x},${y}`;
+        }
+
+        if(protect) {
+            this.protector.protect(x, y, col);
+        }
+
+        // Do not add to queue.
+        if(this.getPixelAt(x, y) == col && !force) {
+            return Promise.resolve();
         }
 
         if(this.resendQueue.length > 0) {
@@ -336,10 +356,6 @@ export class Bot {
         }
 
         const placementSpeed = forcePlacementSpeed == -1 ? this.getPlacementSpeed() : forcePlacementSpeed;
-
-        if(protect) {
-            this.protector.protect(x, y, col);
-        }
 
         return new Promise<void>((resolve) => this.addToSendQueue({data: p, speed: placementSpeed, resolve}) );
     }

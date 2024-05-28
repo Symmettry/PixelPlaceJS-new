@@ -202,8 +202,7 @@ export class ImageDrawer {
         const g = pixels.get(x, y, 1);
         const b = pixels.get(x, y, 2);
         
-        const closestColorId: number = this.instance.getCanvas().getClosestColorId({r, g, b});
-        return closestColorId;
+        return this.instance.getCanvas().getClosestColorId({r, g, b});
     }
 
     async draw(x: number, y: number, pixels: NdArray<Uint8Array>): Promise<void> {
@@ -213,13 +212,7 @@ export class ImageDrawer {
         const nx = this.x + x;
         const ny = this.y + y;
 
-        if(this.force || this.instance.getPixelAt(nx, ny) != closestColorId) {
-            return this.instance.placePixel(nx, ny, closestColorId, 1, this.protect, this.wars, this.force);
-        }
-        
-        if (this.protect) {
-            return this.instance.protect(nx, ny, closestColorId);
-        }
+        return this.instance.placePixel(nx, ny, closestColorId, 1, this.protect, this.wars, this.force);
     }
 
     async begin(): Promise<void> {
