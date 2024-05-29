@@ -114,7 +114,7 @@ ErrorMessages[ID] // The messages for these errors. This is not an enum. Example
 ### Full Bot
 
 ```js
-import { PixelPlace, Auth, Modes, Packets, Colors, Errors } from "pixelplacejs-new";
+import { PixelPlace, Auth, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
 
 (async () => {
     const boardId = 7;
