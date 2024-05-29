@@ -68,42 +68,28 @@ export class Connection {
             }
             const authData = `authId=${authId};authKey=${authKey};authToken=${authToken}`;
             try {
-                const response = await fetch("https://pixelplace.io/api/relog.php", {
-                    method: "GET",
-                    headers: {
-                        "accept": "application/json",
-                        "Cookie": authData
+                const res = await fetch("https://pixelplace.io/api/relog.php", {
+                    "headers": {
+                        "accept": "application/json, text/javascript, */*; q=0.01",
+                        "cookie": authData,
                     },
-                    referrer: "https://pixelplace.io/7-pixels-world-war",
-                    referrerPolicy: "strict-origin-when-cross-origin",
-                    body: null,
-                    mode: "cors",
-                    credentials: "include"
+                    "method": "GET"
                 })
-                const headers: { [key: string]: string } = {};
-                response.headers.forEach((value, name) => {
-                    headers[name] = value;
-                });
-                const setCookie = headers['set-cookie'];
-                if(setCookie.startsWith("authToken=deleted")) {
+                const cookies = res.headers.getSetCookie()?.map(value => value.split(";")[0]);
+                if(cookies == null || cookies.length == 0 || cookies[0].startsWith("authKey=deleted")) {
                     console.log("Could not relog. Get new auth data and try again.");
                     return {};
-                } else {
-                    // if an error is thrown from tryna get [][1] it's fine since that's intentional (as it's an error lmao)
-                    // ooohhh!!! you don't even get the authKey and sometimes authId now! FUCK YOU OWMINCE jk i love u bae <3
-                    const authToken = (setCookie.match(/authToken=([^;]+)/) || [])[1];
-                    const nAuthId = (setCookie.match(/authId=([^;]+)/) || ["",authId])[1];
-        
-                    this.relog = this.relogGenerator(authKey, authToken, nAuthId);
-
-                    const newAuthData = {authKey, authToken, authId: nAuthId};
-                    
-                    if(authToken != null && authToken != "deleted") {
-                        fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
-                        console.log("~~Great! Auth data refreshed and saved~~");
-                    }
-                    return newAuthData;
                 }
+                const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
+                const newAuthData = {authKey, authToken, authId};
+        
+                this.relog = this.relogGenerator(authKey, authToken, authId);
+                
+                if(authToken != null && authToken != "deleted") {
+                    fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
+                    console.log("~~Great! Auth data refreshed and saved~~");
+                }
+                return newAuthData;
             } catch(err) {
                 console.log("Error when getting auth data:", err);
                 return {};
