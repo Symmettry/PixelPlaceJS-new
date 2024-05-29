@@ -38,13 +38,13 @@ export class Protector {
     async detectPixels(pixels: number[][]): Promise<void> {
         await Promise.all(
             pixels.map((pixel) => {
-                const [x, y] = pixel;
+                const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
-                if (protectColor !== undefined) {
-                    this.stats.pixels.protection.repaired++;
-                    this.stats.pixels.protection.last_repair = Date.now();
-                    this.pp.placePixel(x, y, protectColor, 1, true, false);
-                }
+                if (protectColor == undefined || protectColor == col) return;
+
+                this.stats.pixels.protection.repaired++;
+                this.stats.pixels.protection.last_repair = Date.now();
+                this.pp.placePixel(x, y, protectColor, 1, true, false);
             })
         );      
     }

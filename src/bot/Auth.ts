@@ -21,20 +21,17 @@ export class Auth {
     constructor(authObj: IAuthData | null, boardId: number, uidManager: boolean = false) {
         // pixelplace auth data
         if(authObj != null) {
-            // data is redacted to prevent any eval() calls from stealing auth data. Protects chat bots that stupidly do this
+            // was redacted but i think it's bugged now so idk
             this.authKey = () => {
                 const data = authObj.authKey;
-                authObj.authKey = "[REDACTED]";
                 return data;
             }
             this.authToken = () => {
                 const data = authObj.authToken;
-                authObj.authToken = "[REDACTED]";
                 return data;
             }
             this.authId = () => {
                 const data = authObj.authId;
-                authObj.authId = "[REDACTED]";
                 return data;
             }
         }
