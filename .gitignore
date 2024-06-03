@@ -128,7 +128,7 @@ out
 
 # Tests
 test.js
-test.mjs
+test*.mjs
 test/
 .dev
 ppjs-relog-authdata-*

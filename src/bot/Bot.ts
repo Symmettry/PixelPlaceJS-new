@@ -255,6 +255,21 @@ export class Bot {
         this.goThroughPixels();
     }
 
+    private semiAccurateTimeout(call: () => void, time: number): void {
+        time += Math.floor(Math.random() * 3); // add jitter but not as extreme as normal js & not so widespread across systems
+
+        const start = process.hrtime();
+        function loop() {
+            const elapsed = process.hrtime(start)[1] / 1000000;
+            if (elapsed < time) {
+                setImmediate(loop);
+            } else {
+                call();
+            }
+        }
+        setImmediate(loop);
+    }
+
     private goThroughPixels(): void {
 
         const queuedPixel = this.sendQueue.shift();
@@ -290,9 +305,10 @@ export class Bot {
             return this.resolvePacket(queuedPixel);
         }
         queuedPixel.speed -= this.nextSubtract;
-        setTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
+        this.semiAccurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
         return;
     }
+
     private lastPixel: number = Date.now();
     private nextSubtract: number = 0;
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
@@ -322,6 +338,8 @@ export class Bot {
 
         if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
         this.stats.pixels.colors[col]++;
+
+        if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
     }
 
     private addToSendQueue(p: IQueuedPixel): void {
@@ -396,7 +414,6 @@ export class Bot {
             };
         } else throw new Error('Invalid arguments for drawImage.');
         
-        if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
         return this.drawImageInternal(image);
     }
     
