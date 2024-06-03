@@ -531,4 +531,14 @@ export class Bot {
         return this.connection.getCurrentWarZone();
     }
 
+    /**
+     * Overrides the default palive number (2) with your own. Some accounts have different numbers for some reason, although most are 2.
+     * If your bot is getting ratelimited try changing this from 0-9 (try 1 and 5 first)
+     * Owicode 10/10
+     * @param num Number to replace Palive with
+     */
+    overridePaliveNumber(num: number) {
+        this.connection.overridePaliveNumber(num);
+    }
+
 }

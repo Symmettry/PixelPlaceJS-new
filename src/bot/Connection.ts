@@ -34,6 +34,7 @@ export class Connection {
     private listeners!: Map<string | Packets, ((...args: unknown[]) => void)[]>;
 
     private tDelay: number = 0;
+    private paliveNumber: number = 2;
     private econnrefusedTimer: number = 0;
 
     private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
@@ -125,6 +126,7 @@ export class Connection {
         if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
 
         return new Promise<void>((resolve) => {
+
             // connect to PixelPlace
             this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
 
@@ -139,7 +141,7 @@ export class Connection {
                 this.socketClosed();
             });
 
-            this.socket.on('open', () => {
+            this.socket.on('open', async () => {
                 resolve();
 
                 // owicode so esoteric :100: :fire:
@@ -347,7 +349,7 @@ export class Connection {
                         }
                         break;
                     case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
-                        this.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay)}"]`)
+                        this.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay, this.paliveNumber)}"]`)
                         break;
                     case Packets.RECEIVED.PIXEL: // pixels
                         if(this.isWorld)this.canvas.loadPixelData(value);
@@ -483,6 +485,10 @@ export class Connection {
 
     getCurrentWarZone(): string {
         return this.currentWarZone;
+    }
+
+    overridePaliveNumber(num: number) {
+        this.paliveNumber = num;
     }
 
 }

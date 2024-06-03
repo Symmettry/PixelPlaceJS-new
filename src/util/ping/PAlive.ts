@@ -21,6 +21,33 @@ function randInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/*export async function fetchPaliveNumber(): Promise<number> {
+    const script = await fetch("https://pixelplace.io/js/script.min.js?v3=84310");
+    const text = await script.text();
+    try { 
+        const matches = text.match(/=[a-zA-Z]\+[a-zA-Z]\(/g);
+        if(matches == null) throw "";
+
+        let lastMatch = "";
+        let thinkLetter = "";
+        for(const match of matches) {
+            const letter = match.substring(1, 2);
+            if(lastMatch != "" && lastMatch == letter) {
+            thinkLetter = letter;
+            break;
+            }
+            lastMatch = letter;
+        }
+        const match = text.match(new RegExp(`${thinkLetter}=[0-9xbc\\+\\-\\*\\/]+,`));
+        if(match == null) throw "";
+
+        const paliveNumber = match[0];
+        return eval(paliveNumber.substring(2, paliveNumber.length - 1));
+    } catch(err) {
+        throw new Error("An error occured whilst getting ping.alive! Contact Symmettry.");
+    }
+}*/
+
 const paliveCharmap: {[key: string]: string} = {
     "0": "g",
     "1": "n",
@@ -33,7 +60,7 @@ const paliveCharmap: {[key: string]: string} = {
     "8": "i",
     "9": "o"
 }
-export function getPalive(tDelay: number) {
+export function getPalive(tDelay: number, paliveNumber: number) {
     const sequenceLengths = [6, 5, 9, 4, 5, 3, 6, 6, 3];
     const currentTimestamp = Math.floor(Date.now() / 1000) + tDelay - 5400;
     const timestampString = currentTimestamp.toString();
@@ -48,7 +75,7 @@ export function getPalive(tDelay: number) {
         result += randInt(0, 1) == 0 ? letter.toUpperCase() : letter;
     }
 
-    result += 2 + (randInt(0, 1) == 1 ? randomString2(randInt(4, 20)) : randomString1(randInt(4, 25)));
+    result += paliveNumber + (randInt(0, 1) == 1 ? randomString2(randInt(4, 20)) : randomString1(randInt(4, 25)));
 
     return result + "0=";
 }
