@@ -45,6 +45,8 @@ export enum RECEIVED {
     AREA_FIGHT_END = "area_fight_end",
     /** War bonus chest */
     AREA_FIGHT_BONUS_CHEST = "area_fight_bonus_chest",
+    /** Zone change in the new update. */
+    AREA_FIGHT_ZONE_CHANGE = "area_fight_zone_change",
     /** All war areas */
     AREAS = "areas",
 
@@ -135,6 +137,10 @@ export enum SENT {
     HOT_PAINTINGS = "hot.paintings",
     /** Request username from id. Premium only. */
     USERNAME = "username",
+    /** Request for players on a painting */
+    PAINTING_PLAYERS = "painting.players",
+    /** This is some packet that's randomly sent every 5 seconds. Seems ping alive related. */
+    HB = "hb",
 }
 
 /**

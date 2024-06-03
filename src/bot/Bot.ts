@@ -171,7 +171,7 @@ export class Bot {
     /**
      * This is used internally. Calling this probably won't do anything but I don't recommend it.
      */
-    onWarFinish() {
+    sendWarPackets() {
         this.sendAfterWarDone.forEach(pixel => {
             this.resendQueue.push(pixel);
         });

@@ -147,7 +147,7 @@ export class Connection {
                 setInterval(() => {
                     const now = Math.floor(new Date().getTime() / 1e3);
                     if(time <= now) {
-                        this.socket.send(`42["hb", " "]`);
+                        this.socket.send(`42["${Packets.SENT.HB}", " "]`);
                         time = now + (Math.floor(Math.random() * 20) + 73);
                     }
                 }, 5e3);
@@ -206,10 +206,10 @@ export class Connection {
 
     private sendInit(authKey: string | null, authToken: string | null, authId: string, boardId: number): void {
         if(authKey == null && authToken == null) {
-            this.send(`42["init",{"authId":"${authId}","boardId":${boardId}}]`);
+            this.send(`42["${Packets.SENT.INIT}",{"authId":"${authId}","boardId":${boardId}}]`);
             return;
         }
-        this.send(`42["init",{"authKey":"${authKey}","authToken":"${authToken}","authId":"${authId}","boardId":${boardId}}]`);
+        this.send(`42["${Packets.SENT.INIT}",{"authKey":"${authKey}","authToken":"${authToken}","authId":"${authId}","boardId":${boardId}}]`);
     }
 
     private async evaluatePacket(buffer: Buffer, resolve: (value: void | PromiseLike<void>) => void) {
@@ -347,7 +347,7 @@ export class Connection {
                         }
                         break;
                     case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
-                        this.send(`42["pong.alive", "${getPalive(this.tDelay)}"]`)
+                        this.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay)}"]`)
                         break;
                     case Packets.RECEIVED.PIXEL: // pixels
                         if(this.isWorld)this.canvas.loadPixelData(value);
@@ -384,6 +384,7 @@ export class Connection {
                     case Packets.RECEIVED.AREAS:
                         value.forEach((element: IArea) => {
                             this.areas[element.name] = element;
+
                             if(element.state == 1) {
                                 this.currentWarZone = element.name;
                                 this.warOccurring = true;
@@ -417,8 +418,18 @@ export class Connection {
 
                         this.warOccurring = false;
                         
-                        this.bot.onWarFinish();
+                        this.bot.sendWarPackets();
                         break;
+                    }
+                    case Packets.RECEIVED.AREA_FIGHT_ZONE_CHANGE: {
+                        const area = this.getAreas()[this.getCurrentWarZone()];
+
+                        area.xStart = value.xStart;
+                        area.yStart = value.yStart;
+                        area.xEnd = value.xEnd;
+                        area.yEnd = value.yEnd;
+
+                        this.bot.sendWarPackets(); // so that it fills in the gap lmao.
                     }
                 }
                 // Packet listeners
