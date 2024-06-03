@@ -141,6 +141,16 @@ export class Connection {
 
             this.socket.on('open', () => {
                 resolve();
+
+                // owicode so esoteric :100: :fire:
+                let time = Math.floor(new Date().getTime() / 1e3) + 120;
+                setInterval(() => {
+                    const now = Math.floor(new Date().getTime() / 1e3);
+                    if(time <= now) {
+                        this.socket.send(`42["hb", " "]`);
+                        time = now + (Math.floor(Math.random() * 20) + 73);
+                    }
+                }, 5e3);
             });
 
             this.socket.on('error', (error: Error) => {
