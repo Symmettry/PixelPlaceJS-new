@@ -304,6 +304,7 @@ export class Bot {
             }
             return this.resolvePacket(queuedPixel);
         }
+
         queuedPixel.speed -= this.nextSubtract;
         this.semiAccurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
         return;
@@ -312,6 +313,14 @@ export class Bot {
     private lastPixel: number = Date.now();
     private nextSubtract: number = 0;
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
+        const {x, y, col, brush, wars, force} = queuedPixel.data;
+
+        const colAtSpot = this.getPixelAt(x, y);
+        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535; // 65535 is ocean.
+        const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
+        if(skippedColor || skippedWar) {
+            return;
+        }
 
         this.nextSubtract = 0;
         if(this.checkRate != -1) {
@@ -319,8 +328,6 @@ export class Bot {
             this.nextSubtract = Math.min(deltaTime - queuedPixel.speed, 0);
             this.lastPixel = Date.now();
         }
-
-        const {x, y, col, brush } = queuedPixel.data;
 
         this.resolvePacket(queuedPixel);
 
@@ -529,16 +536,6 @@ export class Bot {
      */
     getCurrentWarZone(): string {
         return this.connection.getCurrentWarZone();
-    }
-
-    /**
-     * Overrides the default palive number (2) with your own. Some accounts have different numbers for some reason, although most are 2.
-     * If your bot is getting ratelimited try changing this from 0-9 (try 1 and 5 first)
-     * Owicode 10/10
-     * @param num Number to replace Palive with
-     */
-    overridePaliveNumber(num: number) {
-        this.connection.overridePaliveNumber(num);
     }
 
 }

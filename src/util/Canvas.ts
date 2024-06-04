@@ -44,15 +44,15 @@ export class Canvas {
         this.boardId = boardId;
     }
 
-    async Init(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            this.getDimensions().then(dimensions => {
-                this.canvasWidth = dimensions.width;
-                this.canvasHeight = dimensions.height;
+    async Init(authId: string, authKey: string, authToken: string): Promise<number> {
+        return new Promise<number>((resolve, reject) => {
+            this.getPaintingData(authId, authKey, authToken).then(data => {
+                this.canvasWidth = data.width;
+                this.canvasHeight = data.height;
     
                 this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(-1), [this.canvasWidth, this.canvasHeight]);
                 canvases.set(this.boardId, this);
-                resolve();
+                resolve(data.userId);
             }).catch(reject);
         });
     }
@@ -171,22 +171,23 @@ export class Canvas {
         });
     }
 
-    private async getDimensions(): Promise<{ width: number, height: number }> {
+    private async getPaintingData(authId: string, authKey: string, authToken: string): Promise<{ width: number, height: number, userId: number }> {
         const res: Response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
             headers: {
               "accept": "application/json",
               "x-requested-with": "XMLHttpRequest",
               "Referer": "https://pixelplace.io/7-pixels-world-war",
+              "cookie": `authId=${authId};authKey=${authKey};authToken=${authToken}`,
             },
             method: "GET",
-        });
-          
+        });       
       
         const json = await res.json();
         const width = json.painting.width as number;
         const height = json.painting.height as number;
+        const userId = json.user.id as number;
       
-        return { width, height };
+        return { width, height, userId };
     }
 
     /**

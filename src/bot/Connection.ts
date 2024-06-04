@@ -34,7 +34,7 @@ export class Connection {
     private listeners!: Map<string | Packets, ((...args: unknown[]) => void)[]>;
 
     private tDelay: number = 0;
-    private paliveNumber: number = 2;
+    private userId: number = -1;
     private econnrefusedTimer: number = 0;
 
     private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
@@ -242,7 +242,7 @@ export class Connection {
                 } else {
                     this.sendInit(this.authKey, this.authToken, this.authId, this.boardId);
                 }
-                this.authKey = this.authToken = this.authId = "[REDACTED]";
+                //this.authKey = this.authToken = this.authId = "[REDACTED]";
 
                 setTimeout(() => {
                     if(!this.connected) {
@@ -341,7 +341,7 @@ export class Connection {
                     case Packets.RECEIVED.CHAT_STATS: // Although repeated frequently, this is the first packet sent after init, so we'll use it.
                         if(!this.isWorld || this.bot.protector) break;
 
-                        await this.canvas.Init();
+                        this.userId = await this.canvas.Init(this.authId, this.authKey, this.authToken);
                         this.bot.protector = new Protector(this.bot, this.stats); // pass in the bot instance & private statistics variable
                         await this.canvas.loadCanvasPicture();
                         this.canvasPictureLoaded = true;
@@ -351,7 +351,7 @@ export class Connection {
                         }
                         break;
                     case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
-                        this.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay, this.paliveNumber)}"]`)
+                        this.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay, this.userId)}"]`)
                         break;
                     case Packets.RECEIVED.PIXEL: // pixels
                         if(this.isWorld)this.canvas.loadPixelData(value);
@@ -487,10 +487,6 @@ export class Connection {
 
     getCurrentWarZone(): string {
         return this.currentWarZone;
-    }
-
-    overridePaliveNumber(num: number) {
-        this.paliveNumber = num;
     }
 
 }
