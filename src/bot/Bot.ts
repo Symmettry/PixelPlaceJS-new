@@ -520,8 +520,8 @@ export class Bot {
     isPixelInWarZone(name: string, x: number, y: number): boolean {
         if(this.boardId != 7) return false;
         const area = this.getAreas()[name];
-        if(!area.xStart) return false;
-        return Bounds.isInBounds(area.xStart, area.yStart, area.xEnd, area.yEnd, x, y)
+        if(area == null || !area.xStart) return false;
+        return Bounds.isInBounds(area.xStart, area.yStart, area.xEnd, area.yEnd, x, y);
     }
 
     /**

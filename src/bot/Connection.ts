@@ -324,16 +324,18 @@ export class Connection {
                         break;
                     }
                     case Packets.RECEIVED.RATE_CHANGE:
-                        this.bot.rate = value;
+
+                        // off by about 2ms
+                        this.bot.rate = value + 2;
 
                         if(this.bot.checkRate == -2) {
-                            this.bot.setPlacementSpeed(value, true, this.bot.suppress);
+                            this.bot.setPlacementSpeed(value + 2, true, this.bot.suppress);
                         }
 
                         if(this.bot.checkRate < 0 || this.bot.suppress) break;
 
-                        if(this.bot.checkRate < value) {
-                            console.warn(`~~WARN~~ (Rate change) Placement speed under ${value} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
+                        if(this.bot.checkRate < value + 2) {
+                            console.warn(`~~WARN~~ (Rate change) Placement speed under ${value + 2} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
                         }
                         break;
                     case Packets.RECEIVED.CHAT_STATS: // Although repeated frequently, this is the first packet sent after init, so we'll use it.
