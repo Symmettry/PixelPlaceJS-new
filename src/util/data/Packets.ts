@@ -45,7 +45,9 @@ export enum RECEIVED {
     AREA_FIGHT_END = "area_fight_end",
     /** War bonus chest */
     AREA_FIGHT_BONUS_CHEST = "area_fight_bonus_chest",
-    /** Zone change in the new update. */
+    /** Something giving items to players */
+    AREA_FIGHT_BONUS_PLAYER = "area_fight_bonus_player",
+    /** Changes for war zone boundaries. */
     AREA_FIGHT_ZONE_CHANGE = "area_fight_zone_change",
     /** All war areas */
     AREAS = "areas",
@@ -115,7 +117,7 @@ export enum RECEIVED {
 
     /** Queue status for the server full */
     QUEUE = "queue",
-    /** unknown */
+    /** It gives you premium for a week. What? */
     PREMIUM_MOD = "premium.mod",
 }
 
@@ -125,22 +127,37 @@ export enum RECEIVED {
 export enum SENT {
     /** Contains auth data. */
     INIT = "init",
+
     /** Contains pixel data. */
     PIXEL = "p",
     /** Reply to ping.alive */
     PONG_ALIVE = "pong.alive",
+
+    /** Chat commands (not /here). */
+    CHAT_COMMAND = "chat.command",
     /** Chat messages */
     CHAT_MESSAGE = "chat.message",
     /** Request for info on a user profile */
     USER_PROFILE = "user.profile",
-    /** Request for hot paintings */
-    HOT_PAINTINGS = "hot.paintings",
+    /** Also request for info on a user profile but in an array */
+    USERS_PROFILE = "users.profile",
     /** Request username from id. Premium only. */
     USERNAME = "username",
+
+    /** Request for hot paintings */
+    HOT_PAINTINGS = "hot.paintings",
     /** Request for players on a painting */
     PAINTING_PLAYERS = "painting.players",
-    /** This is some packet that's randomly sent every 5 seconds. Seems ping alive related. */
+    /** Commands for moderators on paintings. Example: { cmd: "/ban", target: "Symmettry", boardId: 81313 } */
+    PAINTING_COMMAND = "painting.command",
+
+    /** Don't know why save tracking has anything server sided, but it does. */
+    SAVE_TRACKING_PENDING = "save.tracking.pending",
+
+    /** This is some packet that's randomly sent every 5 seconds. No idea what it does. */
     HB = "hb",
+    /** Fires a snowball at someone */
+    SNOWBALL = "snowball",
 }
 
 /**

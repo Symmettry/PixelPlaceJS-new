@@ -397,6 +397,7 @@ export class Connection {
                         break;
                     case Packets.RECEIVED.AREA_FIGHT_START: {
                         const area = this.getAreaById(value.id);
+                        if(area == null) return; // not on /7
 
                         area.fightEndAt = value.fightEndAt;
                         area.nextFightAt = value.nextFightAt;
@@ -408,6 +409,7 @@ export class Connection {
                     }
                     case Packets.RECEIVED.AREA_FIGHT_END: {
                         const area = this.getAreaById(value.id);
+                        if(area == null) return; // not on /7
 
                         area.defended = value.defended;
                         area.ownedBy = value.ownedBy;
@@ -427,6 +429,7 @@ export class Connection {
                     }
                     case Packets.RECEIVED.AREA_FIGHT_ZONE_CHANGE: {
                         const area = this.getAreas()[this.getCurrentWarZone()];
+                        if(area == null) return; // not on /7
 
                         area.xStart = value.xStart;
                         area.yStart = value.yStart;

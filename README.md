@@ -75,6 +75,9 @@ pp.bots[index].isWarOccurring()
 // gets the name of the current war
 pp.bots[index].getCurrentWarZone()
 
+// returns true if a pixel is in a war zone and false ifnot. This doesn't account for if a war is started or not.
+pp.bots[index].isPixelInWarZone(area, x, y)
+
 // will run the function with its value when 'key' is received from the socket
 // you can also use a string for it, but it's recommended to use 'Packets' imported from the library
 // value won't be set for some packets, such as chat loaded
@@ -133,7 +136,9 @@ import { PixelPlace, Auth, Modes, Packets, Colors, PPError } from "pixelplacejs-
     console.log("Pixel Place initiated!");
 
     // 16 ms between each pixel (Default rate)
-    pp.bots[0].setPlacementSpeed(pp.bots[0].getRate());
+    // Commented since this is already done by default, this is just some sample code.
+    //
+    // pp.bots[0].setPlacementSpeed(pp.bots[0].getRate());
 
     // draws image at path "C:/my image.png" (will throw an error if it doesn't exist)
     await pp.bots[0].drawImage(x, y, "C:/my image.png", Modes.FROM_CENTER);

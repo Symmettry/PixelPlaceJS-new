@@ -8,9 +8,9 @@ export class Auth {
     boardId: number;
     uidManager: boolean;
 
-    authKey: () => string = () => "";
-    authToken: () => string = () => "";
-    authId: () => string = () => "";
+    authKey: string = "";
+    authToken: string = "";
+    authId: string = "";
 
     /**
      * Authentication for pixelplace
@@ -21,19 +21,9 @@ export class Auth {
     constructor(authObj: IAuthData | null, boardId: number, uidManager: boolean = false) {
         // pixelplace auth data
         if(authObj != null) {
-            // was redacted but i think it's bugged now so idk
-            this.authKey = () => {
-                const data = authObj.authKey;
-                return data;
-            }
-            this.authToken = () => {
-                const data = authObj.authToken;
-                return data;
-            }
-            this.authId = () => {
-                const data = authObj.authId;
-                return data;
-            }
+            this.authKey = authObj.authKey;
+            this.authToken = authObj.authToken;
+            this.authId = authObj.authId;
         }
 
         this.boardId = boardId;
@@ -42,8 +32,8 @@ export class Auth {
 
     /**
      * Generates empty auth data for a logged out account.
-     * @param boardId The board id the account will be on, e.g. 7
-     * @param uidManager This will enable the bot's uid manager. This defaults to false and will only work if the bot is premium and can be accessed with bot.uidMan
+     * @param boardId The canvas the account will be on, e.g. 7
+     * @param uidManager This will enable the bot's uid manager. This defaults to false and will only work if the bot is premium. It can be accessed with bot.getUidManager()
      * @returns An empty auth data
      */
     static empty(boardId: number, uidManager: boolean = false): Auth {

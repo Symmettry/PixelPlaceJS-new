@@ -107,9 +107,8 @@ export class Canvas {
 
                         for (let x = 0; x < pixels.shape[0]; x++) {
                             for (let y = 0; y < pixels.shape[1]; y++) {
-                                const r = pixels.get(x, y, 0);
-                                const g = pixels.get(x, y, 1);
-                                const b = pixels.get(x, y, 2);
+                                const alpha = pixels.get(x, y, 3);
+                                const [r, g, b] = alpha == 0 ? [255, 255, 255] : [pixels.get(x, y, 0), pixels.get(x, y, 1), pixels.get(x, y, 2)];
 
                                 if(r == 204 && g == 204 && b == 204) { // ocean
                                     this.pixelData?.set(x, y, -1);

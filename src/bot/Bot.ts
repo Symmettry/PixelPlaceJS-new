@@ -44,9 +44,9 @@ export class Bot {
      * @param handleErrors If errors should be handled when received -- invalid auth id will be processed regardless of this value. Defaults to true
      */
     constructor(auth: Auth, autoRestart: boolean = true, handleErrors: boolean = true) {
-        this.authKey = auth.authKey();
-        this.authToken = auth.authToken();
-        this.authId = auth.authId();
+        this.authKey = auth.authKey;
+        this.authToken = auth.authToken;
+        this.authId = auth.authId;
 
         constant(this, 'boardId', auth.boardId);
         
@@ -105,7 +105,6 @@ export class Bot {
      */
     async Connect(): Promise<void> {
         this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats);
-        this.authKey = this.authToken = this.authId = "[REDACTED]";
         return this.connection.Connect();
     }
 
