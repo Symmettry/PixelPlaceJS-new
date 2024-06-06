@@ -6,7 +6,7 @@ import { Auth } from './Auth.js';
 import { Modes } from '../util/data/Modes.js';
 import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
-import { Connection } from './Connection.js';
+import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
 import { TextBuilder } from '../util/drawing/TextWriter.js';
