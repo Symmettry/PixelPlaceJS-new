@@ -6,29 +6,28 @@ import { Font, FontData, fontData } from "./fonts/Font";
 /** Builds a text drawing. This is here due to too many options existing. */
 export class TextBuilder {
 
-    private _text!: string;
+    _text!: string;
 
-    private startX!: number;
+    startX!: number;
 
-    private _x!: number;
-    private _y!: number;
+    _x!: number;
+    _y!: number;
 
-    private protect!: boolean;
-    private wars!: boolean;
-    private force!: boolean;
+    protect!: boolean;
+    wars!: boolean;
+    force!: boolean;
 
-    private _textColor: number = Colors.BLACK;
-    private _backgroundColor: number = -1;
+    _textColor: number = Colors.BLACK;
+    _backgroundColor: number = -1;
+    _colorEmpty: boolean = false;
+    
+    _spaceLength: number = 1;
+    _separatorLength: number = 1;
+    _lineGap: number = 1;
 
-    private _colorEmpty: boolean = false;
+    _font: Font | FontData = Font.SMALL_FONT;
 
-    private _spaceLength: number = 1;
-    private _separatorLength: number = 1;
-    private _lineGap: number = 1;
-
-    private _font: Font | FontData = Font.SMALL_FONT;
-
-    private _fillBetween: boolean = false;
+    _fillBetween: boolean = false;
 
     private bot!: Bot;
 

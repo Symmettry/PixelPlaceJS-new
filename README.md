@@ -97,6 +97,29 @@ pp.bots[index].getStatistics();
 // Returns the username of a UID; string | number (For premium accounts, if the account is not premium it will throw an error)
 pp.bots[index].getUsername(uid);
 
+// Text is made with a builder due to the many applicable options. All method calls are optional in the builder.
+pp.bots[index].buildText("Text Here", x, y, protect?, wars?, force?)
+    // The color of text can be changed with .textColor() -- otherwise it defaults to black.
+    .textColor(Colors.ORANGE)
+    // The background color of text can be changed with .backgroundColor() -- otherwise it defaults to transparent.
+    .backgroundColor(Colors.BLUE)
+    // The space length can be changed with .spaceLength() -- otherwise it defaults to 1 pixel.
+    .spaceLength(15)
+    // The length between each character can be changed with .separatorLength() -- otherwise it defaults to 1 pixel.
+    .separatorLength(5)
+    // The distance between each line can be changed with .lineGap() -- otherwise it defaults to 1 pixel.
+    .lineGap(3)
+    // The font can be changed with .font() -- otherwise it defaults to Font.SMALL_FONT; you can also input your own custom font using FontData.
+    .font(Font.MEDIUM_FONT)
+    // You can make the text fill in gaps between lines, characters, and spaces with .colorEmpty() -- defaults to false.
+    .colorEmpty(true)
+    // You can also modify the x, y, and text values later, which is useful for using the same builder.
+    .x(15).y(15).text("changed")
+    // when stringing text together, it will not fill the gaps between each text block. This will make it do that -- defaults to false.
+    .fillBetween(true)
+    // This makes it finally draw. If updatePos is true, it will set the X and Y position to the ending position of the text.
+    .draw(updatePos?);
+
 // Image drawing modes can be accessed like this
 Modes.<MODE> // JSDocs will describe the mode information
 
@@ -120,7 +143,7 @@ ErrorMessages[ID] // The messages for these errors. This is not an enum. Example
 import { PixelPlace, Auth, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
 
 (async () => {
-    const boardId = 7;
+    const boardId = 123456; // change this
 
     const auths = [
         new Auth({
@@ -149,6 +172,9 @@ import { PixelPlace, Auth, Modes, Packets, Colors, PPError } from "pixelplacejs-
             await pp.bots[0].placePixel(1000 + x, 1000 + y, Colors.WHITE);
         }
     }
+
+    // draws "Hello World!" at 100,100
+    await pp.bots[0].buildText("Hello World!", 100, 100).draw();
 })();
 
 ```
