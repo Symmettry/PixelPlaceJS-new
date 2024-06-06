@@ -92,7 +92,7 @@ export class ImageDrawer {
                         await this.draw(x, y, pixels);
             },
             7: async (pixels: NdArray<Uint8Array>) => { // RIGHT_BOTTOM_TO_TOP
-                for (let x = pixels.shape[0]; x >=0; x--) 
+                for (let x = pixels.shape[0]; x >= 0; x--) 
                     for (let y = pixels.shape[1]; y >= 0; y--) 
                         await this.draw(x, y, pixels);
             },
