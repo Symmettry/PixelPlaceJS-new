@@ -57,65 +57,45 @@ export class ImageDrawer {
         constant(this, "drawingStrategies", {
 
             0: async (pixels: NdArray<Uint8Array>) => { // TOP_LEFT_TO_RIGHT
-                for (let y = 0; y < pixels.shape[1]; y++) {
-                    for (let x = 0; x < pixels.shape[0]; x++) {
+                for (let y = 0; y < pixels.shape[1]; y++) 
+                    for (let x = 0; x < pixels.shape[0]; x++) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
             1: async (pixels: NdArray<Uint8Array>) => { // TOP_RIGHT_TO_LEFT
-                for (let y = 0; y < pixels.shape[1]; y++) {
-                    for (let x = pixels.shape[0]; x >= 0; x--) {
+                for (let y = 0; y < pixels.shape[1]; y++) 
+                    for (let x = pixels.shape[0]; x >= 0; x--) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
-
             2: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_LEFT_TO_RIGHT
-                for (let y = pixels.shape[1]; y >= 0; y--) {
-                    for (let x = 0; x < pixels.shape[0]; x++) {
+                for (let y = pixels.shape[1]; y >= 0; y--) 
+                    for (let x = 0; x < pixels.shape[0]; x++) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
             3: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_RIGHT_TO_LEFT
-                for (let y = pixels.shape[1]; y >= 0; y--) {
-                    for (let x = pixels.shape[0]; x >= 0; x--) {
+                for (let y = pixels.shape[1]; y >= 0; y--) 
+                    for (let x = pixels.shape[0]; x >= 0; x--) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
-
             4: async (pixels: NdArray<Uint8Array>) => { // LEFT_TOP_TO_BOTTOM
-                for (let x = 0; x < pixels.shape[0]; x++) {
-                    for (let y = 0; y < pixels.shape[1]; y++) {
+                for (let x = 0; x < pixels.shape[0]; x++) 
+                    for (let y = 0; y < pixels.shape[1]; y++) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
             5: async (pixels: NdArray<Uint8Array>) => { // LEFT_BOTTOM_TO_TOP
-                for (let x = 0; x < pixels.shape[0]; x++) {
-                    for (let y = pixels.shape[1]; y >= 0; y--) {
+                for (let x = 0; x < pixels.shape[0]; x++) 
+                    for (let y = pixels.shape[1]; y >= 0; y--) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
-
             6: async (pixels: NdArray<Uint8Array>) => { // RIGHT_TOP_TO_BOTTOM
-                for (let x = pixels.shape[0]; x >= 0; x--) {
-                    for (let y = 0; y < pixels.shape[1]; y++) {
+                for (let x = pixels.shape[0]; x >= 0; x--) 
+                    for (let y = 0; y < pixels.shape[1]; y++) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
             7: async (pixels: NdArray<Uint8Array>) => { // RIGHT_BOTTOM_TO_TOP
-                for (let x = pixels.shape[0]; x >=0; x--) {
-                    for (let y = pixels.shape[1]; y >= 0; y--) {
+                for (let x = pixels.shape[0]; x >=0; x--) 
+                    for (let y = pixels.shape[1]; y >= 0; y--) 
                         await this.draw(x, y, pixels);
-                    }
-                }
             },
-
             8: async (pixels: NdArray<Uint8Array>) => { // FROM_CENTER
                 // calculate the center point
                 const centerX = Math.floor(pixels.shape[0] / 2);
