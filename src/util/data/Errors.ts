@@ -46,7 +46,7 @@ export enum PPError {
  * A mapping of error codes to the message.
  */
 export const ErrorMessages = {
-    0: "You need to login on pixelplace.io first. Create an account, it's free !",
+    0: "You need to login on pixelplace.io first. Create an account, it's free!",
     1: "Your session expired, please refresh the page",
     2: "You need to create a username first",
     3: "Color not found",

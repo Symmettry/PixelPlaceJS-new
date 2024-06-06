@@ -6,10 +6,12 @@ import { Font, FontData, fontData } from "./fonts/Font";
 /** Builds a text drawing. This is here due to too many options existing. */
 export class TextBuilder {
 
-    private text!: string;
+    private _text!: string;
 
-    private x!: number;
-    private y!: number;
+    private startX!: number;
+
+    private _x!: number;
+    private _y!: number;
 
     private protect!: boolean;
     private wars!: boolean;
@@ -26,23 +28,61 @@ export class TextBuilder {
 
     private _font: Font | FontData = Font.SMALL_FONT;
 
+    private _fillBetween: boolean = false;
+
     private bot!: Bot;
 
     /**
      * Draws the text.
+     * @param updatePos Sets the x and y position of the builder to the end position so that more text can be strung together.
+     * @returns The x position 1 separator length away from the end of the text.
      */
-    async draw() {
-
+    async draw(updatePos: boolean = false): Promise<TextBuilder> {
         this.bot.stats.text.drawing++;
 
-        await new TextWriter(this.bot, this.text, this.x, this.y,
+        const endPos = await new TextWriter(this.bot, this._text, this._x, this._y,
             this._textColor, this._backgroundColor, this._colorEmpty,
             this._spaceLength, this._separatorLength, this._lineGap,
-            this._font, this.protect, this.wars, this.force).begin();
+            this._font, this._fillBetween,
+            this.protect, this.wars, this.force).begin();
+
+        if(updatePos) {
+            if(endPos[1] != this._y) {
+                this.x(this.startX);
+            } else {
+                this.x(endPos[0]);
+            }
+            this.y(endPos[1]);
+        }
 
         this.bot.stats.text.drawing--;
         this.bot.stats.text.finished++;
 
+        return this;
+    }
+
+    /** When chaining .draw()'s, the gaps will not be filled. This makes it so it will fill the gap between text. */
+    fillBetween(bool: boolean): TextBuilder {
+        this._fillBetween = bool;
+        return this;
+    }
+
+    /** Sets the text. Set in constructor, but here just if you want to modify later. */
+    text(text: string): TextBuilder {
+        this._text = text;
+        return this;
+    }
+
+    /** Sets the x position of the text. Set in constructor, but here just if you want to modify later. */
+    x(num: number): TextBuilder {
+        this._x = num;
+        return this;
+    }
+
+    /** Sets the y position of the text. Set in constructor, but here just if you want to modify later. */
+    y(num: number): TextBuilder {
+        this._y = num;
+        return this;
     }
 
     /** The color of text. It will default to black. */
@@ -100,10 +140,9 @@ export class TextBuilder {
     constructor(bot: Bot, text: string, x: number, y: number, protect: boolean, wars: boolean, force: boolean) {
         constant(this, 'bot', bot);
 
-        constant(this, 'text', text);
+        this.text(text).x(x).y(y);
 
-        constant(this, 'x', x);
-        constant(this, 'y', y);
+        constant(this, 'startX', x);
 
         constant(this, 'protect', protect);
         constant(this, 'wars', wars);
@@ -169,6 +208,8 @@ export class TextWriter {
 
     private data!: FontData;
 
+    private fillBetween!: boolean;
+
     private protect!: boolean;
     private wars!: boolean;
     private force!: boolean;
@@ -178,7 +219,8 @@ export class TextWriter {
     constructor(bot: Bot, text: string, x: number, y: number,
         textColor: number, backgroundColor: number, colorEmpty: boolean,
         spaceLength: number, separatorLength: number, lineGap: number,
-        font: Font | FontData, protect: boolean, wars: boolean, force: boolean) {
+        font: Font | FontData, fillBetween: boolean,
+        protect: boolean, wars: boolean, force: boolean) {
 
         constant(this, 'bot', bot);
 
@@ -207,10 +249,11 @@ export class TextWriter {
 
         constant(this, "data", font instanceof Object && font.characters && font.height ? font : typeof font == 'number' ? fontData[font] : undefined);
 
+        constant(this, "fillBetween", fillBetween);
+
         constant(this, 'protect', protect);
         constant(this, 'wars', wars);
         constant(this, 'force', force);
-
     }
 
     generateSpacePixels(): number[][] {
@@ -247,9 +290,9 @@ export class TextWriter {
         return [length, positions.map((pos, index) => [this.placeX + (index % length), this.placeY + Math.floor(index / length), pos ? this.textColor : this.backgroundColor])];
     }
 
-    async begin(): Promise<void> {
+    async begin(): Promise<[number, number]> {
         const points: string[] = this.text.split("");
-    
+
         const processPoints = async () => {
             for(let i = 0; i < points.length; i++) {
                 const point: string = points[i];
@@ -262,7 +305,7 @@ export class TextWriter {
     
                 this.placeX += length;
     
-                if(this.colorEmpty && this.backgroundColor != -1 && this.separatorLength > 0 && i != points.length - 1 && point != "\n" && points[i + 1] != "\n") {
+                if(this.colorEmpty && this.backgroundColor != -1 && this.separatorLength > 0 && (i != points.length - 1 || this.fillBetween) && point != "\n" && points[i + 1] != "\n") {
                     for(let i2 = 0; i2 < this.separatorLength; i2++) {
                         for(let i3 = 0; i3 < this.data.height; i3++) {
                             await this.bot.placePixel(this.placeX + i2, this.placeY + i3, this.backgroundColor, 1, this.protect, this.wars, this.force);
@@ -274,7 +317,7 @@ export class TextWriter {
             }
         };
     
-        return new Promise<void>((resolve) => processPoints().then(resolve));
+        return new Promise<[number, number]>((resolve) => processPoints().then(() => resolve([this.placeX, this.placeY])));
     }
 
 }

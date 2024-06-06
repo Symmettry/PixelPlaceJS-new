@@ -184,7 +184,7 @@ export class Connection {
             this.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener());
         }
         if(this.bot.autoRestart) {
-            setTimeout(() => this.Start(), 1000);
+            setTimeout(() => this.Start(), 5000);
         }
     }
 
@@ -273,9 +273,9 @@ export class Connection {
                         const errorMessage = ErrorMessages[value as keyof typeof ErrorMessages];
                         switch(value) {
                             case PPError.LOGGED_OUT:
-                                console.error("Auth data was invalid.");
-                                process.exit();
-                            // eslint-disable-next-line no-fallthrough
+                                console.error("Auth data was invalid; will retry.");
+                                this.socket.close();
+                                break;
                             case PPError.TOO_MANY_INSTANCES:
                             case PPError.TOO_MANY_USERS_INTERNET:
                             case PPError.SELECT_USERNAME:
