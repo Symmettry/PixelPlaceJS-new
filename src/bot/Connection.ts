@@ -296,6 +296,7 @@ export class Connection {
                             case PPError.RELOADING:
                             case PPError.ACCOUNT_DISABLED:
                             case PPError.PAINTING_ARCHIVED:
+                            case PPError.NEED_USERNAME:
                                 console.error(errorMessage);
                                 this.socket.close();
                                 break;
@@ -312,7 +313,6 @@ export class Connection {
                             case PPError.MESSAGES_TOO_FAST:
                             case PPError.ACCOUNT_SUSPENDED_FROM_CHAT:
                             case PPError.ACCOUNT_BANNED_FROM_CHAT:
-                            case PPError.NEED_USERNAME:
                             case PPError.CANT_SEND_COMMANDS:
                             case PPError.NEED_JOIN_GUILD:
                             case PPError.NEED_PREMIUM:
@@ -339,7 +339,7 @@ export class Connection {
                         }
                         break;
                     case Packets.RECEIVED.CHAT_STATS: // Although repeated frequently, this is the first packet sent after init, so we'll use it.
-                        if(!this.isWorld || this.bot.protector) break;
+                        if(this.canvasPictureLoaded || !this.isWorld || this.bot.protector) break;
 
                         this.userId = await this.canvas.Init(this.authId, this.authKey, this.authToken);
                         this.bot.protector = new Protector(this.bot, this.stats); // pass in the bot instance & private statistics variable
@@ -463,13 +463,17 @@ export class Connection {
     }
 
     send(value: Buffer | Uint8Array | string | unknown[]) {
-        if(this.listeners.has(Packets.LIBRARY.SENT)) {
-            this.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener(value));
-        }
-        this.socket.send(value);
+        try {
+            if(this.listeners.has(Packets.LIBRARY.SENT)) {
+                this.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener(value));
+            }
+            this.socket.send(value);
 
-        // statistics
-        this.stats.socket.sent++;
+            // statistics
+            this.stats.socket.sent++;
+        } catch(err) {
+            console.log("An error occurred when sending packets to pixelplace. Check your internet connection.");
+        }
     }
 
     getAreas(): {[key: string]: IArea} {

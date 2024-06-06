@@ -9,6 +9,7 @@ import UIDManager from '../util/UIDManager.js';
 import { Connection } from './Connection.js';
 import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
+import { TextBuilder } from '../util/drawing/TextWriter.js';
 
 /**
  * The pixelplace bot.
@@ -218,7 +219,7 @@ export class Bot {
      * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
      * @returns A promise that resolves upon the pixel being sent.
      */
-    async placePixel(...args: [IPixel] | [number, number, number, number?, boolean?, boolean?, boolean?]): Promise<void> {
+    async placePixel(...args: [IPixel] | [x: number, y: number, col: number, brush?: number, protect?: boolean, wars?: boolean, force?: boolean]): Promise<void> {
         let pixel: IPixel;
 
         if (args.length === 1 && typeof args[0] === 'object') {
@@ -312,6 +313,8 @@ export class Bot {
     private lastPixel: number = Date.now();
     private nextSubtract: number = 0;
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
+        this.resolvePacket(queuedPixel);
+
         const {x, y, col, brush, wars, force} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
@@ -328,9 +331,7 @@ export class Bot {
             this.lastPixel = Date.now();
         }
 
-        this.resolvePacket(queuedPixel);
-
-        this.send(`42["${Packets.SENT.PIXEL}", [${x},${y},${col},${brush}]]`);
+        this.send(`42["${Packets.SENT.PIXEL}",[${x},${y},${col},${brush}]]`);
         this.connection.canvas?.pixelData?.set(x, y, col);
 
         const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
@@ -398,12 +399,12 @@ export class Bot {
      * @param y The y coordinate of the top.
      * @param path The path of the image.
      * @param mode The mode to draw. Can also be DrawingFunction.
-     * @param protect If the pixels should be replaced when changed.
+     * @param protect If the pixels should be replaced when another player modifies them.
      * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it)
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      * @returns A promise that resolves once the image is done drawing.
      */
-    async drawImage(...args: [IImage] | [number, number, string, Modes?, boolean?, boolean?, boolean?]): Promise<void> {
+    async drawImage(...args: [IImage] | [x: number, y: number, path: string, mode?: Modes, protect?: boolean, wars?: boolean, force?: boolean]): Promise<void> {
         let image: IImage;
 
         if (args.length === 1 && typeof args[0] === 'object') {
@@ -424,16 +425,31 @@ export class Bot {
     }
     
     private async drawImageInternal(image: IImage) {
+
         this.stats.images.drawing++;
 
-        const drawer: ImageDrawer = new ImageDrawer(this, image);
-        await drawer.begin();
+        await new ImageDrawer(this, image).begin();
 
         this.stats.images.drawing--;
         this.stats.images.finished++;
+
     }
 
-    private stats: IStatistics = defaultStatistics();
+    /**
+     * Creates a builder for a text drawing. After adding the options, add .draw() to the end.
+     * @param text The text to draw.
+     * @param x The top-left x position to draw at.
+     * @param y The top-left y position to draw at.
+     * @param protect If the pixels should be replaced when another player modifies them.
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it)
+     * @param force If the pixel packet should still be sent if it doesn't change the color.
+     */
+    buildText(text: string, x: number, y: number, protect: boolean = false, wars: boolean = false, force: boolean = false) {
+        return new TextBuilder(this, text, x, y, protect, wars, force);
+    }
+
+    /** Statistics that are modified internally. Use getStatistics() instead, since it updates other things. */
+    stats: IStatistics = defaultStatistics();
 
     /**
      * Statistics

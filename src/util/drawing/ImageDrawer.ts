@@ -198,6 +198,9 @@ export class ImageDrawer {
 
     private getColorAt(x: number, y: number, pixels: NdArray<Uint8Array>): number {
         if(x > pixels.shape[0] || y > pixels.shape[1] || x < 0 || y < 0) throw `Out of bounds pixel: [${x},${y}]`;
+        const a = pixels.get(x, y, 3);
+        if(a == 0) return -1; // skip transparent
+
         const r = pixels.get(x, y, 0);
         const g = pixels.get(x, y, 1);
         const b = pixels.get(x, y, 2);
@@ -220,8 +223,8 @@ export class ImageDrawer {
         if (!fs.existsSync(this.path)) {
             throw new Error(`File does not exist at path: ${this.path}`);
         }
+        
         const type = mime.lookup(this.path);
-
         if (!type || !type.startsWith('image/')) {
             throw new Error(`File at path: ${this.path} is not an image`);
         }
@@ -248,9 +251,7 @@ export class ImageDrawer {
                 
                 if (!this.drawingStrategies[this.mode]) throw new Error(`Invalid mode: ${this.mode}`)
                 await (this.drawingStrategies[this.mode])(pixels);
-
                 resolve();
-            
             });
         });
     }

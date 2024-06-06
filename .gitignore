@@ -127,8 +127,6 @@ out
 .pnp.*
 
 # Tests
-test.js
-test*.mjs
-test/
+test*
 .dev
 ppjs-relog-authdata-*

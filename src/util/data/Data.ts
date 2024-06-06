@@ -153,6 +153,13 @@ export interface IStatistics {
         /** Number of finished images. */
         finished: number,
     },
+    /** Statistics related to text. */
+    text: {
+        /** Number of texts being drawn. */
+        drawing: number,
+        /** Number of finished text. */
+        finished: number,
+    },
     /** Statistics related to the session. */
     session: {
         /** Total session time. */
@@ -190,6 +197,10 @@ export function defaultStatistics(): IStatistics {
             colors: { },
         },
         images: {
+            drawing: 0,
+            finished: 0,
+        },
+        text: {
             drawing: 0,
             finished: 0,
         },

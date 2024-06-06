@@ -76,7 +76,6 @@ export class Canvas {
 
             minDistance = distance;
             closestColorId = this.colors[color];
-        
         }
     
         return closestColorId;

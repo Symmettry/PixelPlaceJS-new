@@ -40,6 +40,7 @@ export enum PPError {
     GUILD_DISBANDED = 35,
     KICKED_FROM_GUILD = 36,
     INVALID_AUTH = 49,
+    TOO_MANY_PACKETS = 50,
 }
 /**
  * A mapping of error codes to the message.
