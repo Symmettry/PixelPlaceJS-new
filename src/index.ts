@@ -7,3 +7,4 @@ export { PPError, ErrorMessages } from "./util/data/Errors";
 export { Auth } from "./bot/Auth";
 export { TextWriter } from "./util/drawing/TextWriter";
 export { Font, FontData } from "./util/drawing/fonts/Font";
+export { ImageData } from "./util/data/Data";

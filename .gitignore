@@ -130,3 +130,6 @@ out
 test*
 .dev
 ppjs-relog-authdata-*
+
+# vscode shit
+.vscode/

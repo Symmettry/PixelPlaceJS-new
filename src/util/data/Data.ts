@@ -1,5 +1,6 @@
 import { Modes } from "./Modes";
 import { DrawingFunction } from "../drawing/ImageDrawer";
+import { Colors } from "./Colors";
 
 /**
  * Pixel data.
@@ -35,6 +36,18 @@ export interface IImage {
     protect: boolean;
     wars: boolean;
     force: boolean;
+}
+
+/**
+ * Represents image data consisting of width, height, and pixel colors.
+ * @property width - The width of the image.
+ * @property height - The height of the image.
+ * @property pixels - The two-dimensional array of pixel colors. Read with data.pixels[x][y]
+ */
+export type ImageData = {
+    width: number,
+    height: number,
+    pixels: Colors[][],
 }
 
 /**

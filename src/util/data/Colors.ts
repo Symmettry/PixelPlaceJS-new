@@ -137,4 +137,7 @@ export enum Colors {
 
     /** 48 */
     BLUE_GREEN_WHITE = 48, // dunno it's just 181,232,238
+
+    /** Ocean is -1, which in Uint8Array will become 65535. */
+    OCEAN = 65535,
 }

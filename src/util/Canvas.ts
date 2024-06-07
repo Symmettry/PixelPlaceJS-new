@@ -1,8 +1,9 @@
-import ndarray, { NdArray } from 'ndarray';
+import ndarray from 'ndarray';
 import * as https from 'https';
 import { IncomingMessage } from 'http';
-import getPixels = require('get-pixels');
 import { IRGBColor } from './data/Data';
+import { Colors } from './data/Colors';
+import Jimp = require('jimp');
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -50,7 +51,9 @@ export class Canvas {
                 this.canvasWidth = data.width;
                 this.canvasHeight = data.height;
     
-                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(0), [this.canvasWidth, this.canvasHeight]);
+                // Pixelplace canvases are always going to be white. The canvas image will not be the full size when no pixels are placed, so it's filled with white normally.
+                // Any ocean pixel will be set there when the canvas is loaded, so this causes no issues.
+                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(Colors.WHITE), [this.canvasWidth, this.canvasHeight]);
                 canvases.set(this.boardId, this);
                 resolve(data.userId);
             }).catch(reject);
@@ -66,7 +69,7 @@ export class Canvas {
         const { r, g, b } = rgb;
 
         let minDistance = Infinity;
-        let closestColorId = -1;
+        let closestColorId = Colors.OCEAN;
     
         for (const color in this.colors) {
             const [r2, g2, b2] = color.split(',').map(Number);
@@ -83,7 +86,7 @@ export class Canvas {
 
     private getColorId(rgb: IRGBColor): number {
         const { r, g, b } = rgb;
-        return Object.prototype.hasOwnProperty.call(this.colors, `${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : -1;
+        return Object.prototype.hasOwnProperty.call(this.colors, `${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : Colors.OCEAN;
     }
 
     async loadCanvasPicture(): Promise<void> {
@@ -98,19 +101,24 @@ export class Canvas {
                 }).on('end', () => {
                     const buffer = Buffer.concat(chunks);
 
-                    getPixels(buffer, 'image/png', async (err: Error | null, pixels: NdArray<Uint8Array>) => {
+                    Jimp.read(buffer, async (err, img) => {
                         if (err) {
                             console.error(err);
                             return;
                         }
 
-                        for (let x = 0; x < pixels.shape[0]; x++) {
-                            for (let y = 0; y < pixels.shape[1]; y++) {
-                                const alpha = pixels.get(x, y, 3);
-                                const [r, g, b] = alpha == 0 ? [255, 255, 255] : [pixels.get(x, y, 0), pixels.get(x, y, 1), pixels.get(x, y, 2)];
+                        for (let x = 0; x < img.bitmap.width; x++) {
+                            for (let y = 0; y < img.bitmap.height; y++) {
+                                const color = img.getPixelColor(x, y);
+                                const rgba = Jimp.intToRGBA(color);
+                                // eslint-disable-next-line prefer-const -- it's cleaner without const, and const provides no perf boost. Ignored!
+                                let { r, g, b, a } = rgba;
 
-                                if(r == 204 && g == 204 && b == 204) { // ocean
-                                    this.pixelData?.set(x, y, -1);
+                                if(a == 0) r = g = b = 255;
+
+                                // 204, 204, 204 is ocean.
+                                if(r == 204 && g == 204 && b == 204) {
+                                    this.pixelData?.set(x, y, Colors.OCEAN);
                                     continue;
                                 }
 

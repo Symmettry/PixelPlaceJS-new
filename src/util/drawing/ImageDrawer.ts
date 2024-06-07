@@ -1,11 +1,11 @@
 import { Bot } from "../../bot/Bot";
 import fs from 'fs';
-import getPixels = require("get-pixels");
+import Jimp from 'jimp';
 import mime = require("mime-types");
-import { NdArray } from "ndarray";
 import { Modes } from "../data/Modes";
 import { IImage } from "../data/Data";
 import { constant } from "../Constant";
+import { ImageData } from "../data/Data";
 
 /**
  * Represents a drawing mode that draws on a pixel array.
@@ -15,9 +15,8 @@ import { constant } from "../Constant";
  * @returns A promise which resolves when the image is done drawing.
  */
 export type DrawingFunction = (
-    pixels: NdArray<Uint8Array>,
-    drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>,
-    getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number
+    pixels: ImageData,
+    drawHook: (x: number, y: number, pixels: ImageData) => Promise<void>,
 ) => Promise<void>;
 
 /**
@@ -38,7 +37,7 @@ export class ImageDrawer {
     private wars!: boolean;
     private force!: boolean;
 
-    private drawingStrategies!: {[key in Modes]: (pixels: NdArray<Uint8Array>) => Promise<void>};
+    private drawingStrategies!: {[key in Modes]: (pixels: ImageData) => Promise<void>};
 
     constructor(instance: Bot, image: IImage) {
         constant(this, 'instance', instance);
@@ -56,57 +55,57 @@ export class ImageDrawer {
 
         constant(this, "drawingStrategies", {
 
-            0: async (pixels: NdArray<Uint8Array>) => { // TOP_LEFT_TO_RIGHT
-                for (let y = 0; y < pixels.shape[1]; y++) 
-                    for (let x = 0; x < pixels.shape[0]; x++) 
+            0: async (pixels: ImageData) => { // TOP_LEFT_TO_RIGHT
+                for (let y = 0; y < pixels.height; y++) 
+                    for (let x = 0; x < pixels.width; x++) 
                         await this.draw(x, y, pixels);
             },
-            1: async (pixels: NdArray<Uint8Array>) => { // TOP_RIGHT_TO_LEFT
-                for (let y = 0; y < pixels.shape[1]; y++) 
-                    for (let x = pixels.shape[0]; x >= 0; x--) 
+            1: async (pixels: ImageData) => { // TOP_RIGHT_TO_LEFT
+                for (let y = 0; y < pixels.height; y++) 
+                    for (let x = pixels.width; x >= 0; x--) 
                         await this.draw(x, y, pixels);
             },
-            2: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_LEFT_TO_RIGHT
-                for (let y = pixels.shape[1]; y >= 0; y--) 
-                    for (let x = 0; x < pixels.shape[0]; x++) 
+            2: async (pixels: ImageData) => { // BOTTOM_LEFT_TO_RIGHT
+                for (let y = pixels.height; y >= 0; y--) 
+                    for (let x = 0; x < pixels.width; x++) 
                         await this.draw(x, y, pixels);
             },
-            3: async (pixels: NdArray<Uint8Array>) => { // BOTTOM_RIGHT_TO_LEFT
-                for (let y = pixels.shape[1]; y >= 0; y--) 
-                    for (let x = pixels.shape[0]; x >= 0; x--) 
+            3: async (pixels: ImageData) => { // BOTTOM_RIGHT_TO_LEFT
+                for (let y = pixels.height; y >= 0; y--) 
+                    for (let x = pixels.width; x >= 0; x--) 
                         await this.draw(x, y, pixels);
             },
-            4: async (pixels: NdArray<Uint8Array>) => { // LEFT_TOP_TO_BOTTOM
-                for (let x = 0; x < pixels.shape[0]; x++) 
-                    for (let y = 0; y < pixels.shape[1]; y++) 
+            4: async (pixels: ImageData) => { // LEFT_TOP_TO_BOTTOM
+                for (let x = 0; x < pixels.width; x++) 
+                    for (let y = 0; y < pixels.height; y++) 
                         await this.draw(x, y, pixels);
             },
-            5: async (pixels: NdArray<Uint8Array>) => { // LEFT_BOTTOM_TO_TOP
-                for (let x = 0; x < pixels.shape[0]; x++) 
-                    for (let y = pixels.shape[1]; y >= 0; y--) 
+            5: async (pixels: ImageData) => { // LEFT_BOTTOM_TO_TOP
+                for (let x = 0; x < pixels.width; x++) 
+                    for (let y = pixels.height; y >= 0; y--) 
                         await this.draw(x, y, pixels);
             },
-            6: async (pixels: NdArray<Uint8Array>) => { // RIGHT_TOP_TO_BOTTOM
-                for (let x = pixels.shape[0]; x >= 0; x--) 
-                    for (let y = 0; y < pixels.shape[1]; y++) 
+            6: async (pixels: ImageData) => { // RIGHT_TOP_TO_BOTTOM
+                for (let x = pixels.width; x >= 0; x--) 
+                    for (let y = 0; y < pixels.height; y++) 
                         await this.draw(x, y, pixels);
             },
-            7: async (pixels: NdArray<Uint8Array>) => { // RIGHT_BOTTOM_TO_TOP
-                for (let x = pixels.shape[0]; x >= 0; x--) 
-                    for (let y = pixels.shape[1]; y >= 0; y--) 
+            7: async (pixels: ImageData) => { // RIGHT_BOTTOM_TO_TOP
+                for (let x = pixels.width; x >= 0; x--) 
+                    for (let y = pixels.height; y >= 0; y--) 
                         await this.draw(x, y, pixels);
             },
-            8: async (pixels: NdArray<Uint8Array>) => { // FROM_CENTER
+            8: async (pixels: ImageData) => { // FROM_CENTER
                 // calculate the center point
-                const centerX = Math.floor(pixels.shape[0] / 2);
-                const centerY = Math.floor(pixels.shape[1] / 2);
+                const centerX = Math.floor(pixels.width / 2);
+                const centerY = Math.floor(pixels.height / 2);
 
                 // create an array to hold pixels and their distances from the center
                 const pixelDistances = [];
 
                 // calculate the distance of each pixel from the center
-                for (let x = 0; x < pixels.shape[0]; x++) {
-                    for (let y = 0; y < pixels.shape[1]; y++) {
+                for (let x = 0; x < pixels.width; x++) {
+                    for (let y = 0; y < pixels.height; y++) {
                         const dx = centerX - x;
                         const dy = centerY - y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -123,17 +122,17 @@ export class ImageDrawer {
                     await this.draw(pixel.x, pixel.y, pixels);
                 }
             },
-            9: async (pixels: NdArray<Uint8Array>) => { // TO_CENTER
+            9: async (pixels: ImageData) => { // TO_CENTER
                 // calculate the center point
-                const centerX = Math.floor(pixels.shape[0] / 2);
-                const centerY = Math.floor(pixels.shape[1] / 2);
+                const centerX = Math.floor(pixels.width / 2);
+                const centerY = Math.floor(pixels.height / 2);
 
                 // create an array to hold pixels and their distances from the center
                 const pixelDistances = [];
 
                 // calculate the distance of each pixel from the center
-                for (let x = 0; x < pixels.shape[0]; x++) {
-                    for (let y = 0; y < pixels.shape[1]; y++) {
+                for (let x = 0; x < pixels.width; x++) {
+                    for (let y = 0; y < pixels.height; y++) {
                         const dx = centerX - x;
                         const dy = centerY - y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -151,8 +150,8 @@ export class ImageDrawer {
                 }
             },
 
-            10: async (pixels: NdArray<Uint8Array>) => { // RAND
-                const totalPixels = pixels.shape[0] * pixels.shape[1];
+            10: async (pixels: ImageData) => { // RAND
+                const totalPixels = pixels.width * pixels.height;
                 const coordinates = new Array(totalPixels);
             
                 // initialize the coordinates array
@@ -168,34 +167,19 @@ export class ImageDrawer {
             
                 // draw the pixels in the shuffled order
                 for (let i = 0; i < totalPixels; i++) {
-                    const x = coordinates[i] % pixels.shape[0];
-                    const y = Math.floor(coordinates[i] / pixels.shape[0]);
+                    const x = coordinates[i] % pixels.width;
+                    const y = Math.floor(coordinates[i] / pixels.width);
                     await this.draw(x, y, pixels);
                 }
             }
         });
     }
 
-    private getColorAt(x: number, y: number, pixels: NdArray<Uint8Array>): number {
-        if(x > pixels.shape[0] || y > pixels.shape[1] || x < 0 || y < 0) throw `Out of bounds pixel: [${x},${y}]`;
-        const a = pixels.get(x, y, 3);
-        if(a == 0) return -1; // skip transparent
-
-        const r = pixels.get(x, y, 0);
-        const g = pixels.get(x, y, 1);
-        const b = pixels.get(x, y, 2);
-        
-        return this.instance.getCanvas().getClosestColorId({r, g, b});
-    }
-
-    async draw(x: number, y: number, pixels: NdArray<Uint8Array>): Promise<void> {
-        const closestColorId = this.getColorAt(x, y, pixels);
-        if(closestColorId == -1) return;
-
+    async draw(x: number, y: number, pixels: ImageData): Promise<void> {
         const nx = this.x + x;
         const ny = this.y + y;
 
-        return this.instance.placePixel(nx, ny, closestColorId, 1, this.protect, this.wars, this.force);
+        return this.instance.placePixel(nx, ny, pixels.pixels[x][y], 1, this.protect, this.wars, this.force);
     }
 
     async begin(): Promise<void> {
@@ -209,28 +193,39 @@ export class ImageDrawer {
             throw new Error(`File at path: ${this.path} is not an image`);
         }
 
-        const buffer = fs.readFileSync(this.path);
-
         return new Promise<void>((resolve) => {
-            getPixels(buffer, type, async (err: Error | null, pixels: NdArray<Uint8Array>) => {
+            Jimp.read(this.path, async (err, img) => {
                 if (err) {
                     console.error(err);
                     return;
                 }
 
+                const data: ImageData = { width: img.bitmap.width, height: img.bitmap.height, pixels: [] };
+
+                for (let x = 0; x < img.bitmap.width; x++) {
+                    data.pixels[x] = [];
+                    for (let y = 0; y < img.bitmap.height; y++) {
+                        const color = img.getPixelColor(x, y);
+                        const rgba = Jimp.intToRGBA(color);
+                        const { r, g, b, a } = rgba;
+                        
+                        // Skip transparent pixels
+                        if (a === 0) continue;
+                        
+                        data.pixels[x][y] = this.instance.getClosestColorId({ r, g, b });
+                    }
+                }
+
                 if(typeof this.mode == 'function') {
-                    const drawHook = (x: number, y: number, pixels: NdArray<Uint8Array>) => {
+                    const drawHook = (x: number, y: number, pixels: ImageData) => {
                         return this.draw(x, y, pixels);
                     }
-                    const getColorAtHook = (x: number, y: number, pixels: NdArray<Uint8Array>) => {
-                        return this.getColorAt(x, y, pixels);
-                    }
-                    await this.mode(pixels, drawHook, getColorAtHook);
+                    await this.mode(data, drawHook);
                     return resolve();
                 }
                 
                 if (!this.drawingStrategies[this.mode]) throw new Error(`Invalid mode: ${this.mode}`)
-                await (this.drawingStrategies[this.mode])(pixels);
+                await (this.drawingStrategies[this.mode])(data);
                 resolve();
             });
         });
