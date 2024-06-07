@@ -284,7 +284,8 @@ export class Bot {
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535 // 65535 is ocean.
         if(skippedColor) {
-            return this.resolvePacket(queuedPixel);
+            setImmediate(() => this.resolvePacket(queuedPixel));
+            return;
         }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
         if(skippedWar) {

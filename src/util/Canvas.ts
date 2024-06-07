@@ -50,7 +50,7 @@ export class Canvas {
                 this.canvasWidth = data.width;
                 this.canvasHeight = data.height;
     
-                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(-1), [this.canvasWidth, this.canvasHeight]);
+                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(0), [this.canvasWidth, this.canvasHeight]);
                 canvases.set(this.boardId, this);
                 resolve(data.userId);
             }).catch(reject);
