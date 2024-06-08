@@ -22,7 +22,7 @@ export class PacketHandler {
     private authToken!: string;
     private authId!: string;
 
-    listeners!: Map<string | Packets, ((...args: unknown[]) => void)[]>;
+    listeners!: Map<string | Packets, [((...args: unknown[]) => void), boolean][]>;
 
     constructor(connection: Connection, authKey: string, authToken: string, authId: string) {
         constant(this, 'connection', connection);
@@ -43,7 +43,7 @@ export class PacketHandler {
         const data: string = buffer.toString(); // buffer -> string
 
         if(this.listeners.has(Packets.LIBRARY.RAW)) {
-            this.listeners.get(Packets.LIBRARY.RAW)?.forEach(listener => listener(data));
+            this.listeners.get(Packets.LIBRARY.RAW)?.forEach(listener => listener[0](data));
         }
                 
         // Gets the data and ID of the response
@@ -88,6 +88,9 @@ export class PacketHandler {
     private async handlePXPMessage(message: [string, any], resolve: (value: void | PromiseLike<void>) => void) {
         const key = message[0];
         const value = message[1];
+
+        // Packet listeners pre
+        this.listen(key, value, true);
 
         this.connection.stats.socket.received++;
 
@@ -213,8 +216,8 @@ export class PacketHandler {
                 this.bot.sendWarPackets(); // so that it fills in the gap lmao.
             }
         }
-        // Packet listeners
-        this.listen(key, value);
+        // Packet listeners post
+        this.listen(key, value, false);
     }
 
     private handleError(value: PPError) {
@@ -278,14 +281,14 @@ export class PacketHandler {
         }
     }
 
-    private listen(key: string, value: unknown) {
+    private listen(key: string, value: unknown, pre: boolean) {
         // per-key
         if(this.listeners.has(key)) { // if there are listeners for this key
-            this.listeners.get(key)?.forEach(listener => listener(value)); // then send the value!
+            this.listeners.get(key)?.forEach(listener => listener[1] == pre && listener[0](value)); // then send the value!
         }
         // all-keys
         if(this.listeners.has(Packets.LIBRARY.ALL)) {
-            this.listeners.get(Packets.LIBRARY.ALL)?.forEach(listener => listener(key, value));
+            this.listeners.get(Packets.LIBRARY.ALL)?.forEach(listener => listener[1] == pre && listener[0](key, value));
         }
     }
 

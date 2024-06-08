@@ -184,7 +184,7 @@ export class Connection {
         this.connected = false;
         this.chatLoaded = false;
         if(this.packetHandler.listeners.has(Packets.LIBRARY.SOCKET_CLOSE)) {
-            this.packetHandler.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener());
+            this.packetHandler.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener[0]());
         }
         if(this.bot.autoRestart) {
             setTimeout(() => this.Start(), 5000);
@@ -193,7 +193,7 @@ export class Connection {
 
     private socketError(error: Error) {
         if(this.packetHandler.listeners.has(Packets.LIBRARY.ERROR)) {
-            this.packetHandler.listeners.get(Packets.LIBRARY.ERROR)?.forEach(listener => listener(error));
+            this.packetHandler.listeners.get(Packets.LIBRARY.ERROR)?.forEach(listener => listener[0](error));
         }
 
         // statistics
@@ -220,15 +220,15 @@ export class Connection {
         this.send(`42["${Packets.SENT.INIT}",{"authKey":"${authKey}","authToken":"${authToken}","authId":"${authId}","boardId":${boardId}}]`);
     }
 
-    on(key: string | Packets, func: (...args: unknown[]) => void) {
+    on(key: string | Packets, func: (...args: unknown[]) => void, pre: boolean) {
         if(!this.packetHandler.listeners.has(key)) this.packetHandler.listeners.set(key, []);
-        this.packetHandler.listeners.get(key)?.push(func);
+        this.packetHandler.listeners.get(key)?.push([func, pre]);
     }
 
     send(value: Buffer | Uint8Array | string | unknown[]) {
         try {
             if(this.packetHandler.listeners.has(Packets.LIBRARY.SENT)) {
-                this.packetHandler.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener(value));
+                this.packetHandler.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener[0](value));
             }
             this.socket.send(value);
 

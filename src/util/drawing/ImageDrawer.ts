@@ -175,11 +175,19 @@ export class ImageDrawer {
         });
     }
 
+    private getCol(x: number, y: number, pixels: ImageData): number | null {
+        if(!pixels.pixels[x] || !pixels.pixels[x][y]) return null;
+        return pixels.pixels[x][y];
+    }
+
     async draw(x: number, y: number, pixels: ImageData): Promise<void> {
+        const col = this.getCol(x, y, pixels);
+        if(col == null) return Promise.resolve();
+
         const nx = this.x + x;
         const ny = this.y + y;
 
-        return this.instance.placePixel(nx, ny, pixels.pixels[x][y], 1, this.protect, this.wars, this.force);
+        return this.instance.placePixel(nx, ny, col, 1, this.protect, this.wars, this.force);
     }
 
     async begin(): Promise<void> {

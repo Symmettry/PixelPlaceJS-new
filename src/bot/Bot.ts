@@ -87,9 +87,10 @@ export class Bot {
      * Enables a listener for a packet. When the packet is received, the function will be called.
      * @param packet The packet to listen for.
      * @param func The function to execute upon receiving it.
+     * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
-    on(packet: string | Packets, func: (...args: unknown[]) => void): void {
-        this.connection.on(packet, func);
+    on(packet: string | Packets, func: (...args: unknown[]) => void, pre: boolean = false): void {
+        this.connection.on(packet, func, pre);
     }
 
     /**
@@ -363,6 +364,10 @@ export class Bot {
 
         if(x > this.connection.canvas.canvasWidth || x < 0 || y > this.connection.canvas.canvasHeight || y < 0) {
             throw `Out of bounds pixel: ${x},${y}`;
+        }
+
+        if(!this.getCanvas().isValidColor(col)) {
+            return Promise.resolve();
         }
 
         if(protect) {

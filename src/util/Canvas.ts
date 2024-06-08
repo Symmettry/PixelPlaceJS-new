@@ -35,6 +35,7 @@ export class Canvas {
         '81,0,255': 30,'0,0,234': 32,'4,75,255': 33,'0,91,161': 47,'101,131,207': 34,'54,186,255': 35,'0,131,199': 36,'0,211,221': 37,
         '69,255,200': 38,'181,232,238': 48,
     };
+    private validColorIds = Object.values(this.colors);
 
     pixelData!: ndarray.NdArray<Uint16Array>;
 
@@ -201,6 +202,15 @@ export class Canvas {
      */
     getColors(): { [key: string]: number; } {
         return this.colors;
+    }
+
+    /**
+     * @param col A color id.
+     * @returns If it's a valid color or not.
+     */
+    isValidColor(col: unknown): boolean {
+        // non-numbers like null will be ignored fully.
+        return typeof col == 'number' && this.validColorIds.includes(col);
     }
       
 }
