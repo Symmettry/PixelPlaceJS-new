@@ -173,6 +173,13 @@ export interface IStatistics {
         /** Number of finished text. */
         finished: number,
     },
+    /** Statistics related to lines. */
+    lines: {
+        /** Number of lines being drawn. */
+        drawing: number,
+        /** Number of finished lines. */
+        finished: number,
+    },
     /** Statistics related to the session. */
     session: {
         /** Total session time. */
@@ -214,6 +221,10 @@ export function defaultStatistics(): IStatistics {
             finished: 0,
         },
         text: {
+            drawing: 0,
+            finished: 0,
+        },
+        lines: {
             drawing: 0,
             finished: 0,
         },

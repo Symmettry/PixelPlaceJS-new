@@ -10,6 +10,7 @@ import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
 import { TextBuilder } from '../util/drawing/TextWriter.js';
+import { LineDrawer } from '../util/drawing/LineDrawer.js';
 
 /**
  * The pixelplace bot.
@@ -363,7 +364,7 @@ export class Bot {
         const {x, y, col, protect, force } = p;
 
         if(x > this.connection.canvas.canvasWidth || x < 0 || y > this.connection.canvas.canvasHeight || y < 0) {
-            throw `Out of bounds pixel: ${x},${y}`;
+            return Promise.resolve();
         }
 
         if(!this.getCanvas().isValidColor(col)) {
@@ -406,7 +407,7 @@ export class Bot {
      * @param path The path of the image.
      * @param mode The mode to draw. Can also be DrawingFunction.
      * @param protect If the pixels should be replaced when another player modifies them.
-     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it)
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      * @returns A promise that resolves once the image is done drawing.
      */
@@ -447,11 +448,34 @@ export class Bot {
      * @param x The top-left x position to draw at.
      * @param y The top-left y position to draw at.
      * @param protect If the pixels should be replaced when another player modifies them.
-     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it)
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      */
     buildText(text: string, x: number, y: number, protect: boolean = false, wars: boolean = false, force: boolean = false) {
         return new TextBuilder(this, text, x, y, protect, wars, force);
+    }
+
+    /**
+     * Draws a line between two positions (experimental).
+     * @param x1 The initial x position.
+     * @param y1 The initial y position.
+     * @param x2 The ending x position.
+     * @param y2 The ending y position.
+     * @param col The color to draw with.
+     * @param thickness How thick the line is (due to this being an experimental function, it can bug at weird angles.)
+     * @param protect If the pixels should be replaced when another player modifies them.
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
+     * @param force If the pixel packet should still be sent if it doesn't change the color.
+     */
+    async drawLine(x1: number, y1: number, x2: number, y2: number, col: number, thickness: number = 1, protect: boolean = false, wars: boolean = false, force: boolean = false) {
+        
+        this.stats.lines.drawing++;
+
+        await new LineDrawer(this, x1, y1, x2, y2, col, thickness, protect, wars, force).begin();
+
+        this.stats.lines.drawing--;
+        this.stats.lines.finished++;
+
     }
 
     /** Statistics that are modified internally. Use getStatistics() instead, since it updates other things. */
