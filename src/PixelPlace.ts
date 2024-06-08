@@ -22,6 +22,18 @@ class PixelPlace {
     }
 
     /**
+     * In the event that cloudflare is turned on or something, you can do stuff like put cloudflare clearance here.
+     * @param headers A function that receives the type and returns header object.
+     * @returns this
+     */
+    setHeaders(headers: (type: string) => {[key: string]: string}): PixelPlace {
+        this.bots.forEach(bot => {
+            bot.setHeaders(headers);
+        })
+        return this;
+    }
+
+    /**
      * Initiates all the bots
      * @returns A promise that resolves upon the bots initiating fully.
      */

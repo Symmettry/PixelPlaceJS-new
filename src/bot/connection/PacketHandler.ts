@@ -56,7 +56,12 @@ export class PacketHandler {
         const id = json == -1 ? data : data.substring(0, json);
 
         // if JSON, parse, else keep it
-        const message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
+        let message;
+        try {
+            message = json == -1 ? data.substring(id.length) : JSON.parse(data.substring(json));
+        } catch (err) {
+            message = data.substring(id.length);
+        }
         switch(id) {
             case "0": // socket.io start
                 this.connection.send("40");

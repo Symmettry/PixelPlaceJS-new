@@ -7,8 +7,8 @@ import Jimp = require('jimp');
 
 const canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: number): Canvas {
-    return hasCanvas(boardId) ? canvases.get(boardId) || new Canvas(boardId) : new Canvas(boardId);
+export function getCanvas(boardId: number, headers: (type: string) => {[key: string]: string}): Canvas {
+    return hasCanvas(boardId) ? canvases.get(boardId)?.setHeaders(headers) || new Canvas(boardId, headers) : new Canvas(boardId, headers);
 }
 
 export function hasCanvas(boardId: number): boolean {
@@ -42,8 +42,11 @@ export class Canvas {
     canvasWidth!: number;
     canvasHeight!: number;
 
-    constructor(boardId: number) {
+    headers: (type: string) => {[key: string]: string};
+
+    constructor(boardId: number, headers: (type: string) => {[key: string]: string}) {
         this.boardId = boardId;
+        this.headers = headers;
     }
 
     async Init(authId: string, authKey: string, authToken: string): Promise<number> {
@@ -94,7 +97,7 @@ export class Canvas {
         return new Promise<void>((resolve) => {
             const imageUrl = `https://pixelplace.io/canvas/${this.boardId}.png?t200000=${Date.now()}`;
 
-            https.get(imageUrl, (response: IncomingMessage) => {
+            https.get(imageUrl, {headers: this.headers("canvas-image")}, (response: IncomingMessage) => {
                 const chunks: Buffer[] = [];
 
                 response.on('data', (chunk: Buffer) => {
@@ -182,12 +185,11 @@ export class Canvas {
         const res: Response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
             headers: {
               "accept": "application/json",
-              "x-requested-with": "XMLHttpRequest",
-              "Referer": "https://pixelplace.io/7-pixels-world-war",
               "cookie": `authId=${authId};authKey=${authKey};authToken=${authToken}`,
+              ...this.headers("get-painting"),
             },
             method: "GET",
-        });       
+        });
       
         const json = await res.json();
         const width = json.painting.width as number;
@@ -212,5 +214,13 @@ export class Canvas {
         // non-numbers like null will be ignored fully.
         return typeof col == 'number' && this.validColorIds.includes(col);
     }
-      
+    
+    /**
+     * Reassigns headers function.
+     * @param headers The headers function.
+     */
+    setHeaders(headers: (type: string) => {[key: string]: string}) {
+        this.headers = headers;
+    }
+
 }

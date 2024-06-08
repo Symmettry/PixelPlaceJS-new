@@ -31,6 +31,8 @@ export class Connection {
 
     private econnrefusedTimer: number = 0;
 
+    headers: (type: string) => {[key: string]: string};
+
     private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
 
     chatLoaded: boolean = false;
@@ -41,7 +43,7 @@ export class Connection {
 
     private packetHandler!: PacketHandler;
 
-    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics) {
+    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: string) => {[key: string]: string}) {
         constant(this, 'bot', bot);
 
         this.authKey = authKey;
@@ -50,27 +52,29 @@ export class Connection {
 
         this.stats = stats;
 
+        this.headers = headers;
+
         constant(this, 'boardId', boardId);
 
         constant(this, 'packetHandler', new PacketHandler(this, authKey, authToken, authId));
 
-        this.relog = this.relogGenerator(this.authKey, this.authToken, this.authId);
+        this.relog = this.relogGenerator(this.authKey, this.authToken);
         this.Load = this.Load.bind(this);
     }
 
-    private relogGenerator(authKey: string, authToken: string, authId: string): () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
+    private relogGenerator(authKey: string, authToken: string): () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
         authKey = authKey == "deleted" ? "" : authKey;
         authToken = authToken == "deleted" ? "" : authToken;
         return async () => {
             if(authKey != "") {
                 console.log("~~Refreshing auth data~~");
             }
-            const authData = `authId=${authId};authKey=${authKey};authToken=${authToken}`;
             try {
                 const res = await fetch("https://pixelplace.io/api/relog.php", {
                     "headers": {
-                        "accept": "application/json, text/javascript, */*; q=0.01",
-                        "cookie": authData,
+                        accept: "application/json, text/javascript, */*; q=0.01",
+                        cookie: this.generateAuthCookie(),
+                        ...this.headers("relog"),
                     },
                     "method": "GET"
                 })
@@ -82,7 +86,7 @@ export class Connection {
                 const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
                 const newAuthData = {authKey, authToken, authId};
         
-                this.relog = this.relogGenerator(authKey, authToken, authId);
+                this.relog = this.relogGenerator(authKey, authToken);
 
                 this.packetHandler.updateAuth(authKey, authToken, authId);
                 
@@ -109,15 +113,8 @@ export class Connection {
         this.sendInit(loggedIn ? authData.authKey ?? null : null, loggedIn ? authData.authToken ?? null : null, authData.authId, this.boardId);
     }
 
-    private ping() {
-        fetch("https://pixelplace.io/api/ping.php", {
-            headers: {
-                Origin: "https://pixelplace.io/",
-                Cookie: `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`,
-            },
-        }).catch(err => {
-            console.error(err);
-        });
+    private generateAuthCookie(): string {
+        return `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`;
     }
 
     async Start() {
@@ -131,14 +128,18 @@ export class Connection {
         return new Promise<void>((resolve) => {
 
             // connect to PixelPlace
-            this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket');
+            this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
+                headers: {
+                    ...this.headers("socket"),
+                },
+            });
 
             if(Canvas.hasCanvas(this.boardId)) {
                 this.isWorld = false;
             }
 
             // create the canvas
-            this.canvas = Canvas.getCanvas(this.boardId);
+            this.canvas = Canvas.getCanvas(this.boardId, this.headers);
 
             this.socket.on('close', () => {
                 this.socketClosed();
@@ -206,8 +207,6 @@ export class Connection {
     async loadCanvas(value: number[][], resolve: (value: void | PromiseLike<void>) => void) {
         if(this.isWorld)await this.canvas.loadCanvasData(value);
         this.stats.session.beginTime = Date.now();
-
-        setInterval(this.ping, 250000);
 
         setTimeout(resolve, 1000);
     }

@@ -36,6 +36,8 @@ export class Bot {
 
     private uidman!: UIDManager;
 
+    headers: (type: string) => {[key: string]: string} = () => {return {}};
+
     private connection!: Connection;
     rate: number = -1;
 
@@ -107,7 +109,7 @@ export class Bot {
      * @returns A promise that will resolve once the socket opens.
      */
     async Connect(): Promise<void> {
-        this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats);
+        this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats, this.headers);
         return this.connection.Connect();
     }
 
@@ -581,6 +583,18 @@ export class Bot {
      */
     getCurrentWarZone(): string {
         return this.connection.getCurrentWarZone();
+    }
+
+    /**
+     * Sets the request headers.
+     * @param headers An object of headers.
+     */
+    setHeaders(headers: (type: string) => {[key: string]: string}) {
+        this.headers = headers;
+        if(this.connection) {
+            this.connection.headers = this.headers;
+            this.connection.canvas.headers = this.headers;
+        }
     }
 
 }
