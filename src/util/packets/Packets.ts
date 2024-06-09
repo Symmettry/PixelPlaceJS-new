@@ -1,3 +1,5 @@
+import { IArea } from "../data/Data";
+
 /**
  * Packets that are received from pixelplace.
  */
@@ -102,8 +104,6 @@ export enum RECEIVED {
     CHAT_SYSTEM_DELETE = "chat.system.delete",
     /** System announcement */
     CHAT_SYSTEM_ANNOUNCE = "chat.system.announce",
-    /** Chat command */
-    CHAT_COMMAND = "chat.command",
     /** Custom message */
     CHAT_CUSTOM_MESSAGE = "chat.custom.message",
     /** Custom announcement */

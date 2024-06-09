@@ -1,12 +1,13 @@
 import * as Canvas from "../../util/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
-import { Packets } from "../../util/data/Packets";
+import { Packets } from "../../util/packets/Packets";
 import { IStatistics, IArea } from "../../util/data/Data";
 import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
+import { PacketResponseMap } from "../../util/packets/PacketResponses";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -219,7 +220,7 @@ export class Connection {
         this.send(`42["${Packets.SENT.INIT}",{"authKey":"${authKey}","authToken":"${authToken}","authId":"${authId}","boardId":${boardId}}]`);
     }
 
-    on(key: string | Packets, func: (...args: unknown[]) => void, pre: boolean) {
+    on<T extends keyof PacketResponseMap>(key: T, func: (args: PacketResponseMap[T]) => void, pre: boolean) {
         if(!this.packetHandler.listeners.has(key)) this.packetHandler.listeners.set(key, []);
         this.packetHandler.listeners.get(key)?.push([func, pre]);
     }

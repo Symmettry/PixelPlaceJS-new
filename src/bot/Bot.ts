@@ -1,7 +1,7 @@
 import * as Canvas from '../util/Canvas.js';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
-import { Packets } from "../util/data/Packets.js";
+import { Packets } from "../util/packets/Packets.js";
 import { Auth } from './Auth.js';
 import { Modes } from '../util/data/Modes.js';
 import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea } from '../util/data/Data.js';
@@ -11,6 +11,7 @@ import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
 import { TextBuilder } from '../util/drawing/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
+import { PacketResponseMap } from '../util/packets/PacketResponses.js';
 
 /**
  * The pixelplace bot.
@@ -92,7 +93,7 @@ export class Bot {
      * @param func The function to execute upon receiving it.
      * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
-    on(packet: string | Packets, func: (...args: unknown[]) => void, pre: boolean = false): void {
+    on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T]) => void, pre: boolean = false): void {
         this.connection.on(packet, func, pre);
     }
 

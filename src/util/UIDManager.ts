@@ -1,5 +1,5 @@
 import { Bot } from "../bot/Bot";
-import { Packets } from "./data/Packets";
+import { Packets } from "./packets/Packets";
 
 export default class UIDManager {
 

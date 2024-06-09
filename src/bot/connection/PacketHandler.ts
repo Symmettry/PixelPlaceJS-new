@@ -1,7 +1,8 @@
 import { constant } from "../../util/Constant";
 import { IArea } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
-import { Packets } from "../../util/data/Packets";
+import { PacketResponseMap } from "../../util/packets/PacketResponses";
+import { Packets } from "../../util/packets/Packets";
 import { getPalive, getTDelay } from "../../util/ping/PAlive";
 import { Protector } from "../../util/Protector";
 import { Bot } from "../Bot";
@@ -22,7 +23,7 @@ export class PacketHandler {
     private authToken!: string;
     private authId!: string;
 
-    listeners!: Map<string | Packets, [((...args: unknown[]) => void), boolean][]>;
+    listeners!: Map<string | Packets, [func: (...args: any) => void | ((args: any) => void), boolean][]>;
 
     constructor(connection: Connection, authKey: string, authToken: string, authId: string) {
         constant(this, 'connection', connection);
