@@ -34,6 +34,7 @@ export class ImageDrawer {
     private y!: number;
 
     private protect!: boolean;
+    private transparent!: boolean;
     private wars!: boolean;
     private force!: boolean;
 
@@ -50,6 +51,7 @@ export class ImageDrawer {
         constant(this, 'y', image.y);
 
         constant(this, 'protect', image.protect);
+        constant(this, 'transparent', image.transparent);
         constant(this, 'wars', image.wars);
         constant(this, 'force', image.force);
 
@@ -176,7 +178,7 @@ export class ImageDrawer {
     }
 
     private getCol(x: number, y: number, pixels: ImageData): number | null {
-        if(!pixels.pixels[x] || !pixels.pixels[x][y]) return null;
+        if(pixels.pixels[x] == null || pixels.pixels[x][y] == null) return null;
         return pixels.pixels[x][y];
     }
 
@@ -218,7 +220,7 @@ export class ImageDrawer {
                         const { r, g, b, a } = rgba;
                         
                         // Skip transparent pixels
-                        if (a === 0) continue;
+                        if (this.transparent && a === 0) continue;
                         
                         data.pixels[x][y] = this.instance.getClosestColorId({ r, g, b });
                     }

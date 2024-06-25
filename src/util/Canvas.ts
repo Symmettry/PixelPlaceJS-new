@@ -4,6 +4,7 @@ import { IncomingMessage } from 'http';
 import { IRGBColor } from './data/Data';
 import { Colors } from './data/Colors';
 import Jimp = require('jimp');
+import { PixelPacket } from './packets/PacketResponses';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -23,9 +24,9 @@ export class Canvas {
     private boardId: number;
 
     private canvasState: number = 0;
-    private canvasPacketData: number[][] = [];
+    private canvasPacketData: PixelPacket = [];
 
-    private delayedPixelPacketData: number[][][] = [];
+    private delayedPixelPacketData: PixelPacket[] = [];
 
     private colors: { [key: string]: number } = {'255,255,255': 0,'196,196,196': 1,'136,136,136': 2,'85,85,85': 3,'34,34,34': 4,'0,0,0': 5,'0,54,56': 39,'0,102,0': 6,
         '27,116,0': 49,'71,112,80': 40,'34,177,76': 7,'2,190,1': 8,'81,225,25': 9,'148,224,68': 10,'152,251,152': 41,'251,255,91': 11,
@@ -152,7 +153,7 @@ export class Canvas {
         });
     }
 
-    loadCanvasData(pixels: number[][]): Promise<void> {
+    loadCanvasData(pixels: PixelPacket): Promise<void> {
         return new Promise<void>((resolve) => {
             if(this.canvasState == 0 || !this.pixelData) {
                 this.canvasPacketData = pixels;
@@ -163,7 +164,7 @@ export class Canvas {
             resolve();
         });
     }
-    loadPixelData(pixels: number[][]): Promise<void> {
+    loadPixelData(pixels: PixelPacket): Promise<void> {
         return new Promise<void>((resolve) => {
             if(this.canvasState != 2 || !this.pixelData) {
                 this.delayedPixelPacketData.push(pixels);
@@ -174,7 +175,7 @@ export class Canvas {
         });
     }
 
-    private loadPixels(pixels: number[][]): void {
+    private loadPixels(pixels: PixelPacket): void {
         pixels.forEach(pixel => {
             const [x, y, col] = pixel;
             this.pixelData.set(x, y, col);

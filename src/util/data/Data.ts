@@ -34,6 +34,7 @@ export interface IImage {
     path: string;
     mode: Modes | DrawingFunction,
     protect: boolean;
+    transparent: boolean;
     wars: boolean;
     force: boolean;
 }

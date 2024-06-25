@@ -1,5 +1,7 @@
 // pingalive code recreated through deobfuscating pixelplace code
 
+import { ServerTimePacket } from "../packets/PacketResponses";
+
 function randomString(charList: string, num: number) {
     return Array.from({ length: num }, () => charList.charAt(Math.floor(Math.random() * charList.length))).join('');
 }
@@ -52,7 +54,7 @@ export function getPalive(tDelay: number, userId: number) {
     return result + "0=";
 }
 
-export function getTDelay(serverTime: number): number {
+export function getTDelay(serverTime: ServerTimePacket): number {
     const currentTime = new Date().getTime() / 1e3;
     return Math.floor(serverTime - currentTime);
 }

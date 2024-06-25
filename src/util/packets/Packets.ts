@@ -119,6 +119,19 @@ export enum RECEIVED {
     QUEUE = "queue",
     /** It gives you premium for a week. What? */
     PREMIUM_MOD = "premium.mod",
+    
+    /** Library packets */
+
+    /** All 42[] packets */
+    LIB_ALL = "*",
+    /** All received packets */
+    LIB_RAW = "**",
+    /** All sent packets */
+    LIB_SENT = "***",
+    /** When the socket closes */
+    LIB_SOCKET_CLOSE = "socket_close",
+    /** Socket error */
+    LIB_ERROR = "error",
 }
 
 /**
@@ -161,26 +174,9 @@ export enum SENT {
 }
 
 /**
- * Events for pixelplacejs-new library.
- */
-export enum LIBRARY {
-    /** All 42[] packets */
-    ALL = "*",
-    /** All received packets */
-    RAW = "**",
-    /** All sent packets */
-    SENT = "***",
-    /** When the socket closes */
-    SOCKET_CLOSE = "socket_close",
-    /** Socket error */
-    ERROR = "error",
-}
-
-/**
  * Different events in pixelplace. Includes all received and sent packets (that I know of), along with library data.
  */
 export class Packets {
     static RECEIVED: typeof RECEIVED = RECEIVED;
     static SENT: typeof SENT = SENT;
-    static LIBRARY: typeof LIBRARY = LIBRARY;
 }

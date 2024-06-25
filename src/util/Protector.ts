@@ -1,5 +1,6 @@
 import { Bot } from "../bot/Bot";
 import { IStatistics } from "./data/Data";
+import { PixelPacket, PixelPacketData } from "./packets/PacketResponses";
 
 /**
  * Utility functions for protecting pixels.
@@ -35,9 +36,9 @@ export class Protector {
         return this.protectedPixels.get(`${x},${y}`);
     }
 
-    async detectPixels(pixels: number[][]): Promise<void> {
+    async detectPixels(pixels: PixelPacket): Promise<void> {
         await Promise.all(
-            pixels.map((pixel) => {
+            pixels.map((pixel: PixelPacketData) => {
                 const [x, y, col] = pixel;
                 const protectColor = this.getColor(x, y);
                 if (protectColor == undefined || protectColor == col) return;

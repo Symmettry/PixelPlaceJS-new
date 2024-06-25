@@ -1,8 +1,8 @@
 import { constant } from "../../util/Constant";
 import { IArea } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
-import { PacketResponseMap } from "../../util/packets/PacketResponses";
-import { Packets } from "../../util/packets/Packets";
+import { AreaFightEndPacket, AreaFightStartPacket, AreaFightZoneChangePacket, CanvasPacket, MessageTuple, PacketResponseMap, PixelPacket, ServerTimePacket, UsernamePacket } from "../../util/packets/PacketResponses";
+import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { getPalive, getTDelay } from "../../util/ping/PAlive";
 import { Protector } from "../../util/Protector";
 import { Bot } from "../Bot";
@@ -14,7 +14,7 @@ export class PacketHandler {
     private bot!: Bot;
 
     private canvasPictureLoaded: boolean = false;
-    private canvasValue!: number[][];
+    private canvasValue!: CanvasPacket;
 
     private tDelay: number = 0;
     private userId: number = -1;
@@ -43,17 +43,19 @@ export class PacketHandler {
     async evaluatePacket(buffer: Buffer, resolve: (value: void | PromiseLike<void>) => void) {
         const data: string = buffer.toString(); // buffer -> string
 
-        if(this.listeners.has(Packets.LIBRARY.RAW)) {
-            this.listeners.get(Packets.LIBRARY.RAW)?.forEach(listener => listener[0](data));
+        if(this.listeners.has(Packets.RECEIVED.LIB_RAW)) {
+            this.listeners.get(Packets.RECEIVED.LIB_RAW)?.forEach(listener => listener[0](data));
         }
                 
-        // Gets the data and ID of the response
-        let index = data.indexOf("{");
-        const cube = data.indexOf("[");
-        if (index === -1 || (cube < index && cube != -1)) {
+        // Gets the data and ID of the response. This is quite ugly but who cares fr!!!
+        let index = data.indexOf("{"); // brace
+        const cube = data.indexOf("["); // box
+        if (index === -1 || (cube < index && cube != -1)) { 
+            // if there is no brace or if the box is behind the brace & exists.
             index = cube;
         }
-        const json = index !== -1 ? index : -1; 
+        // if there is a brace/box, we will substring to get the id & json, otherwise we will leave it as is
+        const json = index !== -1 ? index : -1;
         const id = json == -1 ? data : data.substring(0, json);
 
         // if JSON, parse, else keep it
@@ -90,11 +92,10 @@ export class PacketHandler {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- bro... I am NOT going to write a type for EVERY possible pixelplace response! Fuck off eslint.
-    private async handlePXPMessage(message: [string, any], resolve: (value: void | PromiseLike<void>) => void) {
-        const key = message[0];
-        const value = message[1];
+    private async handlePXPMessage<T extends keyof PacketResponseMap>(message: MessageTuple<T>, resolve: (value: void | PromiseLike<void>) => void) {
+        const key: T = message[0];
 
+        const value: PacketResponseMap[typeof key] = message[1] as PacketResponseMap[typeof key];
         // Packet listeners pre
         this.listen(key, value, true);
 
@@ -103,22 +104,22 @@ export class PacketHandler {
         // built-in functions, e.g. keepalive and pixels.
         switch(key) {
             case Packets.RECEIVED.ERROR: {
-                this.handleError(value);
+                this.handleError(value as PPError);
                 break;
             }
             case Packets.RECEIVED.RATE_CHANGE:
 
                 // off by about 2ms
-                this.bot.rate = value + 2;
+                this.bot.rate = (value as number) + 2;
 
                 if(this.bot.checkRate == -2) {
-                    this.bot.setPlacementSpeed(value + 2, true, this.bot.suppress);
+                    this.bot.setPlacementSpeed(() => (value as number) + 2, true, this.bot.suppress);
                 }
 
                 if(this.bot.checkRate < 0 || this.bot.suppress) break;
 
-                if(this.bot.checkRate < value + 2) {
-                    console.warn(`~~WARN~~ (Rate change) Placement speed under ${value + 2} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
+                if(this.bot.checkRate < (value as number) + 2) {
+                    console.warn(`~~WARN~~ (Rate change) Placement speed under ${(value as number) + 2} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
                 }
                 break;
             case Packets.RECEIVED.CHAT_STATS: // Although repeated frequently, this is the first packet sent after init, so we'll use it.
@@ -137,12 +138,12 @@ export class PacketHandler {
                 this.connection.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay, this.userId)}"]`)
                 break;
             case Packets.RECEIVED.PIXEL: // pixels
-                if(this.connection.isWorld)this.connection.canvas.loadPixelData(value);
-                if(this.bot.protector)await this.bot.protector.detectPixels(value);
+                if(this.connection.isWorld)this.connection.canvas.loadPixelData(value as PixelPacket);
+                if(this.bot.protector)await this.bot.protector.detectPixels(value as PixelPacket);
                 
                 // pass the pixel update to the uid manager
-                if(this.bot.getUidManager() && value.length > 0 && value[0].length == 5) {
-                    this.bot.getUidManager().onPixels(value);
+                if(this.bot.getUidManager() && (value as PixelPacket).length > 0 && (value as PixelPacket)[0].length == 5) {
+                    this.bot.getUidManager().onPixels(value as PixelPacket);
                 }
 
                 // go through and verify if the pixels the bot placed were actually sent
@@ -150,26 +151,26 @@ export class PacketHandler {
                 break;
             case Packets.RECEIVED.CANVAS: { // canvas
                 this.connection.connected = true;
-                this.canvasValue = value;
+                this.canvasValue = value as CanvasPacket;
                 if(this.canvasPictureLoaded) {
-                    this.connection.loadCanvas(value, resolve);
+                    this.connection.loadCanvas(value as CanvasPacket, resolve);
                 }
                 break;
             }
             case Packets.RECEIVED.SERVER_TIME:
-                this.tDelay = getTDelay(value); // ping.alive stuff
+                this.tDelay = getTDelay(value as ServerTimePacket); // ping.alive stuff
                 break;
             case Packets.RECEIVED.USERNAME:
                 // pass the username data to the uid manager
                 if(this.bot.getUidManager()) {
-                    this.bot.getUidManager().onUsername(value.id, value.name);
+                    this.bot.getUidManager().onUsername(value as UsernamePacket);
                 }
                 break;
             case Packets.RECEIVED.CHAT_LOADED:
                 this.connection.chatLoaded = true;
                 break;
             case Packets.RECEIVED.AREAS:
-                value.forEach((element: IArea) => {
+                (value as IArea[]).forEach((element: IArea) => {
                     this.connection.areas[element.name] = element;
 
                     if(element.state == 1) {
@@ -179,31 +180,33 @@ export class PacketHandler {
                 });
                 break;
             case Packets.RECEIVED.AREA_FIGHT_START: {
-                const area = this.connection.getAreaById(value.id);
+                const start: AreaFightStartPacket = value as AreaFightStartPacket;
+                const area = this.connection.getAreaById(start.id);
                 if(area == null) return; // not on /7
 
-                area.fightEndAt = value.fightEndAt;
-                area.nextFightAt = value.nextFightAt;
-                area.fightType = value.fightType;
+                area.fightEndAt = start.fightEndAt;
+                area.nextFightAt = start.nextFightAt;
+                area.fightType = start.fightType;
 
                 this.connection.warOccurring = true;
                 this.connection.currentWarZone = area.name;
                 break;
             }
             case Packets.RECEIVED.AREA_FIGHT_END: {
-                const area = this.connection.getAreaById(value.id);
+                const end: AreaFightEndPacket = value as AreaFightEndPacket;
+                const area = this.connection.getAreaById(end.id);
                 if(area == null) return; // not on /7
 
-                area.defended = value.defended;
-                area.ownedBy = value.ownedBy;
-                area.ownedByGuild = value.ownedByGuild;
-                area.previousOwner = value.previousOwner;
-                area.fightType = value.fightType;
-                area.points = value.points;
-                area.stats = value.stats;
-                area.total = value.total;
-                area.nextFightAt = value.nextFight; // owi, why? why nextFight and not nextFightAt like your areas packet???? WHY?! Basically the only reason I can't do area = value!
-                area.canvas = value.canvas;
+                area.defended = end.defended;
+                area.ownedBy = end.ownedBy;
+                area.ownedByGuild = end.ownedByGuild;
+                area.previousOwner = end.previousOwner;
+                area.fightType = end.fightType;
+                area.points = end.points;
+                area.stats = end.stats;
+                area.total = end.total;
+                area.nextFightAt = end.nextFight; // owi, why? why nextFight and not nextFightAt like your areas packet???? WHY?! Basically the only reason I can't do area = value!
+                area.canvas = end.canvas;
 
                 this.connection.warOccurring = false;
                 
@@ -211,13 +214,14 @@ export class PacketHandler {
                 break;
             }
             case Packets.RECEIVED.AREA_FIGHT_ZONE_CHANGE: {
+                const change = value as AreaFightZoneChangePacket;
                 const area = this.connection.getAreas()[this.connection.getCurrentWarZone()];
                 if(area == null) return; // not on /7
 
-                area.xStart = value.xStart;
-                area.yStart = value.yStart;
-                area.xEnd = value.xEnd;
-                area.yEnd = value.yEnd;
+                area.xStart = change.xStart;
+                area.yStart = change.yStart;
+                area.xEnd = change.xEnd;
+                area.yEnd = change.yEnd;
 
                 this.bot.sendWarPackets(); // so that it fills in the gap lmao.
             }
@@ -287,14 +291,14 @@ export class PacketHandler {
         }
     }
 
-    private listen(key: string, value: unknown, pre: boolean) {
+    private listen<T extends keyof RECEIVED>(key: RECEIVED[T], value: unknown, pre: boolean) {
         // per-key
         if(this.listeners.has(key)) { // if there are listeners for this key
             this.listeners.get(key)?.forEach(listener => listener[1] == pre && listener[0](value)); // then send the value!
         }
         // all-keys
-        if(this.listeners.has(Packets.LIBRARY.ALL)) {
-            this.listeners.get(Packets.LIBRARY.ALL)?.forEach(listener => listener[1] == pre && listener[0](key, value));
+        if(this.listeners.has(Packets.RECEIVED.LIB_ALL)) {
+            this.listeners.get(Packets.RECEIVED.LIB_ALL)?.forEach(listener => listener[1] == pre && listener[0](key, value));
         }
     }
 

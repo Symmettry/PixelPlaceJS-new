@@ -410,11 +410,12 @@ export class Bot {
      * @param path The path of the image.
      * @param mode The mode to draw. Can also be DrawingFunction.
      * @param protect If the pixels should be replaced when another player modifies them.
+     * @param transparent If the image is transparent. Will skip any 0 alpha pixels.
      * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      * @returns A promise that resolves once the image is done drawing.
      */
-    async drawImage(...args: [IImage] | [x: number, y: number, path: string, mode?: Modes, protect?: boolean, wars?: boolean, force?: boolean]): Promise<void> {
+    async drawImage(...args: [IImage] | [x: number, y: number, path: string, mode?: Modes, protect?: boolean, transparent?: boolean, wars?: boolean, force?: boolean]): Promise<void> {
         let image: IImage;
 
         if (args.length === 1 && typeof args[0] === 'object') {
@@ -426,8 +427,9 @@ export class Bot {
                 path: args[2] as string,
                 mode: args[3] as Modes || Modes.TOP_LEFT_TO_RIGHT,
                 protect: args[4] as boolean || false,
-                wars: args[5] as boolean || false,
-                force: args[6] as boolean || false
+                transparent: args[5] as boolean || false,
+                wars: args[6] as boolean || false,
+                force: args[7] as boolean || false
             };
         } else throw new Error('Invalid arguments for drawImage.');
         

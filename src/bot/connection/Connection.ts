@@ -7,7 +7,7 @@ import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
-import { PacketResponseMap } from "../../util/packets/PacketResponses";
+import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -185,8 +185,8 @@ export class Connection {
     private socketClosed() {
         this.connected = false;
         this.chatLoaded = false;
-        if(this.packetHandler.listeners.has(Packets.LIBRARY.SOCKET_CLOSE)) {
-            this.packetHandler.listeners.get(Packets.LIBRARY.SOCKET_CLOSE)?.forEach(listener => listener[0]());
+        if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SOCKET_CLOSE)) {
+            this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]());
         }
         if(this.bot.autoRestart) {
             setTimeout(() => this.Start(), 5000);
@@ -194,8 +194,8 @@ export class Connection {
     }
 
     private socketError(error: Error) {
-        if(this.packetHandler.listeners.has(Packets.LIBRARY.ERROR)) {
-            this.packetHandler.listeners.get(Packets.LIBRARY.ERROR)?.forEach(listener => listener[0](error));
+        if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_ERROR)) {
+            this.packetHandler.listeners.get(Packets.RECEIVED.LIB_ERROR)?.forEach(listener => listener[0](error));
         }
 
         // statistics
@@ -205,7 +205,7 @@ export class Connection {
     /**
      * Loads canvas data.
      */
-    async loadCanvas(value: number[][], resolve: (value: void | PromiseLike<void>) => void) {
+    async loadCanvas(value: CanvasPacket, resolve: (value: void | PromiseLike<void>) => void) {
         if(this.isWorld)await this.canvas.loadCanvasData(value);
         this.stats.session.beginTime = Date.now();
 
@@ -227,8 +227,8 @@ export class Connection {
 
     send(value: Buffer | Uint8Array | string | unknown[]) {
         try {
-            if(this.packetHandler.listeners.has(Packets.LIBRARY.SENT)) {
-                this.packetHandler.listeners.get(Packets.LIBRARY.SENT)?.forEach(listener => listener[0](value));
+            if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SENT)) {
+                this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SENT)?.forEach(listener => listener[0](value));
             }
             this.socket.send(value);
 

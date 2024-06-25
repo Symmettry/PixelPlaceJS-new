@@ -1,82 +1,92 @@
 import { Colors } from "../data/Colors";
 import { IArea } from "../data/Data";
 import { PPError } from "../data/Errors";
-import { Packets } from "./Packets";
+import { Packets, RECEIVED } from "./Packets";
 
 /**
  * Types for packets.
  */
 export type PacketResponseMap = {
-    [Packets.RECEIVED.PIXEL]: PixelPacket,
-    [Packets.RECEIVED.RATE_CHANGE]: RateChangePacket,
+    [RECEIVED.PIXEL]: PixelPacket,
+    [RECEIVED.RATE_CHANGE]: RateChangePacket,
 
-    [Packets.RECEIVED.PING_ALIVE]: null,
-    [Packets.RECEIVED.SERVER_TIME]: ServerTimePacket,
+    [RECEIVED.PING_ALIVE]: null,
+    [RECEIVED.SERVER_TIME]: ServerTimePacket,
 
-    [Packets.RECEIVED.LEAVE]: LeavePacket,
-    [Packets.RECEIVED.JOIN]: JoinPacket,
+    [RECEIVED.LEAVE]: LeavePacket,
+    [RECEIVED.JOIN]: JoinPacket,
 
-    [Packets.RECEIVED.USER_PROFILE]: UserProfilePacket,
-    [Packets.RECEIVED.USERNAME]: UsernamePacket;
+    [RECEIVED.USER_PROFILE]: UserProfilePacket,
+    [RECEIVED.USERNAME]: UsernamePacket;
 
-    [Packets.RECEIVED.ERROR]: ErrorPacket,
-    [Packets.RECEIVED.ERROR_SPECIAL]: SpecialErrorPacket,
-    [Packets.RECEIVED.ERROR_CONNECT]: null,
+    [RECEIVED.ERROR]: ErrorPacket,
+    [RECEIVED.ERROR_SPECIAL]: SpecialErrorPacket,
+    [RECEIVED.ERROR_CONNECT]: null,
 
-    [Packets.RECEIVED.SAVE_TRACKING_CACHE]: SaveTrackingCachePacket,
-    [Packets.RECEIVED.SAVE_TRACKING_PENDING]: SaveTrackingPendingPacket,
+    [RECEIVED.SAVE_TRACKING_CACHE]: SaveTrackingCachePacket,
+    [RECEIVED.SAVE_TRACKING_PENDING]: SaveTrackingPendingPacket,
 
-    [Packets.RECEIVED.PAINTINGS_HOT]: HotPaintingsPacket,
-    [Packets.RECEIVED.PAINTING_PLAYERS]: PaintingPlayersPacket,
+    [RECEIVED.PAINTINGS_HOT]: HotPaintingsPacket,
+    [RECEIVED.PAINTING_PLAYERS]: PaintingPlayersPacket,
 
-    [Packets.RECEIVED.AREA_FIGHT_START]: AreaFightStartPacket,
-    [Packets.RECEIVED.AREA_FIGHT_END]: AreaFightEndPacket,
-    [Packets.RECEIVED.AREA_FIGHT_BONUS_CHEST]: AreaFightBonusChestPacket,
-    [Packets.RECEIVED.AREA_FIGHT_BONUS_PLAYER]: AreaFightBonusPlayerPacket,
-    [Packets.RECEIVED.AREA_FIGHT_ZONE_CHANGE]: AreaFightZoneChangePacket,
-    [Packets.RECEIVED.AREAS]: IArea[],
+    [RECEIVED.AREA_FIGHT_START]: AreaFightStartPacket,
+    [RECEIVED.AREA_FIGHT_END]: AreaFightEndPacket,
+    [RECEIVED.AREA_FIGHT_BONUS_CHEST]: AreaFightBonusChestPacket,
+    [RECEIVED.AREA_FIGHT_BONUS_PLAYER]: AreaFightBonusPlayerPacket,
+    [RECEIVED.AREA_FIGHT_ZONE_CHANGE]: AreaFightZoneChangePacket,
+    [RECEIVED.AREAS]: AreasPacket,
 
-    [Packets.RECEIVED.NOTIFICATION_ITEM_USE]: ItemUseNotificationPacket,
-    [Packets.RECEIVED.NOTIFICATION_ITEM_GIFT]: ItemGiftNotificationPacket,
-    [Packets.RECEIVED.NOTIFICATION_COINS_GIFT]: CoinsGiftNotificationPacket,
-    [Packets.RECEIVED.NOTIFICATION_GOLDEN]: GoldenNotificationPacket,
-    [Packets.RECEIVED.NOTIFICATION_SNOWBALL_ITEM]: SnowballItemNotificationPacket,
-    [Packets.RECEIVED.NOTIFICATION_AUCTION_WIN]: AuctionWinNotificationPacket,
+    [RECEIVED.NOTIFICATION_ITEM_USE]: ItemUseNotificationPacket,
+    [RECEIVED.NOTIFICATION_ITEM_GIFT]: ItemGiftNotificationPacket,
+    [RECEIVED.NOTIFICATION_COINS_GIFT]: CoinsGiftNotificationPacket,
+    [RECEIVED.NOTIFICATION_GOLDEN]: GoldenNotificationPacket,
+    [RECEIVED.NOTIFICATION_SNOWBALL_ITEM]: SnowballItemNotificationPacket,
+    [RECEIVED.NOTIFICATION_AUCTION_WIN]: AuctionWinNotificationPacket,
 
-    [Packets.RECEIVED.AUCTION_NEW_BID]: AuctionNewBidPacket,
-    [Packets.RECEIVED.AUCTION_LOST_BID]: AuctionLostBidPacket,
-    [Packets.RECEIVED.AUCTION_NEW_PAINTING]: AuctionNewPaintingPacket,
+    [RECEIVED.AUCTION_NEW_BID]: AuctionNewBidPacket,
+    [RECEIVED.AUCTION_LOST_BID]: AuctionLostBidPacket,
+    [RECEIVED.AUCTION_NEW_PAINTING]: AuctionNewPaintingPacket,
 
-    [Packets.RECEIVED.COIN_ISLAND_OWNER_CHANGE]: CoinIslandOwnerChangePacket,
-    [Packets.RECEIVED.COIN_ISLAND_OWNER]: CoinIslandOwnerPacket,
+    [RECEIVED.COIN_ISLAND_OWNER_CHANGE]: CoinIslandOwnerChangePacket,
+    [RECEIVED.COIN_ISLAND_OWNER]: CoinIslandOwnerPacket,
 
-    [Packets.RECEIVED.CANVAS]: CanvasPacket,
-    [Packets.RECEIVED.CANVAS_ACCESS_REQUESTED]: CanvasAccessRequestedPacket,
-    [Packets.RECEIVED.CANVAS_SUCCESS]: CanvasSuccessPacket,
-    [Packets.RECEIVED.CANVAS_ALERT]: CanvasAlertPacket,
-    [Packets.RECEIVED.CANVAS_RELOAD]: null,
-    [Packets.RECEIVED.CANVAS_COOLDOWN]: CanvasCooldownPacket,
-    [Packets.RECEIVED.CANVAS_COOLDOWN_DOT]: CanvasCooldownDotPacket,
-    [Packets.RECEIVED.CANVAS_PROTECTION]: null,
+    [RECEIVED.CANVAS]: CanvasPacket,
+    [RECEIVED.CANVAS_ACCESS_REQUESTED]: CanvasAccessRequestedPacket,
+    [RECEIVED.CANVAS_SUCCESS]: CanvasSuccessPacket,
+    [RECEIVED.CANVAS_ALERT]: CanvasAlertPacket,
+    [RECEIVED.CANVAS_RELOAD]: null,
+    [RECEIVED.CANVAS_COOLDOWN]: CanvasCooldownPacket,
+    [RECEIVED.CANVAS_COOLDOWN_DOT]: CanvasCooldownDotPacket,
+    [RECEIVED.CANVAS_PROTECTION]: null,
 
-    [Packets.RECEIVED.CHAT_STATS]: ChatStatsPacket,
-    [Packets.RECEIVED.CHAT_SYSTEM_MESSAGE]: ChatSystemMessagePacket,
-    [Packets.RECEIVED.CHAT_SYSTEM_DELETE]: ChatSystemDeletePacket,
-    [Packets.RECEIVED.CHAT_SYSTEM_ANNOUNCE]: ChatSystemAnnouncePacket,
-    [Packets.RECEIVED.CHAT_CUSTOM_MESSAGE]: ChatCustomMessagePacket,
-    [Packets.RECEIVED.CHAT_PAINTING_DELETE]: ChatPaintingDeletePacket,
-    [Packets.RECEIVED.CHAT_LOADED]: ChatLoadedPacket,
-    [Packets.RECEIVED.CHAT_MESSAGE]: ChatMessagePacket,
+    [RECEIVED.CHAT_STATS]: ChatStatsPacket,
+    [RECEIVED.CHAT_SYSTEM_MESSAGE]: ChatSystemMessagePacket,
+    [RECEIVED.CHAT_SYSTEM_DELETE]: ChatSystemDeletePacket,
+    [RECEIVED.CHAT_SYSTEM_ANNOUNCE]: ChatSystemAnnouncePacket,
+    [RECEIVED.CHAT_CUSTOM_MESSAGE]: ChatCustomMessagePacket,
+    [RECEIVED.CHAT_PAINTING_DELETE]: ChatPaintingDeletePacket,
+    [RECEIVED.CHAT_LOADED]: ChatLoadedPacket,
+    [RECEIVED.CHAT_MESSAGE]: ChatMessagePacket,
 
-    [Packets.RECEIVED.QUEUE]: QueuePacket;
-    [Packets.RECEIVED.PREMIUM_MOD]: null,
+    [RECEIVED.QUEUE]: QueuePacket;
+    [RECEIVED.PREMIUM_MOD]: null,
 
-    [Packets.LIBRARY.ALL]: [key: string, value: unknown],
-    [Packets.LIBRARY.RAW]: string,
-    [Packets.LIBRARY.ERROR]: Error,
-    [Packets.LIBRARY.SOCKET_CLOSE]: null,
-    [Packets.LIBRARY.SENT]: string,
+    [RECEIVED.LIB_ALL]: [key: string, value: unknown],
+    [RECEIVED.LIB_RAW]: string,
+    [RECEIVED.LIB_ERROR]: Error,
+    [RECEIVED.LIB_SOCKET_CLOSE]: null,
+    [RECEIVED.LIB_SENT]: string,
 }
+
+/**
+ * Message tuple for string -> packet. Idk why this exists idfk...
+ */
+export type MessageTuple<T extends keyof PacketResponseMap> = [T, PacketResponseMap[T]];
+
+/**
+ * Packet for areas so you don't put IArea[] weirdly.
+ */
+export type AreasPacket = IArea[];
 
 /**
  * Packet for new painting being sold.
@@ -145,7 +155,7 @@ export type CanvasSuccessPacket = string;
  */
 export type CanvasAccessRequestedPacket = number;
 
-type PixelData = [
+export type PixelPacketData = [
     /** The x coordinate of the pixel. */
     x: number,
     /** The y coordinate of the pixel. */
@@ -161,12 +171,12 @@ type PixelData = [
 /**
  * Contains an array of pixel data.
  */
-export type PixelPacket = PixelData[];
+export type PixelPacket = PixelPacketData[];
 
 /**
  * Also contains an array of pixel data, but this packet is only sent at the start.
  */
-export type CanvasPacket = PixelPacket[];
+export type CanvasPacket = PixelPacketData[];
 
 /**
  * Represents a user profile.
@@ -456,7 +466,7 @@ export type AreaFightStartPacket = {
     /** The type of fight. */
     fightType: number,
     /** The fight id. */
-    id: string,
+    id: number,
     /** The timestamp of the next fight. */
     nextFightAt: number
 };
@@ -472,7 +482,7 @@ export type AreaFightEndPacket = {
     /** The fight type. */
     fightType: 1,
     /** The fight id. */
-    id: string,
+    id: number,
     /** The timestamp of the next fight. */
     nextFight: number,
     /** The type of the next fight. */

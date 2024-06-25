@@ -1,4 +1,5 @@
 import { Bot } from "../bot/Bot";
+import { PixelPacket, PixelPacketData, UsernamePacket } from "./packets/PacketResponses";
 import { Packets } from "./packets/Packets";
 
 export default class UIDManager {
@@ -12,15 +13,16 @@ export default class UIDManager {
         this.pp = pp;
     }
 
-    onPixels(pixels: number[][]) {
-        pixels.forEach((pixel: number[]) => {
+    onPixels(pixels: PixelPacket) {
+        pixels.forEach((pixel: PixelPacketData) => {
+            if(!pixel[4]) return;
             const uid = pixel[4];
             this.register(uid);
             this.premium = true;
         })
     }
-    onUsername(id: number, name: string) {
-        this.uidMap.set(id, name);
+    onUsername(packet: UsernamePacket) {
+        this.uidMap.set(packet.id, packet.name);
         this.premium = true;
     }
 
