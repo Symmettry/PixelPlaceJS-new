@@ -83,19 +83,26 @@ export const ErrorMessages = {
     34: "Servers are full, we are limiting instances of pixelplace.io opened per internet connections, please close some windows/tabs. If you are using a proxy or shared connection, you may need to switch to a private one",
     35: "Guild leader disbanded guild",
     36: "Kicked from guild",
+    
     // no idea lmao it just kicks you / does nothing
     37: "Disconnect in 4 seconds",
     39: "Disconnect in 4 seconds",
     40: "Disconnect in 1 second",
     41: "Disconnect in 4 seconds",
+
     // throw.error.special!
     42: "This error tells the website to reload items in 1.5 seconds.",
     43: "Disconnect in 4 seconds with a special error message.",
-    // these 4 clear some intervals. i don't know what for but it's probably important for the website. not much use here
+
+    // coin island stuff
     44: "Says 'Welcome to Coin Island!' and disconnects you",
     45: "Says 'Welcome to Tiny Coin Island #1!' and disconnects you",
     46: "Says 'Welcome to Tiny Coin Island #2!' and disconnects you",
     47: "Says 'Welcome to Tiny Coin Island #3!' and disconnects you",
+
+    // auth id
     49: "Invalid Auth Id",
+
+    // request spam
     50: "Too much requests coming from your internet connection. Please wait a minute and refresh your page. Are you using a proxy or public/shared connection?",
 };
