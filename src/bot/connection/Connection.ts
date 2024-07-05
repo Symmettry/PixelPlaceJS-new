@@ -9,6 +9,7 @@ import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
 import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { HeaderTypes } from "../../PixelPlace";
+import { OutgoingHttpHeaders } from "http";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -33,7 +34,7 @@ export class Connection {
 
     private econnrefusedTimer: number = 0;
 
-    headers: (type: HeaderTypes) => {[key: string]: string};
+    headers: (type: HeaderTypes) => OutgoingHttpHeaders;
 
     private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
 
@@ -46,7 +47,7 @@ export class Connection {
     private packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
 
-    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: HeaderTypes) => {[key: string]: string}) {
+    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
         constant(this, 'bot', bot);
 
         this.authKey = authKey;
@@ -73,19 +74,21 @@ export class Connection {
                 console.log("~~Refreshing auth data~~");
             }
             try {
+                const headers = this.headers('relog');
+                headers.accept = "application/json, text/javascript, */*; q=0.01";
+                headers.cookie = this.generateAuthCookie();
+
                 const res = await fetch("https://pixelplace.io/api/relog.php", {
-                    "headers": {
-                        accept: "application/json, text/javascript, */*; q=0.01",
-                        cookie: this.generateAuthCookie(),
-                        ...this.headers("relog"),
-                    },
-                    "method": "GET"
-                })
+                    headers: headers as HeadersInit,
+                    method: "GET"
+                });
+                
                 const cookies = res.headers.getSetCookie()?.map(value => value.split(";")[0]);
                 if(cookies == null || cookies.length == 0 || cookies[0].startsWith("authKey=deleted")) {
                     console.log("Could not relog. Get new auth data and try again.");
                     return {};
                 }
+
                 const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
                 const newAuthData = {authKey, authToken, authId};
         
@@ -97,6 +100,7 @@ export class Connection {
                     fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
                     console.log("~~Great! Auth data refreshed and saved~~");
                 }
+
                 return newAuthData;
             } catch(err) {
                 console.log("Error when getting auth data:", err);
@@ -167,7 +171,7 @@ export class Connection {
                 if(error.message.startsWith("connect ECONNREFUSED") && Date.now() - this.econnrefusedTimer > 10000) { // this means it couldn't connect
                     this.econnrefusedTimer = Date.now();
                     this.socket.close();
-                    console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds if continuing." : ""}`);
+                    console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds." : ""}`);
                 }
             });
         });

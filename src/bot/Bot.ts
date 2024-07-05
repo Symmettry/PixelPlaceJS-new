@@ -13,6 +13,7 @@ import { TextBuilder } from '../util/drawing/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap } from '../util/packets/PacketResponses.js';
 import { HeaderTypes } from '../PixelPlace.js';
+import { OutgoingHttpHeaders } from 'http';
 
 /**
  * The pixelplace bot.
@@ -38,7 +39,7 @@ export class Bot {
 
     private uidman!: UIDManager;
 
-    headers: (type: HeaderTypes) => {[key: string]: string} = () => {return {}};
+    headers: (type: HeaderTypes) => OutgoingHttpHeaders = () => {return {}};
 
     private connection!: Connection;
     rate: number = -1;
@@ -593,7 +594,7 @@ export class Bot {
      * Sets the request headers.
      * @param headers An object of headers.
      */
-    setHeaders(headers: (type: HeaderTypes) => {[key: string]: string}) {
+    setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
         this.headers = headers;
         if(this.connection) {
             this.connection.headers = this.headers;

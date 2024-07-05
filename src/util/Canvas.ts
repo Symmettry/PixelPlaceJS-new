@@ -1,6 +1,6 @@
 import ndarray from 'ndarray';
 import * as https from 'https';
-import { IncomingMessage } from 'http';
+import { IncomingMessage, OutgoingHttpHeaders } from 'http';
 import { IRGBColor } from './data/Data';
 import { Colors } from './data/Colors';
 import Jimp = require('jimp');
@@ -9,7 +9,7 @@ import { HeaderTypes } from '../PixelPlace';
 
 const canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: number, headers: (type: HeaderTypes) => {[key: string]: string}): Canvas {
+export function getCanvas(boardId: number, headers: (type: HeaderTypes) => OutgoingHttpHeaders): Canvas {
     return hasCanvas(boardId) ? canvases.get(boardId)?.setHeaders(headers) || new Canvas(boardId, headers) : new Canvas(boardId, headers);
 }
 
@@ -44,9 +44,9 @@ export class Canvas {
     canvasWidth!: number;
     canvasHeight!: number;
 
-    headers: (type: HeaderTypes) => {[key: string]: string};
+    headers: (type: HeaderTypes) => OutgoingHttpHeaders;
 
-    constructor(boardId: number, headers: (type: HeaderTypes) => {[key: string]: string}) {
+    constructor(boardId: number, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
         this.boardId = boardId;
         this.headers = headers;
     }
@@ -184,20 +184,24 @@ export class Canvas {
     }
 
     private async getPaintingData(authId: string, authKey: string, authToken: string): Promise<{ width: number, height: number, userId: number }> {
-        const res: Response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
-            headers: {
-              "accept": "application/json",
-              "cookie": `authId=${authId};authKey=${authKey};authToken=${authToken}`,
-              ...this.headers("get-painting"),
-            },
-            method: "GET",
+        const headers = this.headers("get-painting");
+        headers['accept'] = 'application/json';
+        headers['cookie'] = `authId=${authId};authKey=${authKey};authToken=${authToken}`;
+
+        const response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
+            method: 'GET',
+            headers: headers as HeadersInit,
         });
-      
-        const json = await res.json();
-        const width = json.painting.width as number;
-        const height = json.painting.height as number;
-        const userId = json.user.id as number;
-      
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const width = data.painting.width;
+        const height = data.painting.height;
+        const userId = data.user.id;
+
         return { width, height, userId };
     }
 
@@ -221,7 +225,7 @@ export class Canvas {
      * Reassigns headers function.
      * @param headers The headers function.
      */
-    setHeaders(headers: (type: HeaderTypes) => {[key: string]: string}) {
+    setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
         this.headers = headers;
     }
 

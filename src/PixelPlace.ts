@@ -1,5 +1,6 @@
 import { Bot } from "./bot/Bot";
 import { Auth } from "./bot/Auth";
+import { OutgoingHttpHeaders } from "http2";
 
 export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog";
 
@@ -28,7 +29,7 @@ class PixelPlace {
      * @param headers A function that receives the type and returns header object.
      * @returns this
      */
-    setHeaders(headers: (type: HeaderTypes) => {[key: string]: string}): PixelPlace {
+    setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders): PixelPlace {
         this.bots.forEach(bot => {
             bot.setHeaders(headers);
         });
