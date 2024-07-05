@@ -49,7 +49,7 @@ export class LineDrawer {
             let x = this.x0;
             let y = this.y0;
     
-            while (x !== this.x1 || y !== this.y1) {
+            while (Math.abs(x - this.x1) > epsilon || Math.abs(y - this.y1) > epsilon) {
                 await this.bot.placePixel(Math.round(x), Math.round(y), this.col, 1, this.protect, this.wars, this.force);
     
                 const err2 = 2 * err;
