@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
 import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
+import { HeaderTypes } from "../../PixelPlace";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -32,7 +33,7 @@ export class Connection {
 
     private econnrefusedTimer: number = 0;
 
-    headers: (type: string) => {[key: string]: string};
+    headers: (type: HeaderTypes) => {[key: string]: string};
 
     private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
 
@@ -45,7 +46,7 @@ export class Connection {
     private packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
 
-    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: string) => {[key: string]: string}) {
+    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: HeaderTypes) => {[key: string]: string}) {
         constant(this, 'bot', bot);
 
         this.authKey = authKey;

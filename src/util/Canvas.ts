@@ -5,10 +5,11 @@ import { IRGBColor } from './data/Data';
 import { Colors } from './data/Colors';
 import Jimp = require('jimp');
 import { PixelPacket } from './packets/PacketResponses';
+import { HeaderTypes } from '../PixelPlace';
 
 const canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: number, headers: (type: string) => {[key: string]: string}): Canvas {
+export function getCanvas(boardId: number, headers: (type: HeaderTypes) => {[key: string]: string}): Canvas {
     return hasCanvas(boardId) ? canvases.get(boardId)?.setHeaders(headers) || new Canvas(boardId, headers) : new Canvas(boardId, headers);
 }
 
@@ -43,9 +44,9 @@ export class Canvas {
     canvasWidth!: number;
     canvasHeight!: number;
 
-    headers: (type: string) => {[key: string]: string};
+    headers: (type: HeaderTypes) => {[key: string]: string};
 
-    constructor(boardId: number, headers: (type: string) => {[key: string]: string}) {
+    constructor(boardId: number, headers: (type: HeaderTypes) => {[key: string]: string}) {
         this.boardId = boardId;
         this.headers = headers;
     }
@@ -220,7 +221,7 @@ export class Canvas {
      * Reassigns headers function.
      * @param headers The headers function.
      */
-    setHeaders(headers: (type: string) => {[key: string]: string}) {
+    setHeaders(headers: (type: HeaderTypes) => {[key: string]: string}) {
         this.headers = headers;
     }
 
