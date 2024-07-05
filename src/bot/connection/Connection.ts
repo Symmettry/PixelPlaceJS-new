@@ -43,6 +43,7 @@ export class Connection {
     currentWarZone: string = "NONE";
 
     private packetHandler!: PacketHandler;
+    loadResolve!: (value: void | PromiseLike<void>) => void;
 
     constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: string) => {[key: string]: string}) {
         constant(this, 'bot', bot);
@@ -176,8 +177,10 @@ export class Connection {
         if(!this.socket) throw "Bot has not connected yet.";
 
         return new Promise<void>((resolve) => {
+            this.loadResolve = resolve;
             this.socket.on('message', async (buffer: Buffer) => {
-                await this.packetHandler.evaluatePacket(buffer, resolve);
+                this.stats.socket.received++;
+                await this.packetHandler.evaluatePacket(buffer);
             });
         });
     }

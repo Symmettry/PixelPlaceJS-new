@@ -6,7 +6,7 @@ import { Packets, RECEIVED } from "./Packets";
 /**
  * Types for packets.
  */
-export type PacketResponseMap = {
+export interface PacketResponseMap {
     [RECEIVED.PIXEL]: PixelPacket,
     [RECEIVED.RATE_CHANGE]: RateChangePacket,
 

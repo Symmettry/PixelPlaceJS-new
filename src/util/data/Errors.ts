@@ -39,6 +39,7 @@ export enum PPError {
     SERVERS_FULL_LIMITED_PER_INTERNET = 34,
     GUILD_DISBANDED = 35,
     KICKED_FROM_GUILD = 36,
+    RELOAD_PAGE = 39,
     INVALID_AUTH = 49,
     TOO_MANY_PACKETS = 50,
 }
@@ -84,9 +85,8 @@ export const ErrorMessages = {
     35: "Guild leader disbanded guild",
     36: "Kicked from guild",
     
-    // no idea lmao it just kicks you / does nothing
     37: "Disconnect in 4 seconds",
-    39: "Disconnect in 4 seconds",
+    39: "Disconnect in 4 seconds -- consuming items and stuff",
     40: "Disconnect in 1 second",
     41: "Disconnect in 4 seconds",
 

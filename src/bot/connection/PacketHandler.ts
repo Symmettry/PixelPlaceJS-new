@@ -40,7 +40,7 @@ export class PacketHandler {
         this.authId = authId;
     }
 
-    async evaluatePacket(buffer: Buffer, resolve: (value: void | PromiseLike<void>) => void) {
+    async evaluatePacket(buffer: Buffer) {
         const data: string = buffer.toString(); // buffer -> string
 
         if(this.listeners.has(Packets.RECEIVED.LIB_RAW)) {
@@ -87,19 +87,17 @@ export class PacketHandler {
                 this.connection.send("3");
                 break;
             case "42": {// message
-                this.handlePXPMessage(message, resolve);
+                this.handlePXPMessage(message);
             }
         }
     }
 
-    private async handlePXPMessage<T extends keyof PacketResponseMap>(message: MessageTuple<T>, resolve: (value: void | PromiseLike<void>) => void) {
+    private async handlePXPMessage<T extends keyof PacketResponseMap>(message: MessageTuple<T>) {
         const key: T = message[0];
 
         const value: PacketResponseMap[typeof key] = message[1] as PacketResponseMap[typeof key];
         // Packet listeners pre
         this.listen(key, value, true);
-
-        this.connection.stats.socket.received++;
 
         // built-in functions, e.g. keepalive and pixels.
         switch(key) {
@@ -107,22 +105,23 @@ export class PacketHandler {
                 this.handleError(value as PPError);
                 break;
             }
-            case Packets.RECEIVED.RATE_CHANGE:
+            case Packets.RECEIVED.RATE_CHANGE: {
 
                 // off by about 2ms
                 this.bot.rate = (value as number) + 2;
 
                 if(this.bot.checkRate == -2) {
-                    this.bot.setPlacementSpeed(() => (value as number) + 2, true, this.bot.suppress);
+                    this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);
                 }
 
                 if(this.bot.checkRate < 0 || this.bot.suppress) break;
 
-                if(this.bot.checkRate < (value as number) + 2) {
-                    console.warn(`~~WARN~~ (Rate change) Placement speed under ${(value as number) + 2} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
+                if(this.bot.checkRate < this.bot.rate) {
+                    console.warn(`~~WARN~~ (Rate change) Placement speed under ${this.bot.rate} (Current rate_change value) may lead to rate limit or even a ban! Automatically fix this with setPlacementSpeed(${this.bot.checkRate}, true)`);
                 }
                 break;
-            case Packets.RECEIVED.CHAT_STATS: // Although repeated frequently, this is the first packet sent after init, so we'll use it.
+            }
+            case Packets.RECEIVED.CHAT_STATS: { // Although repeated frequently, this is the first packet sent after init, so we'll use it.
                 if(this.canvasPictureLoaded || !this.connection.isWorld || this.bot.protector) break;
 
                 this.userId = await this.connection.canvas.Init(this.authId, this.authKey, this.authToken);
@@ -131,13 +130,15 @@ export class PacketHandler {
                 this.canvasPictureLoaded = true;
                 if(this.connection.connected) {
                     if(this.canvasValue == null) throw "Something bad happened. Please make an issue report on the github.";
-                    this.connection.loadCanvas(this.canvasValue, resolve);
+                    this.connection.loadCanvas(this.canvasValue, this.connection.loadResolve);
                 }
                 break;
-            case Packets.RECEIVED.PING_ALIVE: // pixelplace keepalive
+            }
+            case Packets.RECEIVED.PING_ALIVE: { // pixelplace keepalive
                 this.connection.send(`42["${Packets.SENT.PONG_ALIVE}", "${getPalive(this.tDelay, this.userId)}"]`)
                 break;
-            case Packets.RECEIVED.PIXEL: // pixels
+            }
+            case Packets.RECEIVED.PIXEL: { // pixels
                 if(this.connection.isWorld)this.connection.canvas.loadPixelData(value as PixelPacket);
                 if(this.bot.protector)await this.bot.protector.detectPixels(value as PixelPacket);
                 
@@ -149,27 +150,31 @@ export class PacketHandler {
                 // go through and verify if the pixels the bot placed were actually sent
                 this.bot.verifyPixels();
                 break;
+            }
             case Packets.RECEIVED.CANVAS: { // canvas
                 this.connection.connected = true;
                 this.canvasValue = value as CanvasPacket;
                 if(this.canvasPictureLoaded) {
-                    this.connection.loadCanvas(value as CanvasPacket, resolve);
+                    this.connection.loadCanvas(value as CanvasPacket, this.connection.loadResolve);
                 }
                 break;
             }
-            case Packets.RECEIVED.SERVER_TIME:
+            case Packets.RECEIVED.SERVER_TIME: {
                 this.tDelay = getTDelay(value as ServerTimePacket); // ping.alive stuff
                 break;
-            case Packets.RECEIVED.USERNAME:
+            }
+            case Packets.RECEIVED.USERNAME: {
                 // pass the username data to the uid manager
                 if(this.bot.getUidManager()) {
                     this.bot.getUidManager().onUsername(value as UsernamePacket);
                 }
                 break;
-            case Packets.RECEIVED.CHAT_LOADED:
+            }
+            case Packets.RECEIVED.CHAT_LOADED: {
                 this.connection.chatLoaded = true;
                 break;
-            case Packets.RECEIVED.AREAS:
+            }
+            case Packets.RECEIVED.AREAS: {
                 (value as IArea[]).forEach((element: IArea) => {
                     this.connection.areas[element.name] = element;
 
@@ -179,6 +184,7 @@ export class PacketHandler {
                     }
                 });
                 break;
+            }
             case Packets.RECEIVED.AREA_FIGHT_START: {
                 const start: AreaFightStartPacket = value as AreaFightStartPacket;
                 const area = this.connection.getAreaById(start.id);
