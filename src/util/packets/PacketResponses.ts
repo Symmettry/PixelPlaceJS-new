@@ -1,7 +1,7 @@
 import { Colors } from "../data/Colors";
 import { IArea } from "../data/Data";
 import { PPError } from "../data/Errors";
-import { Packets, RECEIVED } from "./Packets";
+import { RECEIVED } from "./Packets";
 
 /**
  * Types for packets.

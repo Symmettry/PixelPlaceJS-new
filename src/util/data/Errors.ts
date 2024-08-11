@@ -104,5 +104,5 @@ export const ErrorMessages = {
     49: "Invalid Auth Id",
 
     // request spam
-    50: "Too much requests coming from your internet connection. Please wait a minute and refresh your page. Are you using a proxy or public/shared connection?",
+    50: "Too many requests are coming from your internet connection. Please wait a minute and refresh your page. Are you using a proxy or public/shared connection?",
 };

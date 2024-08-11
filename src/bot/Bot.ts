@@ -14,6 +14,7 @@ import { LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap } from '../util/packets/PacketResponses.js';
 import { HeaderTypes } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
+import { Colors } from '../util/data/Colors.js';
 
 /**
  * The pixelplace bot.
@@ -263,7 +264,7 @@ export class Bot {
     }
 
     private semiAccurateTimeout(call: () => void, time: number): void {
-        time += Math.floor(Math.random() * 3); // add jitter but not as extreme as normal js & not so widespread across systems
+        time += Math.floor(Math.random() * 3) + 2; // add jitter but not as extreme as normal js & not so widespread across systems
 
         const start = process.hrtime();
         function loop() {
@@ -289,7 +290,7 @@ export class Bot {
 
         const colAtSpot = this.getPixelAt(x, y);
 
-        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535 // 65535 is ocean.
+        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Colors.OCEAN;
         if(skippedColor) {
             setImmediate(() => this.resolvePacket(queuedPixel));
             return;
@@ -326,9 +327,9 @@ export class Bot {
         const {x, y, col, brush, wars, force} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
-        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == 65535; // 65535 is ocean.
-        const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
-        if(skippedColor || skippedWar) {
+        const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Colors.OCEAN)
+                            || (!wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y));
+        if(skipped) {
             return;
         }
 
