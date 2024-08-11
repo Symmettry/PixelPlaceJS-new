@@ -10,6 +10,7 @@ import { PacketHandler } from './PacketHandler.js';
 import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { HeaderTypes } from "../../PixelPlace";
 import { OutgoingHttpHeaders } from "http";
+import { PacketSendMap } from "../../util/packets/PacketSends";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -117,7 +118,7 @@ export class Connection {
         if(!authData || Object.keys(authData).length == 0 || !authData.authId) {
             process.exit();
         }
-        this.sendInit(loggedIn ? authData.authKey ?? null : null, loggedIn ? authData.authToken ?? null : null, authData.authId, this.boardId);
+        this.sendInit(loggedIn ? authData.authKey ?? undefined : undefined, loggedIn ? authData.authToken ?? undefined : undefined, authData.authId, this.boardId);
     }
 
     private generateAuthCookie(): string {
@@ -220,12 +221,12 @@ export class Connection {
         setTimeout(resolve, 1000);
     }
 
-    sendInit(authKey: string | null, authToken: string | null, authId: string, boardId: number): void {
+    sendInit(authKey: string | undefined, authToken: string | undefined, authId: string, boardId: number): void {
         if(authKey == null && authToken == null) {
-            this.send(`42["${Packets.SENT.INIT}",{"authId":"${authId}","boardId":${boardId}}]`);
+            this.emit(Packets.SENT.INIT, { authId, boardId });
             return;
         }
-        this.send(`42["${Packets.SENT.INIT}",{"authKey":"${authKey}","authToken":"${authToken}","authId":"${authId}","boardId":${boardId}}]`);
+        this.emit(Packets.SENT.INIT, { authKey, authToken, authId, boardId });
     }
 
     on<T extends keyof PacketResponseMap>(key: T, func: (args: PacketResponseMap[T]) => void, pre: boolean) {
@@ -245,6 +246,14 @@ export class Connection {
         } catch(err) {
             console.log("An error occurred when sending packets to pixelplace. Check your internet connection.");
         }
+    }
+
+    emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]) {
+        if(value == null) {
+            this.send(`42["${type}"]`);
+            return;
+        }
+        this.send(`42["${type}",${JSON.stringify(value)}]`)
     }
 
     getAreas(): {[key: string]: IArea} {

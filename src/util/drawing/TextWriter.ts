@@ -1,6 +1,6 @@
 import { Bot } from "../../bot/Bot";
 import { constant } from "../Constant";
-import { Colors } from "../data/Colors";
+import { Color } from "../data/Color";
 import { Font, FontData, fontData } from "./fonts/Font";
 
 /** Builds a text drawing. This is here due to too many options existing. */
@@ -17,7 +17,7 @@ export class TextBuilder {
     wars!: boolean;
     force!: boolean;
 
-    _textColor: number = Colors.BLACK;
+    _textColor: number = Color.BLACK;
     _backgroundColor: number = -1;
     _colorEmpty: boolean = false;
     

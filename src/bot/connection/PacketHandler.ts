@@ -10,7 +10,6 @@ export type PacketListeners = Map<string | Packets, [func: (...args: any) => voi
 export class PacketHandler {
 
     private connection!: Connection;
-    private bot!: Bot;
 
     private authKey!: string;
     private authToken!: string;
@@ -21,7 +20,6 @@ export class PacketHandler {
 
     constructor(connection: Connection, authKey: string, authToken: string, authId: string) {
         constant(this, 'connection', connection);
-        constant(this, 'bot', connection.bot);
 
         constant(this, 'listeners', new Map());
 

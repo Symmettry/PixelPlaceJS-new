@@ -1,6 +1,6 @@
 import { Modes } from "./Modes";
 import { DrawingFunction } from "../drawing/ImageDrawer";
-import { Colors } from "./Colors";
+import { Color } from "./Color";
 
 /**
  * Pixel data.
@@ -8,7 +8,7 @@ import { Colors } from "./Colors";
 export interface IPixel {
     x: number;
     y: number;
-    col: number;
+    col: Color;
     brush: number;
     protect: boolean;
     wars: boolean;
@@ -48,7 +48,7 @@ export interface IImage {
 export type ImageData = {
     width: number,
     height: number,
-    pixels: Colors[][],
+    pixels: Color[][],
 }
 
 /**

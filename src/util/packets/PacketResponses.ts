@@ -1,4 +1,4 @@
-import { Colors } from "../data/Colors";
+import { Color } from "../data/Color";
 import { IArea } from "../data/Data";
 import { PPError } from "../data/Errors";
 import { RECEIVED } from "./Packets";
@@ -161,7 +161,7 @@ export type PixelPacketData = [
     /** The y coordinate of the pixel. */
     y: number,
     /** The color being placed. */
-    col: Colors,
+    col: Color,
     /** The brush id. */
     brush: number,
     /** If premium, a user id will be present. */

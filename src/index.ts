@@ -1,7 +1,7 @@
 export { PixelPlace } from './PixelPlace';
 export { Bot } from "./bot/Bot";
 export { Modes } from "./util/data/Modes";
-export { Colors } from "./util/data/Colors";
+export { Color as Colors } from "./util/data/Color";
 export { Packets } from "./util/packets/Packets";
 export * as PacketTypes from "./util/packets/PacketResponses";
 export { PPError, ErrorMessages } from "./util/data/Errors";

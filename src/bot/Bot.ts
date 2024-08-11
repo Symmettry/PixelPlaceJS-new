@@ -11,10 +11,11 @@ import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
 import { TextBuilder } from '../util/drawing/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
-import { PacketResponseMap } from '../util/packets/PacketResponses.js';
+import { PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeaderTypes } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
-import { Colors } from '../util/data/Colors.js';
+import { Color } from '../util/data/Color.js';
+import { PacketSendMap } from '../util/packets/PacketSends.js';
 
 /**
  * The pixelplace bot.
@@ -43,7 +44,7 @@ export class Bot {
     headers: (type: HeaderTypes) => OutgoingHttpHeaders = () => {return {}};
 
     private connection!: Connection;
-    rate: number = -1;
+    rate: RateChangePacket = -1;
 
     /**
      * Creates a bot instance
@@ -134,7 +135,7 @@ export class Bot {
      * @param y The y coordinate of the pixel.
      * @returns The color of the pixel at x,y.
      */
-    getPixelAt(x: number, y: number): number | undefined {
+    getPixelAt(x: number, y: number): Color | undefined {
         return this.getCanvas()?.pixelData?.get(x, y);
     }
 
@@ -143,7 +144,7 @@ export class Bot {
      * @param rgb The rgb values. {r,g,b}
      * @returns The closest color to rgb
      */
-    getClosestColorId(rgb: IRGBColor): number {
+    getClosestColorId(rgb: IRGBColor): Color {
         return this.getCanvas()?.getClosestColorId(rgb);
     }
 
@@ -290,7 +291,7 @@ export class Bot {
 
         const colAtSpot = this.getPixelAt(x, y);
 
-        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Colors.OCEAN;
+        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN;
         if(skippedColor) {
             setImmediate(() => this.resolvePacket(queuedPixel));
             return;
@@ -327,7 +328,7 @@ export class Bot {
         const {x, y, col, brush, wars, force} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
-        const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Colors.OCEAN)
+        const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
                             || (!wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y));
         if(skipped) {
             return;
@@ -340,7 +341,7 @@ export class Bot {
             this.lastPixel = Date.now();
         }
 
-        this.send(`42["${Packets.SENT.PIXEL}",[${x},${y},${col},${brush}]]`);
+        this.emit(Packets.SENT.PIXEL, [x,y,col,brush]);
         this.connection.canvas?.pixelData?.set(x, y, col);
 
         const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
@@ -377,6 +378,7 @@ export class Bot {
             return Promise.resolve();
         }
 
+        // we still want to protect it even if it's same color, so it's done prior.
         if(protect) {
             this.protector.protect(x, y, col);
         }
@@ -399,11 +401,20 @@ export class Bot {
     }
 
     /**
-     * Sends a value through the socket.
+     * Sends a value through the socket. It's recommended to use emit() over this.
      * @param value The value to send.
      */
     send(value: string | unknown[] | Buffer | Uint8Array): void {
         this.connection.send(value);
+    }
+
+    /**
+     * Emits a packet type and value through the socket.
+     * @param type Packet type.
+     * @param value Value. If not set, no value will be sent through other than the packet name.
+     */
+    emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]): void {
+        this.connection.emit(type, value);
     }
     
     /**
@@ -511,7 +522,7 @@ export class Bot {
     /**
      * @returns Pixeling rate requested by pixelplace
      */
-    getRate(): number {
+    getRate(): RateChangePacket {
         return this.rate;
     }
 

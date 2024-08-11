@@ -3,7 +3,7 @@
  * Enumeration of colors.
  * @enum {number}
  */
-export enum Colors {
+export enum Color {
 
     /** 0 */
     WHITE = 0,

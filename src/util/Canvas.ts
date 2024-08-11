@@ -2,7 +2,7 @@ import ndarray from 'ndarray';
 import * as https from 'https';
 import { IncomingMessage, OutgoingHttpHeaders } from 'http';
 import { IRGBColor } from './data/Data';
-import { Colors } from './data/Colors';
+import { Color } from './data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from './packets/PacketResponses';
 import { HeaderTypes } from '../PixelPlace';
@@ -29,7 +29,7 @@ export class Canvas {
 
     private delayedPixelPacketData: PixelPacket[] = [];
 
-    private colors: { [key: string]: number } = {'255,255,255': 0,'196,196,196': 1,'136,136,136': 2,'85,85,85': 3,'34,34,34': 4,'0,0,0': 5,'0,54,56': 39,'0,102,0': 6,
+    private colors: { [key: string]: Color } = {'255,255,255': 0,'196,196,196': 1,'136,136,136': 2,'85,85,85': 3,'34,34,34': 4,'0,0,0': 5,'0,54,56': 39,'0,102,0': 6,
         '27,116,0': 49,'71,112,80': 40,'34,177,76': 7,'2,190,1': 8,'81,225,25': 9,'148,224,68': 10,'152,251,152': 41,'251,255,91': 11,
         '229,217,0': 12,'230,190,12': 13,'229,149,0': 14,'255,112,0': 42,'255,57,4': 21,'229,0,0': 20,'206,41,57': 43,'255,65,106': 44,
         '159,0,0': 19,'107,0,0': 18,'255,117,95': 23,'160,106,66': 15,'99,60,31': 17,'153,83,13': 16,'187,79,0': 22,'255,196,159': 24,
@@ -59,7 +59,7 @@ export class Canvas {
     
                 // Pixelplace canvases are always going to be white. The canvas image will not be the full size when no pixels are placed, so it's filled with white normally.
                 // Any ocean pixel will be set there when the canvas is loaded, so this causes no issues.
-                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(Colors.WHITE), [this.canvasWidth, this.canvasHeight]);
+                this.pixelData = ndarray(new Uint16Array(this.canvasWidth * this.canvasHeight).fill(Color.WHITE), [this.canvasWidth, this.canvasHeight]);
                 canvases.set(this.boardId, this);
                 resolve(data.userId);
             }).catch(reject);
@@ -71,11 +71,11 @@ export class Canvas {
      * @param rgb Rgb data
      * @returns Color id closest to rgb
      */
-    getClosestColorId(rgb: IRGBColor): number {
+    getClosestColorId(rgb: IRGBColor): Color {
         const { r, g, b } = rgb;
 
         let minDistance = Infinity;
-        let closestColorId = Colors.OCEAN;
+        let closestColorId = Color.OCEAN;
     
         for (const color in this.colors) {
             const [r2, g2, b2] = color.split(',').map(Number);
@@ -90,9 +90,9 @@ export class Canvas {
         return closestColorId;
     }
 
-    private getColorId(rgb: IRGBColor): number {
+    private getColorId(rgb: IRGBColor): Color {
         const { r, g, b } = rgb;
-        return Object.prototype.hasOwnProperty.call(this.colors, `${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : Colors.OCEAN;
+        return Object.prototype.hasOwnProperty.call(this.colors, `${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : Color.OCEAN;
     }
 
     async loadCanvasPicture(): Promise<void> {
@@ -124,12 +124,12 @@ export class Canvas {
 
                                 // 204, 204, 204 is ocean.
                                 if(r == 204 && g == 204 && b == 204) {
-                                    this.pixelData?.set(x, y, Colors.OCEAN);
+                                    this.pixelData?.set(x, y, Color.OCEAN);
                                     continue;
                                 }
 
                                 const colId = this.getColorId({r,g,b});
-                                if(colId != -1) {
+                                if(colId != Color.OCEAN) {
                                     this.pixelData?.set(x, y, colId);
                                 }
                             }
@@ -207,8 +207,8 @@ export class Canvas {
 
     /**
      * @returns Pixelplace color list.
-     */
-    getColors(): { [key: string]: number; } {
+     */ 
+    getColors(): { [key: string]: Color; } {
         return this.colors;
     }
 

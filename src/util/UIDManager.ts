@@ -41,7 +41,7 @@ export default class UIDManager {
     register(uid: number) {
         if(this.uidMap.get(uid) != undefined) return;
         
-        this.pp.send(`42["${Packets.SENT.USERNAME}",${uid.toString()}]`);
+        this.pp.emit(Packets.SENT.USERNAME, uid);
         this.uidMap.set(uid, "---");
     }
 

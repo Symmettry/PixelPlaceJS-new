@@ -104,7 +104,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.PING_ALIVE, () => {
-            this.connection.send(`42["${SENT.PONG_ALIVE}", "${getPalive(this.tDelay, this.userId)}"]`);
+            this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.userId));
         });
 
         this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
