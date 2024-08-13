@@ -15,7 +15,7 @@ export class InternalListeners {
 
     private canvasPictureLoaded: boolean = false;
 
-    private tDelay: number = 0;
+    private tDelay: ServerTimePacket = 0;
     private userId: number = -1;
 
     map!: PacketListeners;

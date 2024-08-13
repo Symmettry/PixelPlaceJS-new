@@ -192,8 +192,8 @@ export type UserProfilePacket = {
     lastActivity: number,
     /** The user's name. */
     name: string,
-    /** Whether the user is online. If they are offline, you will only receive offline. */
-    online: boolean,
+    /** Whether the user is online. This will be true if all other values are set. */
+    online: true,
     /** The user's current painting. */
     painting: number,
     /** Whether the user has the rainbow effect. */
@@ -209,8 +209,8 @@ export type UserProfilePacket = {
     /** The user's y-coordinate. */
     y: number,
 } | {
-    /** Whether the user is online. If they are offline, you will only receive offline. */
-    online: boolean,
+    /** Whether the user is online. This will be false if all other values aren't set. */
+    online: false,
 };
 
 /**

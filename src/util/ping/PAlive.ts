@@ -33,7 +33,7 @@ const paliveCharmap: {[key: string]: string} = {
     "9": "o",
 };
 
-export function getPalive(tDelay: number, userId: number) {
+export function getPalive(tDelay: ServerTimePacket, userId: number) {
     const sequenceLengths = [6, 5, 9, 4, 5, 3, 6, 6, 3];
     const currentTimestamp = Math.floor(Date.now() / 1000) + tDelay - 5400;
     const timestampString = currentTimestamp.toString();
