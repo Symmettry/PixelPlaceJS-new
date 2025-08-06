@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.1",
+    "@types/ndarray": "^1.0.14",
     "@types/node": "^20.6.5",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.1.0",

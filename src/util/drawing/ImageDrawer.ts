@@ -177,19 +177,26 @@ export class ImageDrawer {
         });
     }
 
-    private getCol(x: number, y: number, pixels: ImageData): number | null {
+    private getColor(x: number, y: number, pixels: ImageData): number | null {
         if(pixels.pixels[x] == null || pixels.pixels[x][y] == null) return null;
         return pixels.pixels[x][y];
     }
 
     async draw(x: number, y: number, pixels: ImageData): Promise<void> {
-        const col = this.getCol(x, y, pixels);
-        if(col == null) return Promise.resolve();
+        const color = this.getColor(x, y, pixels);
+        if(color == null) return Promise.resolve();
 
         const nx = this.x + x;
         const ny = this.y + y;
 
-        return this.instance.placePixel(nx, ny, col, 1, this.protect, this.wars, this.force);
+        return this.instance.placePixel({
+            x: nx,
+            y: ny,
+            col: color,
+            protect: this.protect,
+            wars: this.wars,
+            force: this.force,
+        });
     }
 
     async begin(): Promise<void> {

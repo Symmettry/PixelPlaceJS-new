@@ -43,11 +43,8 @@ class PixelPlace {
     setCFClearance(cookie: string): PixelPlace {
         return this.setHeaders((type) => {
             const h: {[key: string]: string} = {
-                "Accept": "",
                 "Accept-Encoding": "gzip, deflate, br, zstd",
                 "Accept-Language": "en-US,en;q=0.9",
-                "Cache-Control": "",
-                "Connection": "",
                 "Cookie": `cf_clearance=${cookie};`,
                 "Priority": "u=1, i",
                 "Referer": "https://pixelplace.io/",
@@ -63,19 +60,49 @@ class PixelPlace {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
                 "X-Requested-With": "XMLHttpRequest"
             };
-            switch(type){case"socket":h["Cache-Control"]="no-cache";h["Connection"]="Upgrade";break;case"get-painting":h.Accept="application/json, text/javascript, */*; q=0.01";break;case "canvas-image":h.Accept="image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";h["Cache-Control"]="no cache"}Object.keys(h).forEach(k =>{if(h[k].trim()==""){delete h[k]}});
+            switch(type) {
+                case "socket":
+                    h["Connection"]    = "Upgrade";
+                    h["Cache-Control"] = "no-cache";
+                    break;
+                 case "canvas-image":
+                    h["Cache-Control"] = "no cache";
+                    h['Accept']        = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+                    break;
+                case "get-painting":
+                    h['Accept']        = "application/json, text/javascript, */*; q=0.01";
+                    break;
+            }
             return h;
         });
     }
 
+    async CallOnBots(foreach: (bot: Bot) => void): Promise<void[]> {
+        return Promise.all(this.bots.map(foreach));
+    }
+
     /**
-     * Initiates all the bots
+     * Connects all bots
+     * @returns A promise that resolves upon the bots connecting.
+     */
+    async Connect(): Promise<void[]> {
+        return this.CallOnBots(bot => bot.Connect());
+    }
+
+    /**
+     * Loads all bots
+     * @returns A promise that resolves upon the bots loading.
+     */
+    async Load(): Promise<void[]> {
+        return this.CallOnBots(bot => bot.Load());
+    }
+
+    /**
+     * Initiates all the bots; this runs bot.Init() which delegates to bot.Connect() and bot.Load()
      * @returns A promise that resolves upon the bots initiating fully.
      */
-    async Init(): Promise<void> {
-        return new Promise<void>((resolve) => {
-            Promise.all(this.bots.map(bot => bot.Init())).then(() => setTimeout(resolve, 3000));
-        });
+    async Init(): Promise<void[]> {
+        return this.CallOnBots(bot => bot.Init());
     }
 
 }

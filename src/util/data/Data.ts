@@ -9,10 +9,10 @@ export interface IPixel {
     x: number;
     y: number;
     col: Color;
-    brush: number;
-    protect: boolean;
-    wars: boolean;
-    force: boolean;
+    brush?: number;
+    protect?: boolean;
+    wars?: boolean;
+    force?: boolean;
 }
 
 export interface IUnverifiedPixel {

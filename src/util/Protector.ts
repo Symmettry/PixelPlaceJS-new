@@ -1,3 +1,4 @@
+import { Colors } from "..";
 import { Bot } from "../bot/Bot";
 import { IStatistics } from "./data/Data";
 import { PixelPacket, PixelPacketData } from "./packets/PacketResponses";
@@ -11,13 +12,18 @@ export class Protector {
     private pp: Bot;
     private stats: IStatistics;
 
-    constructor(pp: Bot, stats: IStatistics) {
+    constructor(pp: Bot) {
         this.protectedPixels = new Map();
         this.pp = pp;
-        this.stats = stats;
+        this.stats = pp.stats;
     }
 
-    protect(x: number, y: number, col: number): void {
+    updateProtection(protect: boolean, x: number, y: number, col: Colors) {
+        if(protect) this.protect(x, y, col);
+        else this.unprotect(x, y);
+    }
+
+    protect(x: number, y: number, col: Colors): void {
         const protectColor = this.getColor(x, y);
         if (protectColor != undefined && protectColor == col) return;
 
@@ -45,9 +51,13 @@ export class Protector {
 
                 this.stats.pixels.protection.repaired++;
                 this.stats.pixels.protection.last_repair = Date.now();
-                this.pp.placePixel(x, y, protectColor, 1, true, false);
+                this.pp.placePixel({
+                    x, y,
+                    col: protectColor,
+                    protect: true,
+                });
             })
-        );      
+        );
     }
     
 }

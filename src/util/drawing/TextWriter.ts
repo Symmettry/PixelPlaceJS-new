@@ -6,28 +6,28 @@ import { Font, FontData, fontData } from "./fonts/Font";
 /** Builds a text drawing. This is here due to too many options existing. */
 export class TextBuilder {
 
-    _text!: string;
+    private _text!: string;
 
-    startX!: number;
+    private startX!: number;
 
-    _x!: number;
-    _y!: number;
+    private _x!: number;
+    private _y!: number;
 
-    protect!: boolean;
-    wars!: boolean;
-    force!: boolean;
+    private protect!: boolean;
+    private wars!: boolean;
+    private force!: boolean;
 
-    _textColor: number = Color.BLACK;
-    _backgroundColor: number = -1;
-    _colorEmpty: boolean = false;
+    private _textColor: number = Color.BLACK;
+    private _backgroundColor: number = -1;
+    private _colorEmpty: boolean = false;
     
-    _spaceLength: number = 1;
-    _separatorLength: number = 1;
-    _lineGap: number = 1;
+    private _spaceLength: number = 1;
+    private _separatorLength: number = 1;
+    private _lineGap: number = 1;
 
-    _font: Font | FontData = Font.SMALL_FONT;
+    private _font: Font | FontData = Font.SMALL_FONT;
 
-    _fillBetween: boolean = false;
+    private _fillBetween: boolean = false;
 
     private bot!: Bot;
 
@@ -299,7 +299,14 @@ export class TextWriter {
     
                 for(const pixel of pixels) {
                     if(pixel[2] == -1) continue;
-                    await this.bot.placePixel(pixel[0], pixel[1], pixel[2], 1, this.protect, this.wars, this.force);
+                    await this.bot.placePixel({
+                        x: pixel[0],
+                        y: pixel[1],
+                        col: pixel[2],
+                        protect: this.protect,
+                        wars: this.wars,
+                        force: this.force,
+                    });
                 }
     
                 this.placeX += length;
@@ -307,7 +314,14 @@ export class TextWriter {
                 if(this.colorEmpty && this.backgroundColor != -1 && this.separatorLength > 0 && (i != points.length - 1 || this.fillBetween) && point != "\n" && points[i + 1] != "\n") {
                     for(let i2 = 0; i2 < this.separatorLength; i2++) {
                         for(let i3 = 0; i3 < this.data.height; i3++) {
-                            await this.bot.placePixel(this.placeX + i2, this.placeY + i3, this.backgroundColor, 1, this.protect, this.wars, this.force);
+                            await this.bot.placePixel({
+                                x: this.placeX + i2,
+                                y: this.placeY + i3,
+                                col: this.backgroundColor,
+                                protect: this.protect,
+                                wars: this.wars,
+                                force: this.force,
+                            });
                         }
                     }
                 }

@@ -41,9 +41,22 @@ export class Bot {
 
     private uidman!: UIDManager;
 
-    headers: (type: HeaderTypes) => OutgoingHttpHeaders = () => {return {}};
+    // ! it's set with setHeaders()
+    headers!: (type: HeaderTypes) => OutgoingHttpHeaders;
 
-    private connection!: Connection;
+    private debugger: boolean = false;
+
+    private connection: Connection | null = null;
+
+
+    private ffIndex: number = 0;
+    private ffStage: boolean = false;
+    /** Slows the rate down by this many ms */
+    slowdownFlipFlop: number = 6;
+    /** This will flip every this many pixels */
+    slowdownFlipEvery: number = 4;
+
+    /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
 
     /**
@@ -57,7 +70,10 @@ export class Bot {
         this.authToken = auth.authToken;
         this.authId = auth.authId;
 
+        this.setHeaders(() => {return {}});
+
         constant(this, 'boardId', auth.boardId);
+        constant(this, 'protector', new Protector(this));
         
         this.autoRestart = autoRestart;
         this.handleErrors = handleErrors;
@@ -84,11 +100,25 @@ export class Bot {
     }
 
     /**
+     * @returns true if the bot is connected
+     */
+    connected(): boolean  {
+        return this.connection != null && this.connection.connected;
+    }
+
+    getConnection(): Connection {
+        if(!this.connected()) {
+            throw new Error("Not connected yet!")
+        }
+        return this.connection!;
+    }
+
+    /**
      * Canvas
      * @returns The canvas the bot is on.
      */
     getCanvas(): Canvas.Canvas {
-        return this.connection.canvas;
+        return this.getConnection().canvas;
     }
 
     /**
@@ -98,7 +128,7 @@ export class Bot {
      * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
     on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T]) => void, pre: boolean = false): void {
-        this.connection.on(packet, func, pre);
+        this.getConnection().on(packet, func, pre);
     }
 
     /**
@@ -115,7 +145,8 @@ export class Bot {
      */
     async Connect(): Promise<void> {
         this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats, this.headers);
-        return this.connection.Connect();
+        await this.connection.Connect();
+        if(this.debugger) this.addDebuggerInternal();
     }
 
     /**
@@ -159,7 +190,7 @@ export class Bot {
             if(this.getPixelAt(pixel.data.x, pixel.data.y) == pixel.data.col) continue;
 
             this.resendQueue.push(pixel.data); // pixels were not sent, redo them
-            this.connection.canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
+            this.getConnection().canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
 
             // statistics
             this.stats.pixels.placing.failed++;
@@ -218,37 +249,6 @@ export class Bot {
     }
 
     /**
-     * Places a pixel
-     * @param x The x coordinate of the pixel.
-     * @param y The y coordinate of the pixel.
-     * @param col The color of the pixel.
-     * @param brush The brush to place the pixel. Defaults to 1.
-     * @param protect Whether the pixel should be replaced when changed. Defaults to false.
-     * @param wars Whether the pixel should be placed if it's in a war zone during a war. Defaults to false. (will get you banned if a mod sees)
-     * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
-     * @returns A promise that resolves upon the pixel being sent.
-     */
-    async placePixel(...args: [IPixel] | [x: number, y: number, col: number, brush?: number, protect?: boolean, wars?: boolean, force?: boolean]): Promise<void> {
-        let pixel: IPixel;
-
-        if (args.length === 1 && typeof args[0] === 'object') {
-            pixel = args[0] as IPixel;
-        } else if (args.length >= 3) {
-            pixel = {
-                x: args[0] as number,
-                y: args[1] as number,
-                col: args[2] as number,
-                brush: args[3] as number || 1,
-                protect: args[4] as boolean || false,
-                wars: args[5] as boolean || false,
-                force: args[6] as boolean || false
-            };
-        } else throw new Error('Invalid arguments for placePixel.');
-
-        return this.placePixelInternal(pixel);
-    }
-
-    /**
      * Directly protects a pixel. It can help with certain bugs.
      * @param x The x coordinate of the pixel.
      * @param y The y coordinate of the pixel.
@@ -264,9 +264,7 @@ export class Bot {
         this.goThroughPixels();
     }
 
-    private semiAccurateTimeout(call: () => void, time: number): void {
-        time += Math.floor(Math.random() * 3) + 2; // add jitter but not as extreme as normal js & not so widespread across systems
-
+    private accurateTimeout(call: () => void, time: number): void {
         const start = process.hrtime();
         function loop() {
             const elapsed = process.hrtime(start)[1] / 1000000;
@@ -315,8 +313,14 @@ export class Bot {
             return this.resolvePacket(queuedPixel);
         }
 
+        if(++this.ffIndex > this.slowdownFlipEvery) {
+            this.ffIndex = 0;
+            this.ffStage = !this.ffStage;
+        }
+        queuedPixel.speed += this.ffStage ? this.slowdownFlipFlop : 0;
+
         queuedPixel.speed -= this.nextSubtract;
-        this.semiAccurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
+        this.accurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
         return;
     }
 
@@ -325,7 +329,7 @@ export class Bot {
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
         this.resolvePacket(queuedPixel);
 
-        const {x, y, col, brush, wars, force} = queuedPixel.data;
+        const {x, y, col, brush = 1, wars = false, force = false} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
         const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
@@ -342,7 +346,7 @@ export class Bot {
         }
 
         this.emit(Packets.SENT.PIXEL, [x,y,col,brush]);
-        this.connection.canvas?.pixelData?.set(x, y, col);
+        this.connection!.canvas!.pixelData!.set(x, y, col);
 
         const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
         this.unverifiedPixels.push(arr);
@@ -366,11 +370,23 @@ export class Bot {
         }
     }
 
-    private async placePixelInternal(p: IPixel, forcePlacementSpeed: number=-1): Promise<void> {
 
-        const {x, y, col, protect, force } = p;
+    /**
+     * Places a pixel
+     * @param x The x coordinate of the pixel.
+     * @param y The y coordinate of the pixel.
+     * @param col The color of the pixel.
+     * @param brush The brush to place the pixel. Defaults to 1.
+     * @param protect Whether the pixel should be replaced when changed. Defaults to false.
+     * @param wars Whether the pixel should be placed if it's in a war zone during a war. Defaults to false (will get you banned if a mod sees).
+     * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
+     * @returns A promise that resolves upon the pixel being sent.
+     */
+    async placePixel(pixel: IPixel, forcePlacementSpeed: number = -1): Promise<void> {
+        const {x, y, col, protect = false, force = false } = pixel;
 
-        if(x > this.connection.canvas.canvasWidth || x < 0 || y > this.connection.canvas.canvasHeight || y < 0) {
+        const conn = this.getConnection();
+        if(x > conn.canvas.canvasWidth || x < 0 || y > conn.canvas.canvasHeight || y < 0) {
             return Promise.resolve();
         }
 
@@ -379,9 +395,7 @@ export class Bot {
         }
 
         // we still want to protect it even if it's same color, so it's done prior.
-        if(protect) {
-            this.protector.protect(x, y, col);
-        }
+        this.protector.updateProtection(protect, x, y, col);
 
         // Do not add to queue.
         if(this.getPixelAt(x, y) == col && !force) {
@@ -391,13 +405,13 @@ export class Bot {
         if(this.resendQueue.length > 0) {
             const pixel: IPixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
-                await this.placePixelInternal(pixel);
+                await this.placePixel(pixel);
             }
         }
 
         const placementSpeed = forcePlacementSpeed == -1 ? this.getPlacementSpeed() : forcePlacementSpeed;
 
-        return new Promise<void>((resolve) => this.addToSendQueue({data: p, speed: placementSpeed, resolve}) );
+        return new Promise<void>((resolve) => this.addToSendQueue({data: pixel, speed: placementSpeed, resolve}) );
     }
 
     /**
@@ -405,7 +419,7 @@ export class Bot {
      * @param value The value to send.
      */
     send(value: string | unknown[] | Buffer | Uint8Array): void {
-        this.connection.send(value);
+        this.getConnection().send(value);
     }
 
     /**
@@ -414,7 +428,7 @@ export class Bot {
      * @param value Value. If not set, no value will be sent through other than the packet name.
      */
     emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]): void {
-        this.connection.emit(type, value);
+        this.getConnection().emit(type, value);
     }
     
     /**
@@ -516,7 +530,7 @@ export class Bot {
      * @returns If the chat is loaded or not. (true/false)
      */
     isChatLoaded(): boolean {
-        return this.connection.isChatLoaded();
+        return this.getConnection().isChatLoaded();
     }
 
     /**
@@ -537,7 +551,7 @@ export class Bot {
      * @returns All war locations and stats on them.
      */
     getAreas(): {[key: string]: IArea} {
-        return this.connection.getAreas();
+        return this.getConnection().getAreas();
     }
 
     /**
@@ -554,14 +568,14 @@ export class Bot {
      * @returns An IArea instance containing info on the area.
      */
     getAreaById(id: number): IArea {
-        return this.connection.getAreaById(id);
+        return this.getConnection().getAreaById(id);
     }
 
     /**
      * @returns If a war is occurring (true/false)
      */
     isWarOccurring(): boolean {
-        return this.connection.isWarOccurring();
+        return this.getConnection().isWarOccurring();
     }
 
     /**
@@ -599,18 +613,43 @@ export class Bot {
      * @returns The current war zone. Or "NONE" if a war is not found.
      */
     getCurrentWarZone(): string {
-        return this.connection.getCurrentWarZone();
+        return this.getConnection().getCurrentWarZone();
     }
 
     /**
-     * Sets the request headers.
+     * Sets the request headers. This will automatically add the auth cookie.
      * @param headers An object of headers.
      */
-    setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
-        this.headers = headers;
-        if(this.connection) {
-            this.connection.headers = this.headers;
-            this.connection.canvas.headers = this.headers;
+    setHeaders(ogFunc: (type: HeaderTypes) => OutgoingHttpHeaders) {
+        const headersFunc = (type: HeaderTypes) => {
+            const data = ogFunc(type);
+            data.cookie = this.connection!.generateAuthCookie() + data.cookie;
+            return data;
+        };
+
+        this.headers = headersFunc;
+        if(this.connected()) {
+            this.connection!.headers = this.headers;
+            this.connection!.canvas.headers = this.headers;
+        }
+    }
+
+    private addDebuggerInternal() {
+        this.on(Packets.RECEIVED.LIB_RAW, (message) => {
+            console.log(`\x1b[41m⬇ ${message} \x1b[0m`);
+        });
+        this.on(Packets.RECEIVED.LIB_SENT, (message) => {
+            console.log(`\x1b[42m⬆ ${message} \x1b[0m`);
+        });
+    }
+
+    /**
+     * Adds a listener for all sent and received packets
+     */
+    addDebugger() {
+        this.debugger = true;
+        if(this.connected()) {
+            this.addDebuggerInternal();
         }
     }
 

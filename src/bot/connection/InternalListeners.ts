@@ -13,8 +13,6 @@ export class InternalListeners {
     private bot!: Bot;
     private connection!: Connection;
 
-    private canvasPictureLoaded: boolean = false;
-
     private tDelay: ServerTimePacket = 0;
     private userId: number = -1;
 
@@ -89,8 +87,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
-            // off by about 2ms
-            this.bot.rate = rate + 2;
+            this.bot.rate = rate + 1;
 
             if(this.bot.checkRate == -2) {
                 this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);
@@ -108,12 +105,16 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
+            if(pixels.length == 0) return;
+
             if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
             if(this.bot.protector) await this.bot.protector.detectPixels(pixels);
-            
-            // pass the pixel update to the uid manager
-            if(this.bot.getUidManager() && pixels.length > 0 && pixels[0].length == 5) {
-                this.bot.getUidManager().onPixels(pixels);
+
+            const hasUID = pixels[0].length == 5;
+            if(hasUID) {
+                // pass the pixel update to the uid manager
+                const uidMan = this.bot.getUidManager()
+                if(uidMan != null) uidMan.onPixels(pixels);
             }
 
             // go through and verify if the pixels the bot placed were actually sent
@@ -122,9 +123,7 @@ export class InternalListeners {
 
         this.listen(RECEIVED.CANVAS, (canvas: CanvasPacket) => {
             this.connection.connected = true;
-            if(this.canvasPictureLoaded) {
-                this.connection.loadCanvas(canvas, this.connection.loadResolve);
-            }
+            this.connection.loadCanvas(canvas);
         });
 
         this.listen(RECEIVED.SERVER_TIME, (num: ServerTimePacket) => {
@@ -186,6 +185,8 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.AREA_FIGHT_ZONE_CHANGE, (change: AreaFightZoneChangePacket) => {
+            if(this.connection.boardId != 7) return;
+            
             const area = this.connection.getAreas()[this.connection.getCurrentWarZone()];
             if(area == null) return; // not on /7
 

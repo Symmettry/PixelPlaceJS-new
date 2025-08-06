@@ -1,7 +1,6 @@
 import { constant } from "../../util/Constant";
 import { MessageTuple, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
-import { Bot } from "../Bot";
 import { Connection } from "./Connection";
 import { InternalListeners } from "./InternalListeners";
 

@@ -77,7 +77,7 @@ export class Connection {
             try {
                 const headers = this.headers('relog');
                 headers.accept = "application/json, text/javascript, */*; q=0.01";
-                headers.cookie = this.generateAuthCookie();
+                headers.cookie += this.generateAuthCookie();
 
                 const res = await fetch("https://pixelplace.io/api/relog.php", {
                     headers: headers as HeadersInit,
@@ -121,7 +121,7 @@ export class Connection {
         this.sendInit(loggedIn ? authData.authKey ?? undefined : undefined, loggedIn ? authData.authToken ?? undefined : undefined, authData.authId, this.boardId);
     }
 
-    private generateAuthCookie(): string {
+    public generateAuthCookie(): string {
         return `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`;
     }
 
@@ -154,6 +154,7 @@ export class Connection {
             });
 
             this.socket.on('open', async () => {
+                this.connected = true;
                 resolve();
 
                 // owicode so esoteric :100: :fire:
@@ -179,7 +180,6 @@ export class Connection {
     }
 
     async Load() {
-
         if(!this.socket) throw "Bot has not connected yet.";
 
         return new Promise<void>((resolve) => {
@@ -214,11 +214,11 @@ export class Connection {
     /**
      * Loads canvas data.
      */
-    async loadCanvas(value: CanvasPacket, resolve: (value: void | PromiseLike<void>) => void) {
-        if(this.isWorld)await this.canvas.loadCanvasData(value);
+    async loadCanvas(value: CanvasPacket) {
+        if(this.isWorld) this.canvas.loadCanvasData(value);
         this.stats.session.beginTime = Date.now();
 
-        setTimeout(resolve, 1000);
+        this.canvas.resolve(this.loadResolve);
     }
 
     sendInit(authKey: string | undefined, authToken: string | undefined, authId: string, boardId: number): void {
