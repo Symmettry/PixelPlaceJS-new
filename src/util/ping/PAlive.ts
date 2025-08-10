@@ -34,7 +34,20 @@ const paliveCharmap: {[key: string]: string} = {
 };
 
 export function getPalive(tDelay: ServerTimePacket, userId: number) {
-    const sequenceLengths = [6, 5, 9, 4, 5, 3, 6, 6, 3];
+    const sequenceLengths = [6, 5, 9, 4, 5];
+
+    // wsv: first number of CFVersion
+    sequenceLengths.push(3);
+
+    // wsa: 0x6
+    sequenceLengths.push(6);
+    
+    // wsb: parseInt($('#ls').text()) - 6
+    sequenceLengths.push(6);
+
+    // pSave: 3
+    sequenceLengths.push(3);
+
     const currentTimestamp = Math.floor(Date.now() / 1000) + tDelay - 5400;
     const timestampString = currentTimestamp.toString();
     const timestampCharacters = timestampString.split('');

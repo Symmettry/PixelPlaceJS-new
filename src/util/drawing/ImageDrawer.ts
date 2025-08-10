@@ -10,13 +10,12 @@ import { ImageData } from "../data/Data";
 /**
  * Represents a drawing mode that draws on a pixel array.
  * @param pixels - The pixel array to draw on.
- * @param drawHook - A function that allows drawing at a specific coordinate.
- * @param getColorAtHook - A function that gets the color at a specific coordinate.
+ * @param draw - A function that draws the image color at a specific coordinate.
  * @returns A promise which resolves when the image is done drawing.
  */
 export type DrawingFunction = (
     pixels: ImageData,
-    drawHook: (x: number, y: number, pixels: ImageData) => Promise<void>,
+    draw: (x: number, y: number) => Promise<void>,
 ) => Promise<void>;
 
 /**
@@ -57,47 +56,47 @@ export class ImageDrawer {
 
         constant(this, "drawingStrategies", {
 
-            0: async (pixels: ImageData) => { // TOP_LEFT_TO_RIGHT
+            [Modes.TOP_LEFT_TO_RIGHT]: async (pixels: ImageData) => {
                 for (let y = 0; y < pixels.height; y++) 
                     for (let x = 0; x < pixels.width; x++) 
                         await this.draw(x, y, pixels);
             },
-            1: async (pixels: ImageData) => { // TOP_RIGHT_TO_LEFT
+            [Modes.TOP_RIGHT_TO_LEFT]: async (pixels: ImageData) => {
                 for (let y = 0; y < pixels.height; y++) 
                     for (let x = pixels.width; x >= 0; x--) 
                         await this.draw(x, y, pixels);
             },
-            2: async (pixels: ImageData) => { // BOTTOM_LEFT_TO_RIGHT
+            [Modes.BOTTOM_LEFT_TO_RIGHT]: async (pixels: ImageData) => {
                 for (let y = pixels.height; y >= 0; y--) 
                     for (let x = 0; x < pixels.width; x++) 
                         await this.draw(x, y, pixels);
             },
-            3: async (pixels: ImageData) => { // BOTTOM_RIGHT_TO_LEFT
+            [Modes.BOTTOM_RIGHT_TO_LEFT]: async (pixels: ImageData) => {
                 for (let y = pixels.height; y >= 0; y--) 
                     for (let x = pixels.width; x >= 0; x--) 
                         await this.draw(x, y, pixels);
             },
-            4: async (pixels: ImageData) => { // LEFT_TOP_TO_BOTTOM
+            [Modes.LEFT_TOP_TO_BOTTOM]: async (pixels: ImageData) => {
                 for (let x = 0; x < pixels.width; x++) 
                     for (let y = 0; y < pixels.height; y++) 
                         await this.draw(x, y, pixels);
             },
-            5: async (pixels: ImageData) => { // LEFT_BOTTOM_TO_TOP
+            [Modes.LEFT_BOTTOM_TO_TOP]: async (pixels: ImageData) => {
                 for (let x = 0; x < pixels.width; x++) 
                     for (let y = pixels.height; y >= 0; y--) 
                         await this.draw(x, y, pixels);
             },
-            6: async (pixels: ImageData) => { // RIGHT_TOP_TO_BOTTOM
+            [Modes.RIGHT_TOP_TO_BOTTOM]: async (pixels: ImageData) => {
                 for (let x = pixels.width; x >= 0; x--) 
                     for (let y = 0; y < pixels.height; y++) 
                         await this.draw(x, y, pixels);
             },
-            7: async (pixels: ImageData) => { // RIGHT_BOTTOM_TO_TOP
+            [Modes.RIGHT_BOTTOM_TO_TOP]: async (pixels: ImageData) => {
                 for (let x = pixels.width; x >= 0; x--) 
                     for (let y = pixels.height; y >= 0; y--) 
                         await this.draw(x, y, pixels);
             },
-            8: async (pixels: ImageData) => { // FROM_CENTER
+            [Modes.FROM_CENTER]: async (pixels: ImageData) => {
                 // calculate the center point
                 const centerX = Math.floor(pixels.width / 2);
                 const centerY = Math.floor(pixels.height / 2);
@@ -124,7 +123,7 @@ export class ImageDrawer {
                     await this.draw(pixel.x, pixel.y, pixels);
                 }
             },
-            9: async (pixels: ImageData) => { // TO_CENTER
+            [Modes.TO_CENTER]: async (pixels: ImageData) => {
                 // calculate the center point
                 const centerX = Math.floor(pixels.width / 2);
                 const centerY = Math.floor(pixels.height / 2);
@@ -152,7 +151,7 @@ export class ImageDrawer {
                 }
             },
 
-            10: async (pixels: ImageData) => { // RAND
+            [Modes.RAND]: async (pixels: ImageData) => {
                 const totalPixels = pixels.width * pixels.height;
                 const coordinates = new Array(totalPixels);
             
@@ -234,8 +233,8 @@ export class ImageDrawer {
                 }
 
                 if(typeof this.mode == 'function') {
-                    const drawHook = (x: number, y: number, pixels: ImageData) => {
-                        return this.draw(x, y, pixels);
+                    const drawHook = (x: number, y: number) => {
+                        return this.draw(x, y, data);
                     }
                     await this.mode(data, drawHook);
                     return resolve();

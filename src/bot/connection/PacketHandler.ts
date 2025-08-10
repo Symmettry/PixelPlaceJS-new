@@ -1,4 +1,5 @@
 import { constant } from "../../util/Constant";
+import { IAuthData } from "../../util/data/Data";
 import { MessageTuple, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { Connection } from "./Connection";
@@ -17,25 +18,23 @@ export class PacketHandler {
     private internalListeners!: InternalListeners;
     listeners!: PacketListeners;
 
-    constructor(connection: Connection, authKey: string, authToken: string, authId: string) {
+    constructor(connection: Connection, authData: IAuthData) {
         constant(this, 'connection', connection);
 
         constant(this, 'listeners', new Map());
 
-        this.updateAuth(authKey, authToken, authId);
+        this.updateAuth(authData);
 
         this.internalListeners = new InternalListeners(connection.bot, connection);
     }
 
-    updateAuth(authKey: string, authToken: string, authId: string): void {
-        this.authKey = authKey;
-        this.authToken = authToken;
-        this.authId = authId;
+    updateAuth(authData: IAuthData): void {
+        this.authKey = authData.authKey;
+        this.authToken = authData.authToken;
+        this.authId = authData.authId;
     }
 
-    async evaluatePacket(buffer: Buffer) {
-        const data: string = buffer.toString(); // buffer -> string
-
+    async evaluatePacket(data: string) {
         if(this.listeners.has(Packets.RECEIVED.LIB_RAW)) {
             this.listeners.get(Packets.RECEIVED.LIB_RAW)?.forEach(listener => listener[0](data));
         }

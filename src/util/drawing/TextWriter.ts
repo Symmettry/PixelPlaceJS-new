@@ -3,6 +3,10 @@ import { constant } from "../Constant";
 import { Color } from "../data/Color";
 import { Font, FontData, fontData } from "./fonts/Font";
 
+// todo: probably remake most of this class
+// the "TextBuilder" class can also be removed in favor of like ITextObject or something
+// also fix backgroundColor it doesnt work
+
 /** Builds a text drawing. This is here due to too many options existing. */
 export class TextBuilder {
 

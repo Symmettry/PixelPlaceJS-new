@@ -14,7 +14,6 @@ export class InternalListeners {
     private connection!: Connection;
 
     private tDelay: ServerTimePacket = 0;
-    private userId: number = -1;
 
     map!: PacketListeners;
 
@@ -87,7 +86,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
-            this.bot.rate = rate + 1;
+            this.bot.rate = rate + 4;
 
             if(this.bot.checkRate == -2) {
                 this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);
@@ -101,7 +100,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.PING_ALIVE, () => {
-            this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.userId));
+            this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.bot.userId));
         });
 
         this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
@@ -115,6 +114,14 @@ export class InternalListeners {
                 // pass the pixel update to the uid manager
                 const uidMan = this.bot.getUidManager()
                 if(uidMan != null) uidMan.onPixels(pixels);
+
+                // response packet
+                console.log(pixels.length, pixels[0][4], this.bot.userId);
+                if(pixels.length == 1 && pixels[0][4] == this.bot.userId) {
+                    this.bot.goingThroughQueue = Math.max(0, this.bot.goingThroughQueue - 1);
+                    this.bot.goThroughPixels(1);
+                    return;
+                }
             }
 
             // go through and verify if the pixels the bot placed were actually sent

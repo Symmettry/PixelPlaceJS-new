@@ -6,6 +6,7 @@ import { Color } from './data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from './packets/PacketResponses';
 import { HeaderTypes } from '../PixelPlace';
+import { Bot } from '..';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -133,9 +134,9 @@ export class Canvas {
         return ndarray(new Uint16Array(width * height).fill(Color.WHITE), [width, height]);
     }
 
-    async Init(authId: string, authKey: string, authToken: string): Promise<number> {
+    async fetchCanvasData(): Promise<number> {
         return new Promise<number>((resolve, reject) => {
-            this.getPaintingData(authId, authKey, authToken).then(data => {
+            this.getPaintingData().then(data => {
                 this.canvasWidth = data.width;
                 this.canvasHeight = data.height;
     
@@ -226,22 +227,15 @@ export class Canvas {
     }
 
     private setCanvasState(state: CanvasState) {
-        console.log("state: " + state);
         switch(state) {
             case CanvasState.IMAGE_LOADED: {
-                if(this.canvasState == CanvasState.PACKET_LOADED) {
-                    this.setCanvasState(CanvasState.FULLY_LOADED);
-                } else {
-                    this.canvasState = CanvasState.IMAGE_LOADED;
-                }
+                if(this.canvasState == CanvasState.PACKET_LOADED) this.setCanvasState(CanvasState.FULLY_LOADED);
+                else this.canvasState = CanvasState.IMAGE_LOADED;
                 break;
             }
             case CanvasState.PACKET_LOADED: {
-                if(this.canvasState == CanvasState.IMAGE_LOADED) {
-                    this.setCanvasState(CanvasState.FULLY_LOADED);
-                } else {
-                    this.canvasState = CanvasState.PACKET_LOADED;
-                }
+                if(this.canvasState == CanvasState.IMAGE_LOADED) this.setCanvasState(CanvasState.FULLY_LOADED);
+                else this.canvasState = CanvasState.PACKET_LOADED;
                 break;
             }
             case CanvasState.FULLY_LOADED: {
@@ -281,7 +275,7 @@ export class Canvas {
         });
     }
 
-    private async getPaintingData(authId: string, authKey: string, authToken: string): Promise<{ width: number, height: number, userId: number }> {
+    private async getPaintingData(): Promise<{ width: number, height: number, userId: number }> {
         const headers = this.headers("get-painting");
         const response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
             method: 'GET',

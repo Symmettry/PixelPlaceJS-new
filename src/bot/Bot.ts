@@ -2,9 +2,8 @@ import * as Canvas from '../util/Canvas.js';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { Auth } from './Auth.js';
 import { Modes } from '../util/data/Modes.js';
-import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea } from '../util/data/Data.js';
+import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
@@ -34,7 +33,8 @@ export class Bot {
     private resendQueue: Array<IPixel> = [];
     private unverifiedPixels: Array<IUnverifiedPixel> = [];
     private sendAfterWarDone: Array<IPixel> = [];
-    private goingThroughQueue: number = 0;
+    /** Internal use only */
+    goingThroughQueue: number = 0;
 
     autoRestart: boolean;
     handleErrors: boolean;
@@ -48,16 +48,12 @@ export class Bot {
 
     private connection: Connection | null = null;
 
-
-    private ffIndex: number = 0;
-    private ffStage: boolean = false;
-    /** Slows the rate down by this many ms */
-    slowdownFlipFlop: number = 6;
-    /** This will flip every this many pixels */
-    slowdownFlipEvery: number = 4;
+    private params: IBotParams;
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
+    /** The user id of the bot */
+    userId: number = -1;
 
     /**
      * Creates a bot instance
@@ -65,20 +61,38 @@ export class Bot {
      * @param autoRestart If the bot should restart when it closes. Defaults to true
      * @param handleErrors If errors should be handled when received -- invalid auth id will be processed regardless of this value. Defaults to true
      */
-    constructor(auth: Auth, autoRestart: boolean = true, handleErrors: boolean = true) {
-        this.authKey = auth.authKey;
-        this.authToken = auth.authToken;
-        this.authId = auth.authId;
+    constructor(params: IBotParams, autoRestart: boolean = true, handleErrors: boolean = true) {
+        this.params = params;
 
-        this.setHeaders(() => {return {}});
+        this.authKey = params.authData.authKey;
+        this.authToken = params.authData.authToken;
+        this.authId = params.authData.authId;
 
-        constant(this, 'boardId', auth.boardId);
+        this.setHeaders((type: HeaderTypes) => {
+            const headers: OutgoingHttpHeaders = {};
+            switch(type) {
+                case 'get-painting':
+                case 'relog':
+                    headers.accept = 'application/json, text/javascript, */*; q=0.01'
+                    break;
+                case 'canvas-image':
+                    headers.accept = 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8';
+                    break;
+                case 'socket':
+                    headers.connection = 'Upgrade';
+                    headers["Cache-Control"] = "no-cache";
+                    break;
+            }
+            return headers;
+        });
+
+        constant(this, 'boardId', params.boardID);
         constant(this, 'protector', new Protector(this));
         
         this.autoRestart = autoRestart;
         this.handleErrors = handleErrors;
 
-        if(auth.uidManager) {
+        if(params.uidManager) {
             this.uidman = new UIDManager(this);
         }
 
@@ -92,7 +106,7 @@ export class Bot {
      * @param uid The uid of the account.
      * @returns The username from the uid.
      */
-    getUsername(uid: string | number): string | undefined {
+    getUsername(uid: string | number): Promise<string> {
         if(!this.uidman) {
             throw "This bot does not have the uid manager enabled. new Auth(authObj, boardId, true)";
         }
@@ -144,7 +158,7 @@ export class Bot {
      * @returns A promise that will resolve once the socket opens.
      */
     async Connect(): Promise<void> {
-        this.connection = new Connection(this, this.authKey, this.authToken, this.authId, this.boardId, this.stats, this.headers);
+        this.connection = new Connection(this, this.params, this.stats, this.headers);
         await this.connection.Connect();
         if(this.debugger) this.addDebuggerInternal();
     }
@@ -258,13 +272,8 @@ export class Bot {
         this.protector.protect(x, y, col);
     }
 
-    private resolvePacket(queuedPixel: IQueuedPixel): void {
-        queuedPixel.resolve();
-        this.goingThroughQueue--;
-        this.goThroughPixels();
-    }
-
     private accurateTimeout(call: () => void, time: number): void {
+        time += Math.floor(Math.random() * 2);
         const start = process.hrtime();
         function loop() {
             const elapsed = process.hrtime(start)[1] / 1000000;
@@ -277,13 +286,16 @@ export class Bot {
         setImmediate(loop);
     }
 
-    private goThroughPixels(): void {
+    /**
+     * Internal use only
+     */
+    goThroughPixels(d: number): void {
+
+        console.log("going through pixels called", d);
 
         const queuedPixel = this.sendQueue.shift();
 
         if(queuedPixel == null) return; // shouldn't but just in case
-
-        this.goingThroughQueue++;
 
         const {x, y, col, protect, wars, force} = queuedPixel.data;
 
@@ -291,7 +303,10 @@ export class Bot {
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN;
         if(skippedColor) {
-            setImmediate(() => this.resolvePacket(queuedPixel));
+            setImmediate(() => {
+                queuedPixel.resolve();
+                this.goThroughPixels(-1);
+            });
             return;
         }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
@@ -310,14 +325,12 @@ export class Bot {
                     this.sendAfterWarDone.push(queuedPixel.data);
                 }
             }
-            return this.resolvePacket(queuedPixel);
+            queuedPixel.resolve();
+            this.goThroughPixels(-1);
+            return;
         }
 
-        if(++this.ffIndex > this.slowdownFlipEvery) {
-            this.ffIndex = 0;
-            this.ffStage = !this.ffStage;
-        }
-        queuedPixel.speed += this.ffStage ? this.slowdownFlipFlop : 0;
+        this.goingThroughQueue++;
 
         queuedPixel.speed -= this.nextSubtract;
         this.accurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
@@ -327,8 +340,6 @@ export class Bot {
     private lastPixel: number = Date.now();
     private nextSubtract: number = 0;
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
-        this.resolvePacket(queuedPixel);
-
         const {x, y, col, brush = 1, wars = false, force = false} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
@@ -361,12 +372,14 @@ export class Bot {
         this.stats.pixels.colors[col]++;
 
         if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
+    
+        queuedPixel.resolve();
     }
 
     private addToSendQueue(p: IQueuedPixel): void {
         this.sendQueue.push(p);
         if(this.goingThroughQueue == 0) {
-            this.goThroughPixels();
+            this.goThroughPixels(0);
         }
     }
 

@@ -164,7 +164,7 @@ export type PixelPacketData = [
     col: Color,
     /** The brush id. */
     brush: number,
-    /** If premium, a user id will be present. */
+    /** If premium, a user id will be present. It will also be your user id if it's a response packet. */
     userId?: number,
 ];
 

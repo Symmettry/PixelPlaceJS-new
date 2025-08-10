@@ -2,7 +2,7 @@ import * as Canvas from "../../util/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets } from "../../util/packets/Packets";
-import { IStatistics, IArea } from "../../util/data/Data";
+import { IStatistics, IArea, IBotParams, IAuthData } from "../../util/data/Data";
 import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
@@ -48,20 +48,20 @@ export class Connection {
     private packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
 
-    constructor(bot: Bot, authKey: string, authToken: string, authId: string, boardId: number, stats: IStatistics, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
+    constructor(bot: Bot, params: IBotParams, stats: IStatistics, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
         constant(this, 'bot', bot);
 
-        this.authKey = authKey;
-        this.authToken = authToken;
-        this.authId = authId;
+        this.authKey = params.authData.authKey;
+        this.authToken = params.authData.authToken;
+        this.authId = params.authData.authId;
 
         this.stats = stats;
 
         this.headers = headers;
 
-        constant(this, 'boardId', boardId);
+        constant(this, 'boardId', params.boardID);
 
-        constant(this, 'packetHandler', new PacketHandler(this, authKey, authToken, authId));
+        constant(this, 'packetHandler', new PacketHandler(this, params.authData));
 
         this.relog = this.relogGenerator(this.authKey, this.authToken);
         this.Load = this.Load.bind(this);
@@ -76,7 +76,6 @@ export class Connection {
             }
             try {
                 const headers = this.headers('relog');
-                headers.accept = "application/json, text/javascript, */*; q=0.01";
                 headers.cookie += this.generateAuthCookie();
 
                 const res = await fetch("https://pixelplace.io/api/relog.php", {
@@ -91,11 +90,11 @@ export class Connection {
                 }
 
                 const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
-                const newAuthData = {authKey, authToken, authId};
+                const newAuthData: IAuthData = {authKey, authToken, authId};
         
                 this.relog = this.relogGenerator(authKey, authToken);
 
-                this.packetHandler.updateAuth(authKey, authToken, authId);
+                this.packetHandler.updateAuth(newAuthData);
                 
                 if(authToken != null && authToken != "deleted") {
                     fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
@@ -132,8 +131,7 @@ export class Connection {
     async Connect() {
 
         if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
-
-        return new Promise<void>((resolve) => {
+        return new Promise<void>(async (resolve) => {
 
             // connect to PixelPlace
             this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
@@ -153,7 +151,7 @@ export class Connection {
                 this.socketClosed();
             });
 
-            this.socket.on('open', async () => {
+            this.socket.on('open', () => {
                 this.connected = true;
                 resolve();
 
@@ -176,17 +174,22 @@ export class Connection {
                     console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds." : ""}`);
                 }
             });
+
+            const userId = await this.canvas.fetchCanvasData();
+            if(userId == 0) {
+                console.log(`~~WARN~~ This bot is not logged in! (Auth key of '${this.authKey.substring(0, 5)}')`)
+            }
+            this.bot.userId = userId;
         });
     }
 
     async Load() {
         if(!this.socket) throw "Bot has not connected yet.";
-
         return new Promise<void>((resolve) => {
             this.loadResolve = resolve;
-            this.socket.on('message', async (buffer: Buffer) => {
+            this.socket.on("message", (data: Buffer) => {
                 this.stats.socket.received++;
-                await this.packetHandler.evaluatePacket(buffer);
+                this.packetHandler.evaluatePacket(data.toString());
             });
         });
     }
@@ -198,7 +201,7 @@ export class Connection {
             this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]());
         }
         if(this.bot.autoRestart) {
-            setTimeout(() => this.Start(), 5000);
+            setTimeout(() => this.Start(), 3000);
         }
     }
 
@@ -239,6 +242,7 @@ export class Connection {
             if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SENT)) {
                 this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SENT)?.forEach(listener => listener[0](value));
             }
+            console.log("send", value);
             this.socket.send(value);
 
             // statistics

@@ -61,6 +61,20 @@ export interface IAuthData {
     authToken: string;
     /** The authentication ID. */
     authId: string;
+    /** If the bot should automatically attempt to refresh data if expired. Defaults to true */
+    relog?: boolean;
+}
+
+/**
+ * Bot parameters
+ */
+export interface IBotParams {
+    /** The auth data for logging in */
+    authData: IAuthData;
+    /** The board ID to connect to */
+    boardID: number;
+    /** If the UID Manager should be enabled, defaults to false */
+    uidManager?: boolean;
 }
 
 /**

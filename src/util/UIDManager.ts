@@ -26,23 +26,34 @@ export default class UIDManager {
         this.premium = true;
     }
 
-    getUsername(uid: string | number): string | undefined {
+    async getUsername(uid: string | number): Promise<string> {
         if(!this.premium) {
             console.error(`~~ERROR~~ Attempted access on getUsername(${uid}), but the account is not premium!`);
-            return undefined;
+            return "";
         }
 
-        if(typeof uid == 'string')uid = parseFloat(uid);
+        if (typeof uid == "string") uid = parseFloat(uid);
 
-        const val = this.uidMap.get(uid);
-        return val == "---" ? undefined : val;
+        let retries = 50;
+        let val = this.uidMap.get(uid);
+
+        if (val == undefined) {
+            this.register(uid);
+        }
+
+        while ((val == undefined || val == "-") && retries-- > 0) {
+            await new Promise<void>((resolve) => setTimeout(resolve, 100));
+            val = this.uidMap.get(uid);
+        }
+
+        return (val && val != "-") ? val : "";
     }
 
     register(uid: number) {
         if(this.uidMap.get(uid) != undefined) return;
         
+        this.uidMap.set(uid, "-");
         this.pp.emit(Packets.SENT.USERNAME, uid);
-        this.uidMap.set(uid, "---");
     }
 
 }

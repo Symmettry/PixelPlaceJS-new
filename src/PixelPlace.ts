@@ -1,6 +1,6 @@
 import { Bot } from "./bot/Bot";
-import { Auth } from "./bot/Auth";
 import { OutgoingHttpHeaders } from "http2";
+import { IBotParams } from "./util/data/Data";
 
 export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog";
 
@@ -13,15 +13,12 @@ class PixelPlace {
 
     /**
      * Creates a new pixelplace instance and makes bots with all auth data
-     * @param auths A list of auth data for the bots.
+     * @param params A list of bot parameters.
      * @param autoRestart If the bots should automatically restart when closed.
      * @param handleErrors If the bots should handle errors when received. Invalid auth id is always processed regardless of this value.
      */
-    constructor(auths: Auth[], autoRestart: boolean = true, handleErrors: boolean = true) {
-        this.bots = [];
-        auths.forEach(auth => {
-            this.bots.push(new Bot(auth, autoRestart, handleErrors)); // create each bot instance
-        });
+    constructor(params: IBotParams[], autoRestart: boolean = true, handleErrors: boolean = true) {
+        this.bots = params.map(p => new Bot(p, autoRestart, handleErrors));
     }
 
     /**
@@ -30,9 +27,7 @@ class PixelPlace {
      * @returns this
      */
     setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders): PixelPlace {
-        this.bots.forEach(bot => {
-            bot.setHeaders(headers);
-        });
+        this.bots.forEach(bot => bot.setHeaders(headers));
         return this;
     }
 
@@ -70,6 +65,7 @@ class PixelPlace {
                     h['Accept']        = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
                     break;
                 case "get-painting":
+                case 'relog':
                     h['Accept']        = "application/json, text/javascript, */*; q=0.01";
                     break;
             }
