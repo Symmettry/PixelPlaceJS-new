@@ -436,7 +436,8 @@ export class Bot {
         this.protector.updateProtection(protect, x, y, col);
 
         // Do not add to queue.
-        if(this.getPixelAt(x, y) == col && !force) {
+        const curCol = this.getPixelAt(x, y);
+        if(curCol == col && !force) {
             return Promise.resolve();
         }
 

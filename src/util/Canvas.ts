@@ -42,7 +42,6 @@ export class Canvas {
 
     private loadResolve: (() => void) | null = null;
 
-    // i used chatgpt to re-write this i should check it later tbh
     private colors: { [key: string]: Color } = {
         "255,255,255": Color.WHITE,
         "196,196,196": Color.LIGHT_GRAY,
@@ -62,8 +61,8 @@ export class Canvas {
         "81,225,25": Color.LIGHT_GREEN,
         "148,224,68": Color.LIGHTER_GREEN,
         "52,235,107": Color.NEON_GREEN,
-        "152,251,152": Color.PALE_GREEN,
-        "117,206,169": Color.YELLOW_GREEN,
+        "152,251,152": Color.YELLOW_GREEN,
+        "117,206,169": Color.PALE_GREEN,
         "202,255,112": Color.LIME_YELLOW,
         "251,255,91": Color.YELLOW,
         "229,217,0": Color.DARK_YELLOW,
