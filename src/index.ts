@@ -1,5 +1,6 @@
 export { PixelPlace } from './PixelPlace';
 export { Bot } from "./bot/Bot";
+export { AuthFile } from "./bot/Auth";
 export { Modes } from "./util/data/Modes";
 export { Color as Colors } from "./util/data/Color";
 export { Packets } from "./util/packets/Packets";
