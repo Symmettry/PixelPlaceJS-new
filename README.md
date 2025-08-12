@@ -14,17 +14,19 @@ Able to do many many things unlike most bots (Like chat bots -- Erebot is made i
 ### Useful Bot Stuff
 
 ```js
+// this readme is really bad and im way too lazy to fix everything with my new changes sob, just use the example
+
 // Create PixelPlace instances
 // autoRestart?: if the bots should automatically attempt to reconnect when the socket closes, defaults to true
 // handleErrors?: if an error is received from pixelplace, should it be handled (recommended), defaults to true -- Note: throw.error of id 49 will always be processed; as it gets new auth data
-const pp = new PixelPlace(auths, autoRestart?, handleErrors?);
+const pp = new PixelPlace(params, autoRestart?, handleErrors?);
 
 // Initiate all bots
 await pp.Init();
 
 // Alternatively, you can do this
-await pp.bots[0].Connect();
-await pp.bots[0].Load();
+await pp.Connect();
+await pp.Load();
 // Why? If you wait for Connect(), you can then add a RAW or ALL packet listener before Load() and then see every single packet through the socket
 // the Load() waits until it receives "canvas" which is also not sent through Packets.ALL here. So if you want all that data including old chat messages, you do this.
 
@@ -46,13 +48,13 @@ pp.bots[index].rate
 // if brush isn't set, it will default to 1 (Brush used to place pixels)
 // if protect isn't set, it will default to false (Should it be protected?)
 // if force isn't set, it will default to false (Should it place over pixels of the same color?)
-await pp.bots[index].placePixel(x, y, col, brush?, protect?, force?);
+await pp.bots[index].placePixel({x, y, col, brush?, protect?, force?});
 
 // draws the image at "path_to_image" at starting point x and y (This is not central, it is the top left of the final drawing)
 // mode?: drawing mode, (See "Image Drawing Modes"), defaults to Modes.TOP_LEFT_TO_RIGHT. Can also be a DrawingFunction
 // protect?: protect the image, defaults to false
 // force?: places pixels over pixels of the same color, defaults to false
-await pp.bots[index].drawImage(x, y, "path_to_image", mode? | DrawingFunction?, protect?, force?);
+await pp.bots[index].drawImage({x, y, "path_to_image", mode? | DrawingFunction?, protect?, force?});
 
 // Drawing function type -- directly taken from the code
 type DrawingFunction = (pixels: NdArray<Uint8Array>, drawHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => Promise<void>, getColorAtHook: (x: number, y: number, pixels: NdArray<Uint8Array>) => number) => Promise<void>;
@@ -140,41 +142,43 @@ ErrorMessages[ID] // The messages for these errors. This is not an enum. Example
 ### Full Bot
 
 ```js
-import { PixelPlace, Auth, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
+import { PixelPlace, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
 
 (async () => {
-    const boardId = 123456; // change this
-
-    const auths = [
-        new Auth({
-            authKey: "", // fill
-            authToken: "", // fill
-            authId: "", // fill
-        }, boardId),
+    const params = [
+        {
+            authData: {
+                authKey: "key",
+                authId: "id",
+                authToken: "token",
+            },
+            boardID: 7,
+        }
     ];
 
-    const pp = new PixelPlace(auths);
+    const pp = new PixelPlace(params);
     await pp.Init();
+
+    const bot = pp.bots[0];
     
     console.log("Pixel Place initiated!");
 
-    // 16 ms between each pixel (Default rate)
-    // Commented since this is already done by default, this is just some sample code.
-    //
-    // pp.bots[0].setPlacementSpeed(pp.bots[0].getRate());
-
     // draws image at path "C:/my image.png" (will throw an error if it doesn't exist)
-    await pp.bots[0].drawImage(x, y, "C:/my image.png", Modes.FROM_CENTER);
+    await bot.drawImage({
+        x: 100, y: 100,
+        path:"C:/my image.png",
+        mode: Modes.FROM_CENTER,
+    });
 
-    // places a 10x10 area of white (You should probably remove this; it's just an example)
+    // places a 10x10 area of white (You should remove this; it's just an example)
     for(var x=0;x<10;x++) {
         for(var y=0;y<10;y++) {
-            await pp.bots[0].placePixel(1000 + x, 1000 + y, Colors.WHITE);
+            bot.placePixel(1000 + x, 1000 + y, Colors.WHITE);
         }
     }
 
-    // draws "Hello World!" at 100,100
-    await pp.bots[0].buildText("Hello World!", 100, 100).draw();
+    // draws "Hello World!" at 100,100 (also remove this)
+    bot.buildText("Hello World!", 100, 100).draw();
 })();
 
 ```
