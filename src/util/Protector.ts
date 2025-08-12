@@ -18,27 +18,24 @@ export class Protector {
         this.stats = pp.stats;
     }
 
-    updateProtection(protect: boolean, x: number, y: number, col: Colors): boolean {
-        return protect ? this.protect(x, y, col) : this.unprotect(x, y);
+    updateProtection(protect: boolean, x: number, y: number, col: Colors) {
+        if(protect) this.protect(x, y, col);
+        else this.unprotect(x, y);
     }
 
-    protect(x: number, y: number, col: Colors): boolean {
+    protect(x: number, y: number, col: Colors) {
         const protectColor = this.getColor(x, y);
-        if (protectColor != undefined) return false;
+        if (protectColor != undefined && protectColor != col) return;
 
         this.protectedPixels.set(`${x},${y}`, col);
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
-
-        return true;
     }
-    unprotect(x: number, y: number): boolean {
+    unprotect(x: number, y: number) {
         const protectColor = this.getColor(x, y);
-        if (protectColor == undefined) return false;
+        if (protectColor == undefined) return;
         
         this.protectedPixels.delete(`${x},${y}`);
         this.stats.pixels.protection.protected--;
-
-        return true;
     }
 
     getColor(x: number, y: number): number | undefined {

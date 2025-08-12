@@ -433,7 +433,7 @@ export class Bot {
         }
 
         // we still want to protect it even if it's same color, so it's done prior.
-        const change = this.protector.updateProtection(protect, x, y, col);
+        this.protector.updateProtection(protect, x, y, col);
 
         // Do not add to queue.
         if(this.getPixelAt(x, y) == col && !force) {
