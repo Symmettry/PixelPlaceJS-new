@@ -19,6 +19,8 @@ export class InternalListeners {
 
     map!: PacketListeners;
 
+    confirmPing: number = -1;
+
     constructor(bot: Bot, connection: Connection) {
 
         constant(this, 'map', new Map());
@@ -142,9 +144,13 @@ export class InternalListeners {
             delete this.pixelTime[key];
 
             if(confirmTimes.length == CONFIRM_CHECKS) {
-                const avg = confirmTimes.reduce((prev, cur) => prev + cur, 0) / CONFIRM_CHECKS;
-                const test = avg + ABOVE_AVG;
+                this.confirmPing = confirmTimes.reduce((prev, cur) => prev + cur, 0) / CONFIRM_CHECKS;
+
+                const test = this.confirmPing + ABOVE_AVG;
                 this.bot.lagAmount = Math.max(0, delta - test);
+            } else {
+                // for now
+                this.confirmPing = delta;
             }
 
             confirmTimes.push(delta);

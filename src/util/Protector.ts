@@ -18,24 +18,27 @@ export class Protector {
         this.stats = pp.stats;
     }
 
-    updateProtection(protect: boolean, x: number, y: number, col: Colors) {
-        if(protect) this.protect(x, y, col);
-        else this.unprotect(x, y);
+    updateProtection(protect: boolean, x: number, y: number, col: Colors): boolean {
+        return protect ? this.protect(x, y, col) : this.unprotect(x, y);
     }
 
-    protect(x: number, y: number, col: Colors): void {
+    protect(x: number, y: number, col: Colors): boolean {
         const protectColor = this.getColor(x, y);
-        if (protectColor != undefined) return;
+        if (protectColor != undefined) return false;
 
         this.protectedPixels.set(`${x},${y}`, col);
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
+
+        return true;
     }
-    unprotect(x: number, y: number): void {
+    unprotect(x: number, y: number): boolean {
         const protectColor = this.getColor(x, y);
-        if (protectColor == undefined) return;
+        if (protectColor == undefined) return false;
         
         this.protectedPixels.delete(`${x},${y}`);
         this.stats.pixels.protection.protected--;
+
+        return true;
     }
 
     getColor(x: number, y: number): number | undefined {
@@ -47,8 +50,6 @@ export class Protector {
             const protectColor = this.getColor(x, y);
             if (protectColor == undefined || protectColor == col) continue;
 
-            this.stats.pixels.protection.repaired++;
-            this.stats.pixels.protection.last_repair = Date.now();
             this.pp.placePixel({
                 x, y,
                 col: protectColor,

@@ -359,7 +359,7 @@ export class Bot {
     lastPixel: number = Date.now();
 
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
-        const {x, y, col, brush = 1, wars = false, force = false} = queuedPixel.data;
+        const {x, y, col, brush = 1, wars = false, force = false, protect = false} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
         const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
@@ -389,7 +389,14 @@ export class Bot {
         this.stats.pixels.colors[col]++;
 
         if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
+
+        if(protect) {
+            // most accurate i can get it sigh
+            this.stats.pixels.protection.repaired++;
+            this.stats.pixels.protection.last_repair = Date.now();
+        }
     
+        // now resolve
         this.resolvePixel(queuedPixel)
     }
 
@@ -426,7 +433,7 @@ export class Bot {
         }
 
         // we still want to protect it even if it's same color, so it's done prior.
-        this.protector.updateProtection(protect, x, y, col);
+        const change = this.protector.updateProtection(protect, x, y, col);
 
         // Do not add to queue.
         if(this.getPixelAt(x, y) == col && !force) {
@@ -531,6 +538,7 @@ export class Bot {
         this.stats.session.time = Date.now() - this.stats.session.beginTime;
         const timeSinceFirstPixel = Date.now() - this.stats.pixels.placing.first_time;
         this.stats.pixels.placing.per_second = this.stats.pixels.placing.placed / (timeSinceFirstPixel * 0.001);
+        this.stats.pixels.placing.ping = this.connection!.getConfirmPing();
         return this.stats;
     }
 

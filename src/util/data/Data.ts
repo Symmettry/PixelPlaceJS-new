@@ -169,6 +169,8 @@ export interface IStatistics {
             per_second: number,
             /** Last pixel placement position. */
             last_pos: number[],
+            /** Pixel confirm ping */
+            ping: number,
         },
         /** Statistics related to pixel protection. */
         protection: {
@@ -233,6 +235,7 @@ export function defaultStatistics(): IStatistics {
                 first_time: -1,
                 per_second: -1,
                 last_pos: [-1, -1],
+                ping: -1,
             },
             protection: {
                 protected: 0,

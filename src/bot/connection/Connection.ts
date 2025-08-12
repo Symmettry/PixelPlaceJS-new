@@ -45,7 +45,7 @@ export class Connection {
     warOccurring: boolean = false;
     currentWarZone: string = "NONE";
 
-    private packetHandler!: PacketHandler;
+    packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
 
     constructor(bot: Bot, params: IBotParams, stats: IStatistics, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
@@ -300,8 +300,15 @@ export class Connection {
     /**
      * For internal use. Times an x,y packet to acknowledge the confirm
      */
-    timePixel(x: number, y: number) {
+    timePixel(x: number, y: number): void {
         this.packetHandler.internalListeners.pixelTime[`${x},${y}`] = Date.now();
+    }
+
+    /**
+     * @returns the average ping for packet confirmation
+     */
+    getConfirmPing(): number {
+        return this.packetHandler.internalListeners.confirmPing;
     }
 
 }
