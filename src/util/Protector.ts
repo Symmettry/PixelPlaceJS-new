@@ -25,7 +25,7 @@ export class Protector {
 
     protect(x: number, y: number, col: Colors) {
         const protectColor = this.getColor(x, y);
-        if (protectColor != undefined && protectColor != col) return;
+        if (protectColor != undefined && protectColor == col) return;
 
         this.protectedPixels.set(`${x},${y}`, col);
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
