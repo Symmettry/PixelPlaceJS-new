@@ -37,7 +37,7 @@ export class Connection {
 
     headers: (type: HeaderTypes) => OutgoingHttpHeaders;
 
-    private relog: () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }>;
+    private shouldRelog: boolean;
 
     chatLoaded: boolean = false;
 
@@ -55,6 +55,8 @@ export class Connection {
         this.authToken = params.authData.authToken;
         this.authId = params.authData.authId;
 
+        this.shouldRelog = params.relog || false;
+
         this.stats = stats;
 
         this.headers = headers;
@@ -63,49 +65,41 @@ export class Connection {
 
         constant(this, 'packetHandler', new PacketHandler(this, params.authData));
 
-        this.relog = this.relogGenerator(this.authKey, this.authToken);
+        this.relog = this.relog.bind(this);
         this.Load = this.Load.bind(this);
     }
 
-    private relogGenerator(authKey: string, authToken: string): () => Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
-        authKey = authKey == "deleted" ? "" : authKey;
-        authToken = authToken == "deleted" ? "" : authToken;
-        return async () => {
-            if(authKey != "") {
-                console.log("~~Refreshing auth data~~");
-            }
-            try {
-                const headers = this.headers('relog');
-                headers.cookie += this.generateAuthCookie();
+    private async relog(): Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
+        console.log("~~Refreshing auth data~~");
+        try {
+            const headers = this.headers('relog');
+            headers.cookie += this.generateAuthCookie();
 
-                const res = await fetch("https://pixelplace.io/api/relog.php", {
-                    headers: headers as HeadersInit,
-                    method: "GET"
-                });
-                
-                const cookies = res.headers.getSetCookie()?.map(value => value.split(";")[0]);
-                if(cookies == null || cookies.length == 0 || cookies[0].startsWith("authKey=deleted")) {
-                    console.log("Could not relog. Get new auth data and try again.");
-                    return {};
-                }
-
-                const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
-                const newAuthData: IAuthData = {authKey, authToken, authId};
-        
-                this.relog = this.relogGenerator(authKey, authToken);
-
-                this.packetHandler.updateAuth(newAuthData);
-                
-                if(authToken != null && authToken != "deleted") {
-                    fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
-                    console.log("~~Great! Auth data refreshed and saved~~");
-                }
-
-                return newAuthData;
-            } catch(err) {
-                console.log("Error when getting auth data:", err);
+            const res = await fetch("https://pixelplace.io/api/relog.php", {
+                headers: headers as HeadersInit,
+                method: "GET"
+            });
+            
+            const cookies = res.headers.getSetCookie()?.map(value => value.split(";")[0]);
+            if(cookies == null || cookies.length == 0 || cookies[0].startsWith("authKey=deleted")) {
+                console.log("Could not relog. Get new auth data and try again.");
                 return {};
             }
+
+            const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
+            const newAuthData: IAuthData = {authKey, authToken, authId};
+
+            this.packetHandler.updateAuth(newAuthData);
+            
+            if(authToken != null && authToken != "deleted") {
+                fs.writeFileSync(path.join(process.cwd(), `ppjs-relog-authdata-${authKey.substring(0, 5)}.json`), JSON.stringify(newAuthData, null, 4));
+                console.log("~~Great! Auth data refreshed and saved~~");
+            }
+
+            return newAuthData;
+        } catch(err) {
+            console.log("Error when getting auth data:", err);
+            return {};
         }
     }
 
@@ -113,11 +107,15 @@ export class Connection {
      * Used internally. It gets new auth data.
      */
     async newInit(loggedIn: boolean) {
+        this.shouldRelog = false;
         const authData = await this.relog();
         if(!authData || Object.keys(authData).length == 0 || !authData.authId) {
             process.exit();
         }
-        this.sendInit(loggedIn ? authData.authKey ?? undefined : undefined, loggedIn ? authData.authToken ?? undefined : undefined, authData.authId, this.boardId);
+        this.sendInit(
+            loggedIn ? authData.authKey ?? undefined : undefined, loggedIn ? authData.authToken ?? undefined : undefined,authData.authId,
+            this.boardId
+        );
     }
 
     public generateAuthCookie(): string {
@@ -129,6 +127,14 @@ export class Connection {
     }
 
     async Connect() {
+        
+        const int = setInterval(() => {
+            if(!this.connected) {
+                clearInterval(int);
+            } else {
+                this.pixelsThisSecond = 0;
+            }
+        }, 1000);
 
         if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
         return new Promise<void>(async (resolve) => {
@@ -225,6 +231,10 @@ export class Connection {
     }
 
     sendInit(authKey: string | undefined, authToken: string | undefined, authId: string, boardId: number): void {
+        if(this.shouldRelog) {
+            this.newInit(true);
+            return;
+        }
         if(authKey == null && authToken == null) {
             this.emit(Packets.SENT.INIT, { authId, boardId });
             return;
@@ -237,12 +247,19 @@ export class Connection {
         this.packetHandler.listeners.get(key)?.push([func, pre]);
     }
 
+    private pixelsThisSecond: number = 0;
+
     send(value: Buffer | Uint8Array | string | unknown[]) {
         try {
+            // full fail safe
+            if(value.toString().startsWith('42["p",[') && ++this.pixelsThisSecond > this.bot.failSafe) {
+                console.log("~~Fail safe triggered~~");
+                process.exit();
+            }
+
             if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SENT)) {
                 this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SENT)?.forEach(listener => listener[0](value));
             }
-            console.log("send", value);
             this.socket.send(value);
 
             // statistics
@@ -278,6 +295,13 @@ export class Connection {
 
     getCurrentWarZone(): string {
         return this.currentWarZone;
+    }
+
+    /**
+     * For internal use. Times an x,y packet to acknowledge the confirm
+     */
+    timePixel(x: number, y: number) {
+        this.packetHandler.internalListeners.pixelTime[`${x},${y}`] = Date.now();
     }
 
 }

@@ -1,6 +1,6 @@
 import { constant } from "../../util/Constant";
 import { IAuthData } from "../../util/data/Data";
-import { MessageTuple, PacketResponseMap } from "../../util/packets/PacketResponses";
+import { MessageTuple, PacketResponseMap, PixelConfirmPacket, PixelPacket } from "../../util/packets/PacketResponses";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { Connection } from "./Connection";
 import { InternalListeners } from "./InternalListeners";
@@ -15,7 +15,7 @@ export class PacketHandler {
     private authToken!: string;
     private authId!: string;
 
-    private internalListeners!: InternalListeners;
+    internalListeners!: InternalListeners;
     listeners!: PacketListeners;
 
     constructor(connection: Connection, authData: IAuthData) {
@@ -86,9 +86,17 @@ export class PacketHandler {
     }
 
     private async handlePXPMessage<T extends keyof PacketResponseMap>(message: MessageTuple<T>) {
-        const key: T = message[0];
+        let key: keyof PacketResponseMap = message[0];
+        let value: PacketResponseMap[typeof key] = message[1] as PacketResponseMap[typeof key];
 
-        const value: PacketResponseMap[typeof key] = message[1] as PacketResponseMap[typeof key];
+        if (key == RECEIVED.PIXEL) {
+            const pixel = value as PixelPacket;
+            if (pixel.length == 1 && pixel[0][4] == this.connection.bot.userId) {
+                key = RECEIVED.PIXEL_CONFIRM;
+                value = message[1] as PixelConfirmPacket;
+            }
+        }
+
         // Packet listeners pre
         this.announce(key, value, true);
 

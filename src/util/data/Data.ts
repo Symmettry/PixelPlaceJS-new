@@ -29,14 +29,22 @@ export interface IQueuedPixel {
  * Image data.
  */
 export interface IImage {
+    /** X position of the image */
     x: number;
+    /** Y position of the image */
     y: number;
+    /** Path of the image */
     path: string;
-    mode: Modes | DrawingFunction,
-    protect: boolean;
-    transparent: boolean;
-    wars: boolean;
-    force: boolean;
+    /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
+    mode?: Modes | DrawingFunction,
+    /** If the image should be protected; defaults to false */
+    protect?: boolean;
+    /** If the image is transparent; defaults to false */
+    transparent?: boolean;
+    /** If pixels should be placed if it's in a warzone (during a war); defaults to false */
+    wars?: boolean;
+    /** Forces pixels to be placed regardless of if it's ocean or on the same color; defaults to false */
+    force?: boolean;
 }
 
 /**
@@ -73,6 +81,8 @@ export interface IBotParams {
     authData: IAuthData;
     /** The board ID to connect to */
     boardID: number;
+    /** If the auth data should be relogged. */
+    relog?: boolean;
     /** If the UID Manager should be enabled, defaults to false */
     uidManager?: boolean;
 }

@@ -44,15 +44,15 @@ export class ImageDrawer {
 
         constant(this, 'path', image.path);
 
-        constant(this, 'mode', image.mode);
-
         constant(this, 'x', image.x);
         constant(this, 'y', image.y);
 
-        constant(this, 'protect', image.protect);
-        constant(this, 'transparent', image.transparent);
-        constant(this, 'wars', image.wars);
-        constant(this, 'force', image.force);
+        constant(this, 'mode', image.mode || Modes.TOP_LEFT_TO_RIGHT);
+
+        constant(this, 'protect', image.protect || false);
+        constant(this, 'transparent', image.transparent || false);
+        constant(this, 'wars', image.wars || false);
+        constant(this, 'force', image.force || false);
 
         constant(this, "drawingStrategies", {
 

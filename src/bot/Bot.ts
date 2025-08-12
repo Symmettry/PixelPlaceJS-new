@@ -2,7 +2,6 @@ import * as Canvas from '../util/Canvas.js';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { Modes } from '../util/data/Modes.js';
 import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
@@ -22,9 +21,6 @@ import { PacketSendMap } from '../util/packets/PacketSends.js';
 export class Bot {
 
     protector!: Protector;
-    private authKey!: string;
-    private authToken!: string;
-    private authId!: string;
     private boardId!: number;
 
     private prevPlaceValue: number = 0;
@@ -50,6 +46,21 @@ export class Bot {
 
     private params: IBotParams;
 
+    /** Adds a fail safe for pixel packets per second, will shut the bot off if it sends more than this in a second */
+    failSafe: number = 1000/15;
+
+    /** Amount of detected new lag ms; based on pixel confirm response times */
+    lagAmount: number = 0;
+    /** Ms to increase pixels when lagging; per lag amount ms */
+    lagIncreasePerMs: number = 0.25;
+
+    /** Amount of sustained packets */
+    sustainingLoad: number = 0;
+    /** Amount of sustained packet load to cause increase */
+    loadBarrier: number = 1000;
+    /** Slowdown after high sustained load */
+    loadIncrease: number = 5;
+
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
     /** The user id of the bot */
@@ -64,9 +75,9 @@ export class Bot {
     constructor(params: IBotParams, autoRestart: boolean = true, handleErrors: boolean = true) {
         this.params = params;
 
-        this.authKey = params.authData.authKey;
-        this.authToken = params.authData.authToken;
-        this.authId = params.authData.authId;
+        if(!this.params.boardID) {
+            throw new Error("Key 'boardID' not present in bot parameters!");
+        }
 
         this.setHeaders((type: HeaderTypes) => {
             const headers: OutgoingHttpHeaders = {};
@@ -273,7 +284,11 @@ export class Bot {
     }
 
     private accurateTimeout(call: () => void, time: number): void {
-        time += Math.floor(Math.random() * 2);
+        if(isNaN(time) || time < 0) {
+            console.error(this);
+            throw new Error("Sleeping for an invalid amount of time!! Something is wrong, pls report with your code and the above text");
+        }
+        time += Math.floor(Math.random() * 3);
         const start = process.hrtime();
         function loop() {
             const elapsed = process.hrtime(start)[1] / 1000000;
@@ -286,16 +301,22 @@ export class Bot {
         setImmediate(loop);
     }
 
+    private resolvePixel(queuedPixel: IQueuedPixel): void {
+        this.goingThroughQueue--;
+        queuedPixel.resolve();
+        this.goThroughPixels();
+    }
+
     /**
      * Internal use only
      */
-    goThroughPixels(d: number): void {
-
-        console.log("going through pixels called", d);
+    goThroughPixels(): void {
 
         const queuedPixel = this.sendQueue.shift();
 
         if(queuedPixel == null) return; // shouldn't but just in case
+
+        this.goingThroughQueue++;
 
         const {x, y, col, protect, wars, force} = queuedPixel.data;
 
@@ -303,10 +324,7 @@ export class Bot {
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN;
         if(skippedColor) {
-            setImmediate(() => {
-                queuedPixel.resolve();
-                this.goThroughPixels(-1);
-            });
+            setImmediate(() => this.resolvePixel(queuedPixel));
             return;
         }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
@@ -325,20 +343,21 @@ export class Bot {
                     this.sendAfterWarDone.push(queuedPixel.data);
                 }
             }
-            queuedPixel.resolve();
-            this.goThroughPixels(-1);
+            this.resolvePixel(queuedPixel)
             return;
         }
 
-        this.goingThroughQueue++;
+        if(this.sustainingLoad > this.loadBarrier) {
+            queuedPixel.speed += this.loadIncrease;
+        }
+        queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
-        queuedPixel.speed -= this.nextSubtract;
         this.accurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
         return;
     }
 
-    private lastPixel: number = Date.now();
-    private nextSubtract: number = 0;
+    lastPixel: number = Date.now();
+
     private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
         const {x, y, col, brush = 1, wars = false, force = false} = queuedPixel.data;
 
@@ -348,14 +367,12 @@ export class Bot {
         if(skipped) {
             return;
         }
-
-        this.nextSubtract = 0;
-        if(this.checkRate != -1) {
-            const deltaTime = Date.now() - this.lastPixel;
-            this.nextSubtract = Math.min(deltaTime - queuedPixel.speed, 0);
-            this.lastPixel = Date.now();
+        // happen once when greater
+        if(++this.sustainingLoad == this.loadBarrier + 1) {
+            console.log("Sustained load passed barrier; slowing down.");
         }
 
+        this.connection!.timePixel(x, y);
         this.emit(Packets.SENT.PIXEL, [x,y,col,brush]);
         this.connection!.canvas!.pixelData!.set(x, y, col);
 
@@ -373,16 +390,15 @@ export class Bot {
 
         if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
     
-        queuedPixel.resolve();
+        this.resolvePixel(queuedPixel)
     }
 
     private addToSendQueue(p: IQueuedPixel): void {
         this.sendQueue.push(p);
         if(this.goingThroughQueue == 0) {
-            this.goThroughPixels(0);
+            this.goThroughPixels();
         }
     }
-
 
     /**
      * Places a pixel
@@ -400,10 +416,12 @@ export class Bot {
 
         const conn = this.getConnection();
         if(x > conn.canvas.canvasWidth || x < 0 || y > conn.canvas.canvasHeight || y < 0) {
+            console.log("~~WARN~~ Skipping invalid position: ", x, y);
             return Promise.resolve();
         }
 
         if(!this.getCanvas().isValidColor(col)) {
+            console.log("~~WARN~~ Skipping invalid color: ", col, ", at", x, y);
             return Promise.resolve();
         }
 
@@ -456,36 +474,13 @@ export class Bot {
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      * @returns A promise that resolves once the image is done drawing.
      */
-    async drawImage(...args: [IImage] | [x: number, y: number, path: string, mode?: Modes, protect?: boolean, transparent?: boolean, wars?: boolean, force?: boolean]): Promise<void> {
-        let image: IImage;
-
-        if (args.length === 1 && typeof args[0] === 'object') {
-            image = args[0] as IImage;
-        } else if (args.length >= 3) {
-            image = {
-                x: args[0] as number,
-                y: args[1] as number,
-                path: args[2] as string,
-                mode: args[3] as Modes || Modes.TOP_LEFT_TO_RIGHT,
-                protect: args[4] as boolean || false,
-                transparent: args[5] as boolean || false,
-                wars: args[6] as boolean || false,
-                force: args[7] as boolean || false
-            };
-        } else throw new Error('Invalid arguments for drawImage.');
-        
-        return this.drawImageInternal(image);
-    }
-    
-    private async drawImageInternal(image: IImage) {
-
+    async drawImage(image: IImage): Promise<void> {
         this.stats.images.drawing++;
 
         await new ImageDrawer(this, image).begin();
 
         this.stats.images.drawing--;
         this.stats.images.finished++;
-
     }
 
     /**

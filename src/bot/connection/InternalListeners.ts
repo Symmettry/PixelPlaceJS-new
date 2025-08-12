@@ -15,6 +15,8 @@ export class InternalListeners {
 
     private tDelay: ServerTimePacket = 0;
 
+    pixelTime: { [key: string]: number } = {};
+
     map!: PacketListeners;
 
     constructor(bot: Bot, connection: Connection) {
@@ -86,7 +88,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
-            this.bot.rate = rate + 4;
+            this.bot.rate = rate + 3;
 
             if(this.bot.checkRate == -2) {
                 this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);
@@ -103,29 +105,52 @@ export class InternalListeners {
             this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.bot.userId));
         });
 
-        this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
+        this.listen(RECEIVED.PIXEL, (pixels: PixelPacket) => {
             if(pixels.length == 0) return;
 
             if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
-            if(this.bot.protector) await this.bot.protector.detectPixels(pixels);
+            if(this.bot.protector) this.bot.protector.detectPixels(pixels);
 
             const hasUID = pixels[0].length == 5;
             if(hasUID) {
                 // pass the pixel update to the uid manager
                 const uidMan = this.bot.getUidManager()
                 if(uidMan != null) uidMan.onPixels(pixels);
+            }
 
-                // response packet
-                console.log(pixels.length, pixels[0][4], this.bot.userId);
-                if(pixels.length == 1 && pixels[0][4] == this.bot.userId) {
-                    this.bot.goingThroughQueue = Math.max(0, this.bot.goingThroughQueue - 1);
-                    this.bot.goThroughPixels(1);
-                    return;
+            if(Date.now() - this.bot.lastPixel > 100) {
+                if(this.bot.sustainingLoad > this.bot.loadBarrier) {
+                    console.log("Load settled down, back to normal placing.");
                 }
+                this.bot.sustainingLoad = 0;
             }
 
             // go through and verify if the pixels the bot placed were actually sent
             this.bot.verifyPixels();
+        });
+
+        const CONFIRM_CHECKS = 10, ABOVE_AVG = 50;
+        let confirmTimes: number[] = [];
+        this.listen(RECEIVED.PIXEL_CONFIRM, ([[x, y]]) => {
+            const key = `${x},${y}`;
+            if(!this.pixelTime[key]) {
+                // owmince bug :(
+                //console.log("~~WARN~~ pixel time not set this is a bug this is a bug help help help wahh");
+                return;
+            }
+            const delta = Date.now() - this.pixelTime[key];
+            delete this.pixelTime[key];
+
+            if(confirmTimes.length == CONFIRM_CHECKS) {
+                const avg = confirmTimes.reduce((prev, cur) => prev + cur, 0) / CONFIRM_CHECKS;
+                const test = avg + ABOVE_AVG;
+                this.bot.lagAmount = Math.max(0, delta - test);
+            }
+
+            confirmTimes.push(delta);
+            if(confirmTimes.length > CONFIRM_CHECKS) {
+                confirmTimes.shift();
+            }
         });
 
         this.listen(RECEIVED.CANVAS, (canvas: CanvasPacket) => {

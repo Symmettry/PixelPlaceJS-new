@@ -25,7 +25,7 @@ export class Protector {
 
     protect(x: number, y: number, col: Colors): void {
         const protectColor = this.getColor(x, y);
-        if (protectColor != undefined && protectColor == col) return;
+        if (protectColor != undefined) return;
 
         this.protectedPixels.set(`${x},${y}`, col);
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
@@ -42,22 +42,20 @@ export class Protector {
         return this.protectedPixels.get(`${x},${y}`);
     }
 
-    async detectPixels(pixels: PixelPacket): Promise<void> {
-        await Promise.all(
-            pixels.map((pixel: PixelPacketData) => {
-                const [x, y, col] = pixel;
-                const protectColor = this.getColor(x, y);
-                if (protectColor == undefined || protectColor == col) return;
+    detectPixels(pixels: PixelPacket) {
+        for(const [x, y, col] of pixels) {
+            const protectColor = this.getColor(x, y);
+            if (protectColor == undefined || protectColor == col) continue;
 
-                this.stats.pixels.protection.repaired++;
-                this.stats.pixels.protection.last_repair = Date.now();
-                this.pp.placePixel({
-                    x, y,
-                    col: protectColor,
-                    protect: true,
-                });
-            })
-        );
+            this.stats.pixels.protection.repaired++;
+            this.stats.pixels.protection.last_repair = Date.now();
+            this.pp.placePixel({
+                x, y,
+                col: protectColor,
+                protect: true,
+                force: true
+            });
+        }
     }
     
 }

@@ -8,6 +8,7 @@ import { RECEIVED } from "./Packets";
  */
 export interface PacketResponseMap {
     [RECEIVED.PIXEL]: PixelPacket,
+    [RECEIVED.PIXEL_CONFIRM]: PixelConfirmPacket;
     [RECEIVED.RATE_CHANGE]: RateChangePacket,
 
     [RECEIVED.PING_ALIVE]: null,
@@ -167,11 +168,18 @@ export type PixelPacketData = [
     /** If premium, a user id will be present. It will also be your user id if it's a response packet. */
     userId?: number,
 ];
+type RequireUserId<T extends any[]> =
+    T extends [...infer Head, number?] ? [...Head, number] : T;
 
 /**
  * Contains an array of pixel data.
  */
 export type PixelPacket = PixelPacketData[];
+
+/**
+ * Contains 1 pixel packet data with the userid of yourself
+ */
+export type PixelConfirmPacket = [RequireUserId<PixelPacketData>];
 
 /**
  * Also contains an array of pixel data, but this packet is only sent at the start.
