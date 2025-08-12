@@ -189,8 +189,20 @@ export class Connection {
         });
     }
 
+    private pingInt: number = 0;
+
     async Load() {
         if(!this.socket) throw "Bot has not connected yet.";
+        
+        this.pingInt = setInterval(() => {
+            fetch("https://pixelplace.io/api/ping.php", {
+                method: "GET",
+                headers: {
+                    "cookie": this.generateAuthCookie(),
+                },
+            })
+        }, 300000) as unknown as number;
+
         return new Promise<void>((resolve) => {
             this.loadResolve = resolve;
             this.socket.on("message", (data: Buffer) => {
@@ -201,6 +213,7 @@ export class Connection {
     }
 
     private socketClosed() {
+        clearInterval(this.pingInt);
         this.connected = false;
         this.chatLoaded = false;
         if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SOCKET_CLOSE)) {

@@ -149,6 +149,10 @@ export interface IArea {
     defended?: boolean;
 }
 
+export interface IDebuggerOptions {
+    shrinkPixelPacket?: boolean;
+};
+
 /**
  * Contains statistics data for pixelplace.
  */

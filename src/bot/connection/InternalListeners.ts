@@ -131,7 +131,7 @@ export class InternalListeners {
             this.bot.verifyPixels();
         });
 
-        const CONFIRM_CHECKS = 10, ABOVE_AVG = 50;
+        const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;
         let confirmTimes: number[] = [];
         this.listen(RECEIVED.PIXEL_CONFIRM, ([[x, y]]) => {
             const key = `${x},${y}`;
@@ -163,6 +163,10 @@ export class InternalListeners {
             this.connection.connected = true;
             this.connection.loadCanvas(canvas);
         });
+
+        this.listen(RECEIVED.CANVAS_ALERT, (msg) => {
+            console.log("~~CANVAS ALERT~~ " + msg);
+        })
 
         this.listen(RECEIVED.SERVER_TIME, (num: ServerTimePacket) => {
             this.tDelay = getTDelay(num);

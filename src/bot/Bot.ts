@@ -2,7 +2,7 @@ import * as Canvas from '../util/Canvas.js';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams } from '../util/data/Data.js';
+import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
@@ -41,6 +41,7 @@ export class Bot {
     headers!: (type: HeaderTypes) => OutgoingHttpHeaders;
 
     private debugger: boolean = false;
+    private debuggerOptions: IDebuggerOptions = {};
 
     private connection: Connection | null = null;
 
@@ -367,6 +368,7 @@ export class Bot {
         if(skipped) {
             return;
         }
+
         // happen once when greater
         if(++this.sustainingLoad == this.loadBarrier + 1) {
             console.log("Sustained load passed barrier; slowing down.");
@@ -653,6 +655,10 @@ export class Bot {
 
     private addDebuggerInternal() {
         this.on(Packets.RECEIVED.LIB_RAW, (message) => {
+            if(this.debuggerOptions.shrinkPixelPacket && message.startsWith('42["p",[')) {
+                message = message.substring(0, 60) + (message.length > 60 ? "..." : "");
+            }
+
             console.log(`\x1b[41m⬇ ${message} \x1b[0m`);
         });
         this.on(Packets.RECEIVED.LIB_SENT, (message) => {
@@ -663,8 +669,9 @@ export class Bot {
     /**
      * Adds a listener for all sent and received packets
      */
-    addDebugger() {
+    addDebugger(settings: IDebuggerOptions = {}): void {
         this.debugger = true;
+        this.debuggerOptions = settings;
         if(this.connected()) {
             this.addDebuggerInternal();
         }
