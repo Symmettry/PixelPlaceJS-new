@@ -150,7 +150,12 @@ export interface IArea {
 }
 
 export interface IDebuggerOptions {
+    /** Will shrink the pixel packets being received */
     shrinkPixelPacket?: boolean;
+    /** Ignores printing send/recieve of pixel packet */
+    ignorePixelPacket?: boolean;
+    /** Clears console line when logging; useful for some debug stuff. */
+    lineClears?: boolean;
 };
 
 /**

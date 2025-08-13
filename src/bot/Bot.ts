@@ -50,6 +50,9 @@ export class Bot {
     /** Adds a fail safe for pixel packets per second, will shut the bot off if it sends more than this in a second */
     failSafe: number = 1000/15;
 
+    /** Max time a pixel will be waiting for. Setting place rate will increase this if it's higher. */
+    maxPixelWait: number = 100;
+
     /** Amount of detected new lag ms; based on pixel confirm response times */
     lagAmount: number = 0;
     /** Ms to increase pixels when lagging; per lag amount ms */
@@ -60,7 +63,7 @@ export class Bot {
     /** Amount of sustained packet load to cause increase */
     loadBarrier: number = 1000;
     /** Slowdown after high sustained load */
-    loadIncrease: number = 5;
+    loadIncrease: number = 2;
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
@@ -254,9 +257,9 @@ export class Bot {
      * @param autoFix If the rate should automatically be updated to be rate_change value -- won't do anything if you use a function
      * @param suppress Suppress warnings if the number is below bot.rate
      */
-    setPlacementSpeed(arg: (prevValue?: number) => number | number, autoFix: boolean=true, suppress: boolean=false): void {
+    setPlacementSpeed(arg: ((prevValue?: number | undefined) => number) | number, autoFix: boolean=true, suppress: boolean=false): void {
         this.suppress = suppress;
-        if(typeof arg != 'function') {
+        if(typeof arg == 'number') {
             if(this.rate == -1) {
                 console.warn(`~~WARN~~ The rate_change packet has not been received yet, so the placement speed cannot be verified for if it works. You likely shouldn't be setting this value right now.`);
             } else if(!suppress && arg < this.rate) {
@@ -268,9 +271,12 @@ export class Bot {
             } else {
                 this.checkRate = arg;
             }
+            if(arg > this.maxPixelWait) {
+                this.maxPixelWait = arg;
+            }
             return;
         }
-        this.userDefPlaceSpeed = arg;
+        this.userDefPlaceSpeed = arg as any;
         this.checkRate = -1;
     }
 
@@ -353,7 +359,7 @@ export class Bot {
         }
         queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
-        this.accurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), queuedPixel.speed);
+        this.accurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), Math.min(queuedPixel.speed, this.maxPixelWait));
         return;
     }
 
@@ -377,6 +383,7 @@ export class Bot {
         this.connection!.timePixel(x, y);
         this.emit(Packets.SENT.PIXEL, [x,y,col,brush]);
         this.connection!.canvas!.pixelData!.set(x, y, col);
+        this.lastPixel = Date.now();
 
         const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
         this.unverifiedPixels.push(arr);
@@ -422,6 +429,8 @@ export class Bot {
      */
     async placePixel(pixel: IPixel, forcePlacementSpeed: number = -1): Promise<void> {
         const {x, y, col, protect = false, force = false } = pixel;
+
+        console.log('trying to place',col,'at',x,y);
 
         const conn = this.getConnection();
         if(x > conn.canvas.canvasWidth || x < 0 || y > conn.canvas.canvasHeight || y < 0) {
@@ -653,16 +662,30 @@ export class Bot {
         }
     }
 
+    private wipeLine() {
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+    }
+
     private addDebuggerInternal() {
         this.on(Packets.RECEIVED.LIB_RAW, (message) => {
-            if(this.debuggerOptions.shrinkPixelPacket && message.startsWith('42["p",[')) {
-                message = message.substring(0, 60) + (message.length > 60 ? "..." : "");
+            if(message.startsWith('42["p",[')) {
+                if(this.debuggerOptions.ignorePixelPacket) return;
+                if(this.debuggerOptions.shrinkPixelPacket) {
+                    message = message.substring(0, 60) + (message.length > 60 ? "..." : "");
+                }
             }
 
-            console.log(`\x1b[41m⬇ ${message} \x1b[0m`);
+            if(this.debuggerOptions.lineClears) this.wipeLine();
+            process.stdout.write(`\x1b[41m⬇ ${message} \x1b[0m\n`);
         });
         this.on(Packets.RECEIVED.LIB_SENT, (message) => {
-            console.log(`\x1b[42m⬆ ${message} \x1b[0m`);
+            if(message.startsWith('42["p",[')) {
+                if(this.debuggerOptions.ignorePixelPacket) return;
+            }
+
+            if(this.debuggerOptions.lineClears) this.wipeLine();
+            process.stdout.write(`\x1b[42m⬆ ${message} \x1b[0m\n`);
         });
     }
 

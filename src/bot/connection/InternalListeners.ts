@@ -107,7 +107,16 @@ export class InternalListeners {
             this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.bot.userId));
         });
 
+        const PIXEL_PACKET_TIME = 50;
+        let lastPixelPacket = Date.now();
         this.listen(RECEIVED.PIXEL, (pixels: PixelPacket) => {
+            const deltaTime = Date.now() - lastPixelPacket;
+            lastPixelPacket = Date.now();
+
+            if(deltaTime < PIXEL_PACKET_TIME + 20) {
+                this.bot.lagAmount = Math.max(0, this.bot.lagAmount - 5);
+            }
+
             if(pixels.length == 0) return;
 
             if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
@@ -120,7 +129,7 @@ export class InternalListeners {
                 if(uidMan != null) uidMan.onPixels(pixels);
             }
 
-            if(Date.now() - this.bot.lastPixel > 100) {
+            if(Date.now() - this.bot.lastPixel > PIXEL_PACKET_TIME/3) {
                 if(this.bot.sustainingLoad > this.bot.loadBarrier) {
                     console.log("Load settled down, back to normal placing.");
                 }
