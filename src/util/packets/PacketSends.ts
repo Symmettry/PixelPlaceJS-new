@@ -51,8 +51,8 @@ export type ClientPixelPacket = [
     /** Y position of the pixel. */
     y: number,
     
-    /** Color of the pixel. */
-    color: Color,
+    /** Color of the pixel. -100 is ocean color for mods */
+    color: Color | -100,
 
     /** Brush number of the pixel. Default is 1. */
     brush: number,

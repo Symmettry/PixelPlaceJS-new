@@ -97,57 +97,39 @@ export class ImageDrawer {
                         await this.draw(x, y, pixels);
             },
             [Modes.FROM_CENTER]: async (pixels: ImageData) => {
-                // calculate the center point
                 const centerX = Math.floor(pixels.width / 2);
                 const centerY = Math.floor(pixels.height / 2);
 
-                // create an array to hold pixels and their distances from the center
                 const pixelDistances = [];
-
-                // calculate the distance of each pixel from the center
                 for (let x = 0; x < pixels.width; x++) {
                     for (let y = 0; y < pixels.height; y++) {
-                        const dx = centerX - x;
-                        const dy = centerY - y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-
-                        pixelDistances.push({x, y, distance});
+                        const distance = Math.hypot(centerX - x, centerY - y);
+                        pixelDistances.push([x, y, distance]);
                     }
                 }
 
-                //sort the pixels by their distance from the center
-                pixelDistances.sort((a, b) => a.distance - b.distance);
+                pixelDistances.sort((a, b) => a[2] - b[2]);
 
-                // draw the pixels from the center outward
                 for (const pixel of pixelDistances) {
-                    await this.draw(pixel.x, pixel.y, pixels);
+                    await this.draw(pixel[0], pixel[1], pixels);
                 }
             },
             [Modes.TO_CENTER]: async (pixels: ImageData) => {
-                // calculate the center point
                 const centerX = Math.floor(pixels.width / 2);
                 const centerY = Math.floor(pixels.height / 2);
 
-                // create an array to hold pixels and their distances from the center
                 const pixelDistances = [];
-
-                // calculate the distance of each pixel from the center
                 for (let x = 0; x < pixels.width; x++) {
                     for (let y = 0; y < pixels.height; y++) {
-                        const dx = centerX - x;
-                        const dy = centerY - y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-
-                        pixelDistances.push({x, y, distance});
+                        const distance = Math.hypot(centerX - x, centerY - y);
+                        pixelDistances.push([x, y, distance]);
                     }
                 }
 
-                //sort the pixels by their distance from the center
-                pixelDistances.sort((a, b) => b.distance - a.distance);
+                pixelDistances.sort((a, b) => b[2] - a[2]);
 
-                // draw the pixels from the center outward
                 for (const pixel of pixelDistances) {
-                    await this.draw(pixel.x, pixel.y, pixels);
+                    await this.draw(pixel[0], pixel[1], pixels);
                 }
             },
 
@@ -223,12 +205,11 @@ export class ImageDrawer {
                     for (let y = 0; y < img.bitmap.height; y++) {
                         const color = img.getPixelColor(x, y);
                         const rgba = Jimp.intToRGBA(color);
-                        const { r, g, b, a } = rgba;
                         
                         // Skip transparent pixels
-                        if (this.transparent && a === 0) continue;
+                        if (this.transparent && rgba.a === 0) continue;
                         
-                        data.pixels[x][y] = this.instance.getClosestColorId({ r, g, b });
+                        data.pixels[x][y] = this.instance.getClosestColorId(rgba);
                     }
                 }
 

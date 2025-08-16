@@ -33,7 +33,7 @@ const paliveCharmap: {[key: string]: string} = {
     "9": "o",
 };
 
-export function getPalive(tDelay: ServerTimePacket, userId: number) {
+export function getPalive(tDelay: number, userId: number) {
     const sequenceLengths = [6, 5, 9, 4, 5];
 
     // wsv: first number of CFVersion

@@ -75,7 +75,7 @@ export interface PacketResponseMap {
     [RECEIVED.LIB_ALL]: [key: string, value: unknown],
     [RECEIVED.LIB_RAW]: string,
     [RECEIVED.LIB_ERROR]: Error,
-    [RECEIVED.LIB_SOCKET_CLOSE]: null,
+    [RECEIVED.LIB_SOCKET_CLOSE]: [code: number, reason: Buffer],
     [RECEIVED.LIB_SENT]: string,
 }
 

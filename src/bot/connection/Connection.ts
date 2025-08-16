@@ -2,7 +2,7 @@ import * as Canvas from "../../util/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets } from "../../util/packets/Packets";
-import { IStatistics, IArea, IBotParams, IAuthData } from "../../util/data/Data";
+import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel } from "../../util/data/Data";
 import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
@@ -127,14 +127,6 @@ export class Connection {
     }
 
     async Connect() {
-        
-        const int = setInterval(() => {
-            if(!this.connected) {
-                clearInterval(int);
-            } else {
-                this.pixelsThisSecond = 0;
-            }
-        }, 1000);
 
         if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
         return new Promise<void>(async (resolve) => {
@@ -153,9 +145,15 @@ export class Connection {
             // create the canvas
             this.canvas = Canvas.getCanvas(this.boardId, this.headers);
 
-            this.socket.on('close', () => {
-                this.socketClosed();
+            this.socket.on('close', (code: number, reason: Buffer) => {
+                this.socketClosed(code, reason);
             });
+
+            this.socket.on('unexpected-response', (req, res) => {
+                console.error('Error:', res.statusCode, res.statusMessage);
+            });
+
+            this.socket.on('ping', this.socket.pong);
 
             this.socket.on('open', () => {
                 this.connected = true;
@@ -176,7 +174,7 @@ export class Connection {
                 this.socketError(error);
                 if(error.message.startsWith("connect ECONNREFUSED") && Date.now() - this.econnrefusedTimer > 10000) { // this means it couldn't connect
                     this.econnrefusedTimer = Date.now();
-                    this.socket.close();
+                    this.socket.close(4001);
                     console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds." : ""}`);
                 }
             });
@@ -195,13 +193,10 @@ export class Connection {
         if(!this.socket) throw "Bot has not connected yet.";
         
         this.pingInt = setInterval(() => {
-            fetch("https://pixelplace.io/api/ping.php", {
-                method: "GET",
-                headers: {
-                    "cookie": this.generateAuthCookie(),
-                },
-            })
-        }, 300000) as unknown as number;
+            if(this.connected) {
+                this.socket.ping();
+            }
+        }, 30000) as unknown as number;
 
         return new Promise<void>((resolve) => {
             this.loadResolve = resolve;
@@ -212,12 +207,13 @@ export class Connection {
         });
     }
 
-    private socketClosed() {
+    private socketClosed(code: number, reason: Buffer) {
         clearInterval(this.pingInt);
+
         this.connected = false;
         this.chatLoaded = false;
         if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SOCKET_CLOSE)) {
-            this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]());
+            this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]([code, reason]));
         }
         if(this.bot.autoRestart) {
             setTimeout(() => this.Start(), 3000);
@@ -261,15 +257,21 @@ export class Connection {
     }
 
     private pixelsThisSecond: number = 0;
+    private lastReset: number = Date.now();
 
     send(value: Buffer | Uint8Array | string | unknown[]) {
-        try {
-            // full fail safe
-            if(value.toString().startsWith('42["p",[') && ++this.pixelsThisSecond > this.bot.failSafe) {
-                console.log("~~Fail safe triggered~~");
+        // full fail safe
+        if(value.toString().startsWith('42["p",[')) {
+            if(Date.now() - this.lastReset > 1000) {
+                this.lastReset += 1000;
+                this.pixelsThisSecond = 0;
+            }
+            if(++this.pixelsThisSecond > this.bot.failSafe) {
+                console.log(`~~Fail safe triggered: ${this.pixelsThisSecond}/${this.bot.failSafe}~~`);
                 process.exit();
             }
-
+        }
+        try {
             if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SENT)) {
                 this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SENT)?.forEach(listener => listener[0](value));
             }
@@ -313,8 +315,8 @@ export class Connection {
     /**
      * For internal use. Times an x,y packet to acknowledge the confirm
      */
-    timePixel(x: number, y: number): void {
-        this.packetHandler.internalListeners.pixelTime[`${x},${y}`] = Date.now();
+    timePixel(p: IQueuedPixel): void {
+        this.packetHandler.internalListeners.pixelTime[`${p.data.x},${p.data.y}`] = [Date.now(), p];
     }
 
     /**

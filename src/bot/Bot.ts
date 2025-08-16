@@ -27,10 +27,7 @@ export class Bot {
 
     private sendQueue: Array<IQueuedPixel> = [];
     private resendQueue: Array<IPixel> = [];
-    private unverifiedPixels: Array<IUnverifiedPixel> = [];
     private sendAfterWarDone: Array<IPixel> = [];
-    /** Internal use only */
-    goingThroughQueue: number = 0;
 
     autoRestart: boolean;
     handleErrors: boolean;
@@ -47,8 +44,13 @@ export class Bot {
 
     private params: IBotParams;
 
+    /** If the bot is ratelimited. */
+    ratelimited: boolean = false;
+    /** Amount of time ratelimited for. */
+    ratelimitTime: number = 0;
+
     /** Adds a fail safe for pixel packets per second, will shut the bot off if it sends more than this in a second */
-    failSafe: number = 1000/15;
+    failSafe: number = 1000/12;
 
     /** Max time a pixel will be waiting for. Setting place rate will increase this if it's higher. */
     maxPixelWait: number = 100;
@@ -60,10 +62,13 @@ export class Bot {
 
     /** Amount of sustained packets */
     sustainingLoad: number = 0;
-    /** Amount of sustained packet load to cause increase */
-    loadBarrier: number = 1000;
-    /** Slowdown after high sustained load */
-    loadIncrease: number = 2;
+    
+    /** Current load barrier index */
+    currentBarrier: number = 0;
+    /** Amount of sustained packet load to cause increases */
+    loadBarriers: number[] = [500,1000,1500];
+    /** Slowdown amount in ms after sustained load passes barriers */
+    loadIncreases: number[] = [1,2,4];
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
@@ -114,6 +119,16 @@ export class Bot {
         this.Load = this.Load.bind(this);
         this.Connect = this.Connect.bind(this);
         this.Init = this.Init.bind(this);
+
+        this.queueLoop();
+    }
+
+    private queueLoop() {
+        if(this.sendQueue.length == 0) {
+            setTimeout(() => this.queueLoop(), 10);
+        } else {
+            this.goThroughPixels();
+        }
     }
 
     /**
@@ -207,28 +222,6 @@ export class Bot {
     getClosestColorId(rgb: IRGBColor): Color {
         return this.getCanvas()?.getClosestColorId(rgb);
     }
-
-    /**
-     * This function is used by the connection for verifying pixels. This shouldn't be used outside of that.
-     */
-    verifyPixels() {
-        let successful = this.unverifiedPixels.length;
-        for (let i = this.unverifiedPixels.length - 1; i >= 0; i--) {
-            const pixel = this.unverifiedPixels[i];
-
-            if(this.getPixelAt(pixel.data.x, pixel.data.y) == pixel.data.col) continue;
-
-            this.resendQueue.push(pixel.data); // pixels were not sent, redo them
-            this.getConnection().canvas?.pixelData?.set(pixel.data.x, pixel.data.y, pixel.originalColor);
-
-            // statistics
-            this.stats.pixels.placing.failed++;
-            this.stats.pixels.colors[pixel.data.col]--;
-            successful--;
-        }
-        this.stats.pixels.placing.placed += successful;
-        this.unverifiedPixels = [];
-    }
     
     private getPlacementSpeed() {
         const prevValue = this.prevPlaceValue;
@@ -289,16 +282,17 @@ export class Bot {
     protect(x: number, y: number, col: number): void {
         this.protector.protect(x, y, col);
     }
-
+    
     private accurateTimeout(call: () => void, time: number): void {
         if(isNaN(time) || time < 0) {
             console.error(this);
             throw new Error("Sleeping for an invalid amount of time!! Something is wrong, pls report with your code and the above text");
         }
         time += Math.floor(Math.random() * 3);
-        const start = process.hrtime();
+
+        const start = Date.now();
         function loop() {
-            const elapsed = process.hrtime(start)[1] / 1000000;
+            const elapsed = Date.now() - start;
             if (elapsed < time) {
                 setImmediate(loop);
             } else {
@@ -309,9 +303,8 @@ export class Bot {
     }
 
     private resolvePixel(queuedPixel: IQueuedPixel): void {
-        this.goingThroughQueue--;
         queuedPixel.resolve();
-        this.goThroughPixels();
+        setImmediate(() => this.goThroughPixels());
     }
 
     /**
@@ -319,11 +312,19 @@ export class Bot {
      */
     goThroughPixels(): void {
 
-        const queuedPixel = this.sendQueue.shift();
+        if(this.sendQueue.length == 0) {
+            this.queueLoop();
+            return;
+        }
 
-        if(queuedPixel == null) return; // shouldn't but just in case
-
-        this.goingThroughQueue++;
+        let queuedPixel;
+        do {
+            queuedPixel = this.sendQueue.shift();
+        } while (queuedPixel == null && this.sendQueue.length > 0);
+        if(queuedPixel == null) {
+            this.queueLoop();
+            return;
+        }
 
         const {x, y, col, protect, wars, force} = queuedPixel.data;
 
@@ -331,7 +332,7 @@ export class Bot {
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN;
         if(skippedColor) {
-            setImmediate(() => this.resolvePixel(queuedPixel));
+            this.resolvePixel(queuedPixel);
             return;
         }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
@@ -354,19 +355,46 @@ export class Bot {
             return;
         }
 
-        if(this.sustainingLoad > this.loadBarrier) {
-            queuedPixel.speed += this.loadIncrease;
+        this.sustainingLoad++;
+        if(this.sustainingLoad > this.loadBarriers[this.currentBarrier]) {
+            if(this.currentBarrier != this.loadBarriers.length - 1 && this.sustainingLoad > this.loadBarriers[this.currentBarrier + 1]) {
+                this.currentBarrier++;
+            }
+            queuedPixel.speed += this.loadIncreases[this.currentBarrier];
+        } else if (this.currentBarrier > 0) {
+            this.currentBarrier--;
         }
+
         queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
-        this.accurateTimeout(() => this.sendPixel(queuedPixel, colAtSpot), Math.min(queuedPixel.speed, this.maxPixelWait));
+        if(this.ratelimited) queuedPixel.speed += 50;
+
+        this.accurateTimeout(() => this.sendPixel(queuedPixel), Math.min(queuedPixel.speed, this.maxPixelWait));
         return;
     }
 
     lastPixel: number = Date.now();
 
-    private sendPixel(queuedPixel: IQueuedPixel, origCol: number): void {
+    private sendPixel(queuedPixel: IQueuedPixel): void {
+        if(!this.connected()) {
+            this.queueLoop();
+            setTimeout(() => {
+                this.addToSendQueue(queuedPixel);
+            }, 2000);
+            return;
+        }
+
+        if(this.ratelimited) {
+            this.queueLoop();
+            setTimeout(() => {
+                this.addToSendQueue(queuedPixel);
+            }, this.ratelimitTime * 1000 + 5000);
+            return;
+        }
+
         const {x, y, col, brush = 1, wars = false, force = false, protect = false} = queuedPixel.data;
+
+        this.resolvePixel(queuedPixel);
 
         const colAtSpot = this.getPixelAt(x, y);
         const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
@@ -375,18 +403,10 @@ export class Bot {
             return;
         }
 
-        // happen once when greater
-        if(++this.sustainingLoad == this.loadBarrier + 1) {
-            console.log("Sustained load passed barrier; slowing down.");
-        }
-
-        this.connection!.timePixel(x, y);
-        this.emit(Packets.SENT.PIXEL, [x,y,col,brush]);
+        this.connection!.timePixel(queuedPixel);
+        this.emit(Packets.SENT.PIXEL, [x, y, col == Color.OCEAN ? -100 : col, brush]);
         this.connection!.canvas!.pixelData!.set(x, y, col);
         this.lastPixel = Date.now();
-
-        const arr: IUnverifiedPixel = {data: queuedPixel.data, originalColor: origCol || 0};
-        this.unverifiedPixels.push(arr);
 
         // statistics
         this.stats.pixels.placing.attempted++;
@@ -404,16 +424,13 @@ export class Bot {
             this.stats.pixels.protection.repaired++;
             this.stats.pixels.protection.last_repair = Date.now();
         }
-    
-        // now resolve
-        this.resolvePixel(queuedPixel)
     }
 
-    private addToSendQueue(p: IQueuedPixel): void {
+    /**
+     * Internal use only
+     */
+    addToSendQueue(p: IQueuedPixel): void {
         this.sendQueue.push(p);
-        if(this.goingThroughQueue == 0) {
-            this.goThroughPixels();
-        }
     }
 
     /**
@@ -429,8 +446,6 @@ export class Bot {
      */
     async placePixel(pixel: IPixel, forcePlacementSpeed: number = -1): Promise<void> {
         const {x, y, col, protect = false, force = false } = pixel;
-
-        console.log('trying to place',col,'at',x,y);
 
         const conn = this.getConnection();
         if(x > conn.canvas.canvasWidth || x < 0 || y > conn.canvas.canvasHeight || y < 0) {
@@ -448,7 +463,7 @@ export class Bot {
 
         // Do not add to queue.
         const curCol = this.getPixelAt(x, y);
-        if(curCol == col && !force) {
+        if((curCol == col && !force) || curCol == Color.OCEAN || curCol == null) {
             return Promise.resolve();
         }
 

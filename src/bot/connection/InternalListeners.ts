@@ -1,5 +1,6 @@
 import { constant } from "../../util/Constant";
-import { IArea } from "../../util/data/Data";
+import { Color } from "../../util/data/Color";
+import { IArea, IQueuedPixel } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
 import { AreaFightEndPacket, AreaFightStartPacket, AreaFightZoneChangePacket, AreasPacket, CanvasPacket, PacketResponseMap, PixelPacket, RateChangePacket, ServerTimePacket, UsernamePacket } from "../../util/packets/PacketResponses";
 import { RECEIVED, SENT } from "../../util/packets/Packets";
@@ -13,9 +14,9 @@ export class InternalListeners {
     private bot!: Bot;
     private connection!: Connection;
 
-    private tDelay: ServerTimePacket = 0;
+    private tDelay: number = 0;
 
-    pixelTime: { [key: string]: number } = {};
+    pixelTime: { [key: string]: [number, IQueuedPixel] } = {};
 
     map!: PacketListeners;
 
@@ -40,7 +41,7 @@ export class InternalListeners {
             switch(value) {
                 case PPError.LOGGED_OUT:
                     console.error("Auth data was invalid; will retry.");
-                    this.connection.socket.close();
+                    this.connection.socket.close(4002);
                     break;
                 case PPError.TOO_MANY_INSTANCES:
                 case PPError.TOO_MANY_USERS_INTERNET:
@@ -64,7 +65,7 @@ export class InternalListeners {
                 case PPError.PAINTING_ARCHIVED:
                 case PPError.NEED_USERNAME:
                     console.error(errorMessage);
-                    this.connection.socket.close();
+                    this.connection.socket.close(4003);
                     break;
                 case PPError.INVALID_COLOR:
                 case PPError.COOLDOWN:
@@ -86,11 +87,29 @@ export class InternalListeners {
                 case PPError.KICKED_FROM_GUILD:
                     console.error(errorMessage);
                     break;
+                case PPError.RATELIMITED:
+                    this.bot.ratelimited = true;
+                    console.error("~~BOT RATELIMITED~~");
+                    break;
             }
         });
 
+        this.listen(RECEIVED.CHAT_CUSTOM_MESSAGE, (msg) => {
+            if(!this.bot.ratelimited) return;
+            this.bot.ratelimitTime = parseFloat(msg.substring("Time left: ".length).slice(0, -1))
+            setTimeout(() => {
+                this.bot.ratelimited = false;
+                this.bot.ratelimitTime = 0;
+                console.log("~~RATELIMIT OVER~~");
+            }, this.bot.ratelimitTime * 1000 + 3000);
+        });
+
+        this.listen(RECEIVED.NOTIFICATION_ITEM_USE, (i) => {
+            if(i.itemName.includes("Bomb")){};
+        })
+
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
-            this.bot.rate = rate + 3;
+            this.bot.rate = 14; // this is most stable for me; considering the load barriers
 
             if(this.bot.checkRate == -2) {
                 this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);
@@ -110,11 +129,26 @@ export class InternalListeners {
         const PIXEL_PACKET_TIME = 50;
         let lastPixelPacket = Date.now();
         this.listen(RECEIVED.PIXEL, (pixels: PixelPacket) => {
-            const deltaTime = Date.now() - lastPixelPacket;
-            lastPixelPacket = Date.now();
+            const now = Date.now();
+
+            const deltaTime = now - lastPixelPacket;
+            lastPixelPacket = now;
 
             if(deltaTime < PIXEL_PACKET_TIME + 20) {
                 this.bot.lagAmount = Math.max(0, this.bot.lagAmount - 5);
+            }
+
+            if(now - this.bot.lastPixel > PIXEL_PACKET_TIME) {
+                this.bot.sustainingLoad = Math.floor(Math.max(0, this.bot.sustainingLoad / 2 - 200));
+                while(this.bot.currentBarrier > 0 && this.bot.sustainingLoad < this.bot.loadIncreases[this.bot.currentBarrier]) {
+                    this.bot.currentBarrier--;
+                }
+            }
+
+            for(const [key, [time, queuedPixel]] of Object.entries(this.pixelTime)) {
+                if(now - time < 500) continue;
+                delete this.pixelTime[key];
+                this.bot.addToSendQueue(queuedPixel);
             }
 
             if(pixels.length == 0) return;
@@ -128,20 +162,10 @@ export class InternalListeners {
                 const uidMan = this.bot.getUidManager()
                 if(uidMan != null) uidMan.onPixels(pixels);
             }
-
-            if(Date.now() - this.bot.lastPixel > PIXEL_PACKET_TIME/3) {
-                if(this.bot.sustainingLoad > this.bot.loadBarrier) {
-                    console.log("Load settled down, back to normal placing.");
-                }
-                this.bot.sustainingLoad = 0;
-            }
-
-            // go through and verify if the pixels the bot placed were actually sent
-            this.bot.verifyPixels();
         });
 
         const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;
-        let confirmTimes: number[] = [];
+        let confirmTimes: number[] = [], avg = 0;
         this.listen(RECEIVED.PIXEL_CONFIRM, ([[x, y]]) => {
             const key = `${x},${y}`;
             if(!this.pixelTime[key]) {
@@ -149,11 +173,11 @@ export class InternalListeners {
                 //console.log("~~WARN~~ pixel time not set this is a bug this is a bug help help help wahh");
                 return;
             }
-            const delta = Date.now() - this.pixelTime[key];
+            const delta = Date.now() - this.pixelTime[key][0];
             delete this.pixelTime[key];
 
             if(confirmTimes.length == CONFIRM_CHECKS) {
-                this.confirmPing = confirmTimes.reduce((prev, cur) => prev + cur, 0) / CONFIRM_CHECKS;
+                this.confirmPing = avg;
 
                 const test = this.confirmPing + ABOVE_AVG;
                 this.bot.lagAmount = Math.max(0, delta - test);
@@ -162,9 +186,11 @@ export class InternalListeners {
                 this.confirmPing = delta;
             }
 
-            confirmTimes.push(delta);
+            const time = delta / CONFIRM_CHECKS;
+            confirmTimes.push(time);
+            avg += time;
             if(confirmTimes.length > CONFIRM_CHECKS) {
-                confirmTimes.shift();
+                avg -= confirmTimes.shift()!;
             }
         });
 

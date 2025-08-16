@@ -7,5 +7,5 @@ export { Packets } from "./util/packets/Packets";
 export { PPError, ErrorMessages } from "./util/data/Errors";
 export { TextWriter } from "./util/drawing/TextWriter";
 export { Font, FontData } from "./util/drawing/fonts/Font";
-export { ImageData, IAuthData, IBotParams } from "./util/data/Data";
+export { ImageData, IAuthData, IBotParams, BrushTypes } from "./util/data/Data";
 export * as PacketTypes from "./util/packets/PacketResponses";

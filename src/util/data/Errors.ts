@@ -42,6 +42,7 @@ export enum PPError {
     RELOAD_PAGE = 39,
     INVALID_AUTH = 49,
     TOO_MANY_PACKETS = 50,
+    RATELIMITED = 51,
 }
 /**
  * A mapping of error codes to the message.
@@ -105,4 +106,7 @@ export const ErrorMessages = {
 
     // request spam
     50: "Too many requests are coming from your internet connection. Please wait a minute and refresh your page. Are you using a proxy or public/shared connection?",
+
+    // rate limits
+    51: "Ratelimited",
 };

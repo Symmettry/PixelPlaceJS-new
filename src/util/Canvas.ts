@@ -6,7 +6,6 @@ import { Color } from './data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from './packets/PacketResponses';
 import { HeaderTypes } from '../PixelPlace';
-import { Bot } from '..';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -42,7 +41,7 @@ export class Canvas {
 
     private loadResolve: (() => void) | null = null;
 
-    private colors: { [key: string]: Color } = {
+    rgbToColor: { [key: string]: Color } = {
         "255,255,255": Color.WHITE,
         "196,196,196": Color.LIGHT_GRAY,
         "166,166,166": Color.A_BIT_LIGHT_GRAY,
@@ -108,8 +107,19 @@ export class Canvas {
         "69,255,200": Color.CYAN,
         "181,232,238": Color.BLUE_GREEN_WHITE
     };
+    colorToRgb: { [key: string]: [number, number, number] } = Object.entries(this.rgbToColor)
+                                                  .reduce((c: any, [rgb, col]) => {
+                                                        c[col] = rgb.split(",").map(parseFloat);
+                                                        return c;
+                                                    }, {});
+    colorToRgbInt: { [key: string]: number } = Object.entries(this.colorToRgb)
+                                                  .reduce((c: any, [col, [r,g,b]]) => {
+                                                        c[col] = Jimp.rgbaToInt(r,g,b,255);
+                                                        return c;
+                                                    }, {});
 
-    private validColorIds = Object.values(this.colors);
+
+    private validColorIds = Object.values(this.rgbToColor);
 
     pixelData!: ndarray.NdArray<Uint16Array>;
 
@@ -161,17 +171,19 @@ export class Canvas {
     getClosestColorId(rgb: IRGBColor): Color {
         const { r, g, b } = rgb;
 
+        const strKey = `${r},${g},${b}`;
+        if(this.rgbToColor.hasOwnProperty(strKey)) return this.rgbToColor[strKey];
+
         let minDistance = Infinity;
         let closestColorId = Color.OCEAN;
     
-        for (const color in this.colors) {
-            const [r2, g2, b2] = color.split(',').map(Number);
-            const distance = Math.sqrt(Math.pow(r - r2, 2) + Math.pow(g - g2, 2) + Math.pow(b - b2, 2));
+        for (const [r2, g2, b2] of Object.values(this.colorToRgb)) {
+            const distance = Math.hypot(r - r2, g - g2, b - b2);
     
             if (distance >= minDistance) continue;
 
             minDistance = distance;
-            closestColorId = this.colors[color];
+            closestColorId = this.rgbToColor[`${r2},${g2},${b2}`];
         }
     
         return closestColorId;
@@ -179,7 +191,7 @@ export class Canvas {
 
     private getColorId(rgb: IRGBColor): Color {
         const { r, g, b } = rgb;
-        return Object.prototype.hasOwnProperty.call(this.colors, `${r},${g},${b}`) ? this.colors[`${r},${g},${b}`] : Color.OCEAN;
+        return Object.prototype.hasOwnProperty.call(this.rgbToColor, `${r},${g},${b}`) ? this.rgbToColor[`${r},${g},${b}`] : Color.OCEAN;
     }
 
     async loadCanvasPicture(): Promise<void> {
@@ -300,7 +312,7 @@ export class Canvas {
      * @returns Pixelplace color list.
      */ 
     getColors(): { [key: string]: Color; } {
-        return this.colors;
+        return this.rgbToColor;
     }
 
     /**
@@ -309,7 +321,7 @@ export class Canvas {
      */
     isValidColor(col: unknown): boolean {
         // non-numbers like null will be ignored fully.
-        return typeof col == 'number' && this.validColorIds.includes(col);
+        return typeof col == 'number' && (this.validColorIds.includes(col) || col == Color.OCEAN);
     }
     
     /**
@@ -318,6 +330,25 @@ export class Canvas {
      */
     setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
         this.headers = headers;
+    }
+
+    private OCEAN_RGBINT: number = Jimp.rgbaToInt(204,204,204,255);
+    private TRANSPARENT_RGBINT: number = Jimp.rgbaToInt(0,0,0,0);
+
+    async createImage(path?: string, transparent?: boolean): Promise<Jimp> {
+        const image = new Jimp(this.canvasWidth, this.canvasHeight);
+
+        const oceanCol = transparent ? this.TRANSPARENT_RGBINT : this.OCEAN_RGBINT;
+        for (let y = 0; y < this.canvasHeight; y++) {
+            for (let x = 0; x < this.canvasWidth; x++) {
+                const value = this.pixelData.get(x, y);
+                image.setPixelColor(value == Color.OCEAN ? oceanCol : this.colorToRgbInt[value], x, y);
+            }
+        }
+
+        if(path) await image.writeAsync(path);
+
+        return image;
     }
 
 }

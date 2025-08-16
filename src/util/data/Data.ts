@@ -159,6 +159,16 @@ export interface IDebuggerOptions {
 };
 
 /**
+ * Brush types. Notice that only normal pixeling is actually like fully working. Owicode
+ */
+export enum BrushTypes {
+    NORMAL = 1,
+    PROTECT = 2,
+    REPLACE = 3,
+    FILL = 4,
+}
+
+/**
  * Contains statistics data for pixelplace.
  */
 export interface IStatistics {

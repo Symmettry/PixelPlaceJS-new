@@ -42,17 +42,19 @@ export class Protector {
         return this.protectedPixels.get(`${x},${y}`);
     }
 
-    detectPixels(pixels: PixelPacket) {
+    async detectPixels(pixels: PixelPacket) {
+        let promises = [];
         for(const [x, y, col] of pixels) {
             const protectColor = this.getColor(x, y);
             if (protectColor == undefined || protectColor == col) continue;
 
-            this.pp.placePixel({
+            promises.push(this.pp.placePixel({
                 x, y,
                 col: protectColor,
                 protect: true
-            });
+            }));
         }
+        await Promise.all(promises);
     }
     
 }
