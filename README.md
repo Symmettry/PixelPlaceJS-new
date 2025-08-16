@@ -9,6 +9,8 @@ Easily capable of drawing 3000x3000 images (May have a delay on hefty sorting li
 
 Able to do many many things unlike most bots (Like chat bots -- Erebot is made in this)
 
+Also supports a closely-english custom scripting language!!!
+
 [View Documentation](https://symmettry.github.io/PixelPlaceJS-new/)
 
 ### Useful Bot Stuff
@@ -181,4 +183,130 @@ import { PixelPlace, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
     bot.buildText("Hello World!", 100, 100).draw();
 })();
 
+```
+
+## PPScript
+
+This language is simple and can sound like english.
+
+### Comments
+Comments are done with # and don't have to be only the line
+
+### Printing
+Printing can be done like this.
+```
+print "text"
+```
+Options for it are<br>
+`newLine` if there should be a new line after it prints<br>
+`lineClear` if it should wipe the line before printing
+```
+print "text" newLine=yes lineClear=yes
+```
+
+### Adding a bot
+Can be done by supplying the auth data
+```
+bot authKey="" authId="" authToken=""
+```
+There's also other things you can add to help with multi-botting etc.
+```
+bot name="mybot" boardID=123 uidManager=true auth...
+```
+The bot's default name is "bot"
+
+### Login
+This is optional, any drawing will automatically login. However, this will pause until the login, and you can add a print after.
+```
+login
+
+# example
+print "hello world!"
+```
+You can also create the bots and the instance before completing the login
+```
+create
+```
+
+### Drawing
+
+For both of these, you can do bot="name" to set what bot does which. It will default to the first bot if not specified.
+
+#### Images
+Images can be drawn with the `draw` command
+```
+draw image at x=123 y=123 path="/path/to/image.png"
+```
+You can also make the image protected, different modes, etc. (you can use true/false as well)
+```
+draw image at x=123 y=123 path="" protect=yes wars=no force=no mode=FROM_CENTER
+```
+
+#### Pixels
+Pixels can be drawn with the `draw` command
+```
+draw pixel at x=123 y=123 color=RED
+```
+They also have settings
+```
+draw pixel at x=123 y=123 color=RED brush=1 protect=yes wars=no force=no
+```
+
+#### Variables
+Variables can be set with `set` command
+```
+set x=1 y=2 path="flag.png"
+```
+And can be used like this; removing the = will make var=var so x=x and y=y here. Surround in {} for strings.
+```
+draw image at x y path="/usr/Downloads/{path}"
+```
+
+#### Sleep
+You can wait milliseconds by using `sleep`
+```
+print "Hi"
+sleep 1000
+print "World"
+```
+
+#### Loops
+Loops can be done like this
+```
+repeat 5 times:
+    print "{index}"
+end
+```
+You can also use variables in them with this syntax
+```
+repeat number0=variable
+    print "{index}"
+end
+```
+They can be exited with `break` (this is kinda useless until i implement conditional statements but shh)
+```
+repeat 10 times
+    sleep 1000
+    break
+end
+```
+
+#### Debug
+You can add a debugger like this. It will default to the first bot if unspecified.
+```
+debug
+```
+This has a few options for it too<br>
+`ignorePixelPacket` will skip printing pixel packet<br>
+`shrinkPixelPacket` will shrink the packet to 60 chars<br>
+`lineClears` will clear the console line; useful to replace `print` messages<br>
+```
+debug bot="botname" ignorePixelPacket=yes shrinkPixelPacket=yes lineClears=yes
+```
+
+#### Javascript
+If you need some js things like math and stuff you can use the js() function
+```
+set x=js("5 + 10")
+print "{x}"
 ```

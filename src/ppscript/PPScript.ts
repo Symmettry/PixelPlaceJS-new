@@ -2,9 +2,8 @@ import fs from 'fs';
 import { Bot, IBotParams, Modes, PixelPlace } from '..';
 import { Color } from '../util/data/Color';
 import { IImage, IPixel } from '../util/data/Data';
-import { error } from 'console';
 
-type Args = { [key: string]: [string | number | boolean, string] };
+type Args = { [key: string]: [string | number | boolean | CallData, string] };
 type RuntimeArgs = { [key: string]: string | number | boolean }
 
 type ArgsFunc = () => RuntimeArgs;
@@ -12,6 +11,8 @@ type ExpectFunc = (...args: (string | [string, string])[]) => RuntimeArgs;
 type OptionalFunc = (...args: [string, any][]) => RuntimeArgs;
 type ErrorFunc = (err: any) => void;
 type OnlyFunc = (...args: string[]) => void;
+
+type CallData = [name: string, args: Args];
 
 interface Command {
     cmd: string,
@@ -36,6 +37,17 @@ export class PPScript {
 
     private variables: {[key: string]: any} = {};
 
+    private internalFunctions: {[key: string]: Function} = {
+        js: (args: RuntimeArgs, error: ErrorFunc) => {
+            if(!args.string0) error("Need a string to process!");
+            return eval(args.string0 as string);
+        }
+    };
+
+    private functions: {[key: string]: Function} = {
+
+    };
+
     constructor(file: string) {
         if(!fs.existsSync(file))
             this.throwError(`Unknown file: '${file}'`);
@@ -53,7 +65,7 @@ export class PPScript {
         process.exit();
     }
 
-    private parseValue(val: string, parts: string[], i: number): [number, any, string] {
+    private parseValue(key: string, val: string, parts: string[], i: number, endWhenFind?: string): [number, string | boolean | number | CallData, string] {
         if(val.startsWith('"')) {
             if(val.endsWith('"')) return [i, val.substring(1, val.length - 1), 'string'];
             
@@ -66,9 +78,12 @@ export class PPScript {
                     string += " " + strPart.slice(0, -1);
                     break;
                 }
+                if(strPart.endsWith('"' + endWhenFind)) {
+                    string += " " + strPart.slice(0, -2);
+                    break;
+                }
                 string += " " + strPart;
             }
-
             return [j, string, 'string'];
         }
         const num = parseFloat(val);
@@ -76,46 +91,74 @@ export class PPScript {
         const lower = val.toLowerCase();
         if(lower == 'true'  || lower == 'yes') return [i, true , 'boolean'];
         if(lower == 'false' || lower == 'no' ) return [i, false, 'boolean'];
+
+        if(val.includes("(")) {
+            const ident = val.substring(0, val.indexOf("("));
+            if(val.endsWith(")")) {
+                const next = val.substring(val.indexOf("(") + 1, val.length - 1);
+                let args = {};
+                if(next.length > 0) {
+                    this.parseArg(args, [next], i);
+                }
+                return [i, [ident, args], 'call'];
+            }
+            const slice = parts.slice(i);
+            slice[0] = slice[0].substring(key.length + ident.length + 2);
+            let args: Args = this.parseArgs(slice, ')');
+            return [i, [ident, args], 'call'];
+        }
+
         return [i, val, 'identifier'];
     }
 
-    private parseArg(args: Args, parts: string[], i: number, error: ErrorFunc): number {
-        const part = parts[i];
+    private parseArg(args: Args, parts: string[], i: number, endWhenFind?: string): number {
+        let part = parts[i];
 
         if(part.startsWith("#")) return parts.length;
 
+        let end = false;
+        if(endWhenFind && part.endsWith(endWhenFind)) {
+            part = part.slice(0, -1);
+            end = true;
+        }
+
         const eq = part.indexOf("=");
         if(eq == -1) {
-            if(part.indexOf(":") != -1) return i;
+            if(part.endsWith(":")) {
+                switch(part.slice(0, -1)) {
+                    case "forever":
+                        args['number0'] = [Infinity, 'number'];
+                        break;
+                }
+                return end ? parts.length : i;
+            }
 
-            const [newI, value, type] = this.parseValue(part, parts, i);
+            const [newI, value, type] = this.parseValue("", part, parts, i, endWhenFind);
             if(type == 'identifier') {
-                args[value] = [value, type];
+                args[value as string] = [value, type];
             } else {
                 let index = 0;
                 while(args.hasOwnProperty(type + index)) index++;
                 args[type + index] = [value, type];
             }
-            return newI;
+            return end ? parts.length : newI;
         }
 
         const key = part.substring(0, eq);
 
         const val = part.substring(eq + 1, part.length);
 
-        const [newI, value, type] = this.parseValue(val, parts, i);
-        if(!value) error(`Unknown data: ${val}`);
-
+        const [newI, value, type] = this.parseValue(key, val, parts, i, endWhenFind);
         args[key] = [value, type];
 
-        return newI;
+        return end ? parts.length : newI;
     }
 
-    private parseArgs(parts: string[], error: ErrorFunc): Args {
+    private parseArgs(parts: string[], endWhenFind?: string): Args {
         let args: Args = {};
     
         for(let i=0;i<parts.length;i++) {
-            i = this.parseArg(args, parts, i, error);
+            i = this.parseArg(args, parts, i, endWhenFind);
         }
 
         return args;
@@ -125,7 +168,7 @@ export class PPScript {
         return value.replaceAll(/{(.*?)}/g, (n: string, p1: string) => this.variables[p1] ?? '<unset>');
     }
 
-    private runtimeProcess(data: [string | boolean | number, string]): string | boolean | number {
+    private runtimeProcess(data: [string | boolean | number | CallData, string], error: ErrorFunc): string | boolean | number {
         switch(data[1]) {
             case 'string': {
                 return this.implVariable(data[0] as string);
@@ -133,8 +176,12 @@ export class PPScript {
             case 'identifier': {
                 return this.variables[data[0] as string];
             }
+            case 'call': {
+                const [ident, args] = data[0] as CallData;
+                return (this.internalFunctions[ident] ?? this.functions[ident] ?? (() => error(`No function named '${ident}'`)))(this.convertArgs(args, error), error);
+            }
             default: {
-                return data[0];
+                return data[0] as string;
             }
         }
     }
@@ -144,10 +191,10 @@ export class PPScript {
         return key;
     }
 
-    private convertArgs(args: Args): RuntimeArgs {
+    private convertArgs(args: Args, error: ErrorFunc): RuntimeArgs {
         const newArgs: RuntimeArgs = {};
         Object.entries(args).forEach(([key, value]) => {
-            newArgs[this.sanitize(key)] = this.runtimeProcess(value);
+            newArgs[this.sanitize(key)] = this.runtimeProcess(value, error);
         });
         return newArgs;
     }
@@ -155,9 +202,9 @@ export class PPScript {
     private genExpect(args: Args, error: ErrorFunc): ExpectFunc {
         return (...expectedArgs: (string | [string, string])[]) => {
             const missingArg = expectedArgs.find(n => !args[typeof n == 'string' ? n : n[0]]);
-            if(missingArg != undefined) error(`Expected key '${missingArg[0]}'`);
+            if(missingArg != undefined) error(`Expected key '${typeof missingArg == 'string' ? missingArg : missingArg[0]}'`);
 
-            const newArgs: RuntimeArgs = this.convertArgs(args);
+            const newArgs: RuntimeArgs = this.convertArgs(args, error);
 
             expectedArgs.forEach(val => {
                 let key, expected;
@@ -185,7 +232,7 @@ export class PPScript {
 
                 const there = args[key];
                 if(there != undefined) {
-                    const processed = this.runtimeProcess(there);
+                    const processed = this.runtimeProcess(there, error);
                     if(typeof processed != typeof def) error(`Invalid type for key '${key}', expected '${typeof def}', got '${typeof processed}'`);
                     res[sanitized] = processed;
                     continue;
@@ -220,11 +267,12 @@ export class PPScript {
 
             const parts = trim.split(" ");
             const cmd = parts.shift()!;
+
+            const args = this.parseArgs(parts);
+
             const error = this.genError(cmd, number);
 
-            const args = this.parseArgs(parts, error);
-
-            const argsFunc = () => this.convertArgs(args);
+            const argsFunc = () => this.convertArgs(args, error);
             const expect = this.genExpect(args, error);
             const optional = this.genOptional(args, error);
             const only = this.genOnly(args, error);
