@@ -4,7 +4,7 @@ import { Color } from '../util/data/Color';
 import { IImage, IPixel } from '../util/data/Data';
 
 type Args = { [key: string]: [string | number | boolean | CallData, string] };
-type RuntimeArgs = { [key: string]: string | number | boolean }
+type RuntimeArgs = { [key: string]: any }
 
 type ArgsFunc = () => RuntimeArgs;
 type ExpectFunc = (...args: (string | [string, string])[]) => RuntimeArgs;
@@ -39,8 +39,31 @@ export class PPScript {
 
     private internalFunctions: {[key: string]: Function} = {
         js: (args: RuntimeArgs, error: ErrorFunc) => {
-            if(!args.string0) error("Need a string to process!");
+            if(!args.string0) error("Need a string to process for function 'js'");
             return eval(args.string0 as string);
+        },
+        stats: (args: RuntimeArgs, error: ErrorFunc) => {
+            if(!args.string0) args.string0 = Object.keys(this.bots)[0];
+
+            const botInst = this.bots[args.string0 as string];
+            if(!botInst) error(`Unknown bot '${args.string0}', for function 'stats'`);
+
+            return botInst.getStatistics();
+        },
+        parts: (args: RuntimeArgs, error: ErrorFunc) => {
+            if(!args.object) error(`Expected arg key 'object' for function 'parts'`);
+            if(!args.string0) error(`Expected string arg for function 'parts'`);
+
+            const parts = args.string0.split(".");
+            let obj = args.object;
+            for(const s of parts) {
+                if(obj.hasOwnProperty(s)) {
+                    obj = obj[s];
+                } else {
+                    error(`Cannot find ${args.string0} parts`);
+                }
+            }
+            return obj;
         }
     };
 
@@ -95,10 +118,10 @@ export class PPScript {
         if(val.includes("(")) {
             const ident = val.substring(0, val.indexOf("("));
             if(val.endsWith(")")) {
-                const next = val.substring(val.indexOf("(") + 1, val.length - 1);
+                const next = val.substring(val.indexOf("(") + 1, val.length - 1).replace(/\)/g, "");
                 let args = {};
                 if(next.length > 0) {
-                    this.parseArg(args, [next], i);
+                    this.parseArg(args, [next], 0);
                 }
                 return [i, [ident, args], 'call'];
             }
@@ -165,7 +188,10 @@ export class PPScript {
     }
 
     private implVariable(value: string): string {
-        return value.replaceAll(/{(.*?)}/g, (n: string, p1: string) => this.variables[p1] ?? '<unset>');
+        return value.replaceAll(/{(.*?)}/g, (n: string, p1: string) => {
+            const data = this.variables[p1];
+            return data != undefined ? typeof data == 'object' ? JSON.stringify(data) : data : "<unset>";
+        });
     }
 
     private runtimeProcess(data: [string | boolean | number | CallData, string], error: ErrorFunc): string | boolean | number {
@@ -305,7 +331,7 @@ export class PPScript {
         this.loggedIn = true;
     }
 
-    private async processCmd(command: Command, i: number, breakFn: () => void): Promise<number> {
+    private async processCmd(command: Command, i: number, breakFn: "root" | "async" | (() => void)): Promise<number> {
         switch(command.cmd) {
             case 'bot': {
                 command.only('name', 'boardID', 'authKey', 'authToken', 'authId');
@@ -478,6 +504,10 @@ export class PPScript {
                 if(times <= 0) command.error('Loop must repeat 1+ times.');
                 if(times != Math.floor(times)) command.error('Must loop a whole number amount of times');
 
+                if(times == Infinity && breakFn == 'async') {
+                    console.log("Infinite loops during async will stall the program. Use `sleep` in the loop to fix this!");
+                }
+
                 let shouldBreak: boolean = false;
                 let breakIndex = -1;
                 loop:
@@ -501,7 +531,34 @@ export class PPScript {
 
             case 'break': {
                 command.only();
-                breakFn();
+                if(typeof breakFn == 'function') breakFn();
+                else switch(breakFn) {
+                    case "async":
+                        command.error("Cannot break from async!");
+                        break;
+                    case "root":
+                        command.error("Cannot break from root!");
+                        break;
+                }
+                break;
+            }
+
+            case "async": {
+                command.only();
+                let k = i+1;
+                for(;k<this.commands.length;k++) {
+                    const command = this.commands[k];
+                    if(command.cmd == 'end') {
+                        break;
+                    }
+                }
+                const ogi = i;
+                setImmediate(async () => {
+                    for(let j=ogi+1;j<k;j++) {
+                        j = await this.processCmd(this.commands[j], j, "async");
+                    }
+                });
+                i = k;
                 break;
             }
         }
@@ -512,7 +569,7 @@ export class PPScript {
 
         for(let i=0;i<this.commands.length;i++) {
             const command = this.commands[i];
-            i = await this.processCmd(command, i, () => {throw new Error(`Invalid break`)});
+            i = await this.processCmd(command, i, "root");
         }
 
     }

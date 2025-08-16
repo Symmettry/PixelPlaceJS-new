@@ -167,7 +167,7 @@ export class InternalListeners {
 
             if(missileDelay && pixels.find(n => n[4] === 0)) {
                 missileDelay = false;
-                
+
                 // wait a delay so that we repair n stuff a bit later
                 await new Promise<void>((resolve) => setTimeout(resolve, 1000));
             }
@@ -184,6 +184,9 @@ export class InternalListeners {
                 //console.log("~~WARN~~ pixel time not set this is a bug this is a bug help help help wahh");
                 return;
             }
+
+            this.bot.stats.pixels.placing.placed++;
+
             const delta = Date.now() - this.pixelTime[key][0];
             delete this.pixelTime[key];
 
