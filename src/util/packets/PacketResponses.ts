@@ -221,6 +221,9 @@ export type UserProfilePacket = {
     online: false,
 };
 
+export type ItemName = "Pixel Missile" | "Pixel Bomb" | "Atomic Pixel Bomb" | "Rainbow Username" | "Name Change" | "3 days - Premium" |
+                       "1 month - Premium" | "1 year - Premium" | "XMAS Username" | "Treasure Chest";
+
 /**
  * Represents a notification for item use.
  */
@@ -232,7 +235,7 @@ export type ItemUseNotificationPacket = {
     /** The item id. */
     item: number,
     /** The item name. */
-    itemName: string,
+    itemName: ItemName,
     /** The painting id. */
     painting: number,
     /** The x-coordinate. */
@@ -254,7 +257,7 @@ export type ItemGiftNotificationPacket = {
     /** The recipient's username. */
     to: string,
     /** The item id. */
-    item: string,
+    item: ItemName,
 };
 
 /**

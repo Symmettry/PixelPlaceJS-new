@@ -104,10 +104,6 @@ export class InternalListeners {
             }, this.bot.ratelimitTime * 1000 + 3000);
         });
 
-        this.listen(RECEIVED.NOTIFICATION_ITEM_USE, (i) => {
-            if(i.itemName.includes("Bomb")){};
-        })
-
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
             this.bot.rate = 14; // this is most stable for me; considering the load barriers
 
@@ -126,9 +122,16 @@ export class InternalListeners {
             this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.bot.userId));
         });
 
+        let missileDelay = false;
+        this.listen(RECEIVED.NOTIFICATION_ITEM_USE, (i) => {
+            if(i.itemName.includes("Pixel")){
+                missileDelay = true;
+            }
+        });
+
         const PIXEL_PACKET_TIME = 50;
         let lastPixelPacket = Date.now();
-        this.listen(RECEIVED.PIXEL, (pixels: PixelPacket) => {
+        this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
             const now = Date.now();
 
             const deltaTime = now - lastPixelPacket;
@@ -153,15 +156,23 @@ export class InternalListeners {
 
             if(pixels.length == 0) return;
 
-            if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
-            if(this.bot.protector) this.bot.protector.detectPixels(pixels);
-
             const hasUID = pixels[0].length == 5;
             if(hasUID) {
                 // pass the pixel update to the uid manager
                 const uidMan = this.bot.getUidManager()
                 if(uidMan != null) uidMan.onPixels(pixels);
             }
+
+            if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
+
+            if(missileDelay && pixels.find(n => n[4] === 0)) {
+                missileDelay = false;
+                
+                // wait a delay so that we repair n stuff a bit later
+                await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+            }
+
+            if(this.bot.protector) this.bot.protector.detectPixels(pixels);
         });
 
         const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;

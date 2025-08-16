@@ -2,12 +2,12 @@ import * as Canvas from '../util/Canvas.js';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { IImage, IPixel, IUnverifiedPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions } from '../util/data/Data.js';
+import { IImage, IPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
-import { TextBuilder } from '../util/drawing/TextWriter.js';
+import { ITextObject, TextWriter } from '../util/drawing/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeaderTypes } from '../PixelPlace.js';
@@ -66,9 +66,9 @@ export class Bot {
     /** Current load barrier index */
     currentBarrier: number = 0;
     /** Amount of sustained packet load to cause increases */
-    loadBarriers: number[] = [500,1000,1500];
+    loadBarriers: number[] = [0,1000,1500,2500];
     /** Slowdown amount in ms after sustained load passes barriers */
-    loadIncreases: number[] = [1,2,4];
+    loadIncreases: number[] = [0,1,2,3];
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
@@ -360,10 +360,10 @@ export class Bot {
             if(this.currentBarrier != this.loadBarriers.length - 1 && this.sustainingLoad > this.loadBarriers[this.currentBarrier + 1]) {
                 this.currentBarrier++;
             }
-            queuedPixel.speed += this.loadIncreases[this.currentBarrier];
         } else if (this.currentBarrier > 0) {
             this.currentBarrier--;
         }
+        queuedPixel.speed += this.loadIncreases[this.currentBarrier];
 
         queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
@@ -518,16 +518,12 @@ export class Bot {
     }
 
     /**
-     * Creates a builder for a text drawing. After adding the options, add .draw() to the end.
-     * @param text The text to draw.
-     * @param x The top-left x position to draw at.
-     * @param y The top-left y position to draw at.
-     * @param protect If the pixels should be replaced when another player modifies them.
-     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
-     * @param force If the pixel packet should still be sent if it doesn't change the color.
+     * Draws text.
+     * @param text Data for the text
+     * @returns The ending position of the text.
      */
-    buildText(text: string, x: number, y: number, protect: boolean = false, wars: boolean = false, force: boolean = false) {
-        return new TextBuilder(this, text, x, y, protect, wars, force);
+    async drawText(text: ITextObject): Promise<[number, number]> {
+        return await new TextWriter(this, text).begin();
     }
 
     /**
@@ -713,6 +709,13 @@ export class Bot {
         if(this.connected()) {
             this.addDebuggerInternal();
         }
+    }
+
+    /**
+     * Generates a random color
+     */
+    getRandomColor(): Color {
+        return this.getCanvas().getRandomColor();
     }
 
 }

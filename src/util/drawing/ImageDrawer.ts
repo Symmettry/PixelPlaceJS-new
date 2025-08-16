@@ -33,6 +33,7 @@ export class ImageDrawer {
     private y!: number;
 
     private protect!: boolean;
+    private fullProtect!: boolean;
     private transparent!: boolean;
     private wars!: boolean;
     private force!: boolean;
@@ -50,6 +51,8 @@ export class ImageDrawer {
         constant(this, 'mode', image.mode || Modes.TOP_LEFT_TO_RIGHT);
 
         constant(this, 'protect', image.protect || false);
+        constant(this, 'fullProtect', image.fullProtect || false);
+
         constant(this, 'transparent', image.transparent || false);
         constant(this, 'wars', image.wars || false);
         constant(this, 'force', image.force || false);
@@ -153,7 +156,7 @@ export class ImageDrawer {
                     const x = coordinates[i] % pixels.width;
                     const y = Math.floor(coordinates[i] / pixels.width);
                     await this.draw(x, y, pixels);
-                }
+                } 
             }
         });
     }
@@ -211,6 +214,12 @@ export class ImageDrawer {
                         
                         data.pixels[x][y] = this.instance.getClosestColorId(rgba);
                     }
+                }
+
+                if(this.fullProtect) {
+                    for (let y = 0; y < data.height; y++) 
+                        for (let x = 0; x < data.width; x++) 
+                            this.instance.protect(this.x + x, this.y + y, data.pixels[x][y]);
                 }
 
                 if(typeof this.mode == 'function') {

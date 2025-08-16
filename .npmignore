@@ -1,0 +1,6 @@
+# not-needed
+tsconfig.json
+.gitattributes
+.eslintrc.json
+src/**
+docs/**

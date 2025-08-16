@@ -351,4 +351,12 @@ export class Canvas {
         return image;
     }
 
+    /**
+     * Gets a random color
+     */
+    getRandomColor(): Color {
+        const v: Color[] = Object.values(this.rgbToColor);
+        return v[Math.floor(Math.random() * v.length)];
+    }
+
 }
