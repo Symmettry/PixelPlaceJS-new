@@ -140,3 +140,9 @@ tsconfig.json
 .eslintrc.json
 src/**
 docs/**
+zip.sh
+node_windows/**
+node_linux/**
+used_node_modules/**
+scripts/**
+release/**

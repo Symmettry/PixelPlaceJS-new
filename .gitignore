@@ -133,3 +133,9 @@ ppjs-relog-authdata-*
 
 # vscode shit
 .vscode/
+
+node_linux/
+node_windows/
+used_node_modules/
+
+release/
