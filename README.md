@@ -32,7 +32,7 @@ Then drag this file onto the ppscript .sh file and the bot will run!
 `npm i pixelplacejs-new`
 yeah that's it lol
 
-### Useful Bot Stuff
+## Useful Bot Stuff
 
 ```js
 // this readme is really bad and im way too lazy to fix everything with my new changes sob, just use the example
