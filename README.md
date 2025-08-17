@@ -23,10 +23,10 @@ Also supports a closely-english custom scripting language!!!
 ## Installation
 
 ### PPScript Installation
-Go to [releases](https://github.com/Symmettry/PixelPlaceJS-new/releases/tag/Release) and download the zip of your OS type<br>
-Extract the zip and find where the ppscript .sh file is.<br>
+Go to [releases](https://github.com/Symmettry/PixelPlaceJS-new/releases) and download the zip of your OS type<br>
+Extract the zip and find where the ppscript .sh or .bat file is.<br>
 Create a file called "bot.ppscript" and inside of it, write the data for your bot<br>
-Then drag this file onto the ppscript .sh file and the bot will run!
+Then drag this file onto the ppscript file and the bot will run!
 
 ### PPJS Installation
 `npm i pixelplacejs-new`
