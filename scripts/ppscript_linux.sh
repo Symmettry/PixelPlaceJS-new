@@ -6,4 +6,4 @@ if [ $# -eq 0 ]; then
 fi
 
 chmod +X ./pixelplacejs/node_linux/bin/node
-./pixelplacejs/node_linux/bin/node ./dist/PPScript.js "$@"
+./pixelplacejs/node_linux/bin/node ./pixelplacejs/dist/PPScript.js "$@"

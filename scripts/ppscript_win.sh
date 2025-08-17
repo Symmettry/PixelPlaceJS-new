@@ -5,4 +5,4 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-./pixelplacejs/node_windows/node.exe ./dist/PPScript.js "$@"
+./pixelplacejs/node_windows/node.exe ./pixelplacejs/dist/PPScript.js "$@"
