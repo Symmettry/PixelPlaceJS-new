@@ -1,7 +1,8 @@
 import fs from 'fs';
-import { Bot, IBotParams, Modes, PixelPlace } from '..';
+import { Bot, Font, IBotParams, Modes, PixelPlace } from '..';
 import { Color } from '../util/data/Color';
 import { IImage, IPixel } from '../util/data/Data';
+import { ITextObject } from '../util/drawing/TextWriter';
 
 type Args = { [key: string]: [string | number | boolean | CallData, string] };
 type RuntimeArgs = { [key: string]: any }
@@ -331,6 +332,13 @@ export class PPScript {
         this.loggedIn = true;
     }
 
+    private getColor(command: Command, str: any): Color {
+        const colorStr = (str as string);
+        const col: Color = colorStr in Color ? Color[colorStr as keyof typeof Color] : parseFloat(colorStr);
+        if(isNaN(col)) command.error(`Invalid color: ${str}`);
+        return col;
+    }
+
     private async processCmd(command: Command, i: number, breakFn: "root" | "async" | (() => void)): Promise<number> {
         switch(command.cmd) {
             case 'bot': {
@@ -411,9 +419,7 @@ export class PPScript {
                     command.only('pixel', 'at', 'x', 'y', 'color', 'bot', 'brush', 'protect', 'wars', 'force', 'wait');
                     const { x, y, color } = command.expect(['x', 'number'], ['y', 'number'], ['color', 'string']);
 
-                    const colorStr = (color as string);
-                    const col: Color = colorStr in Color ? Color[colorStr as keyof typeof Color] : parseFloat(colorStr);
-                    if(isNaN(col)) command.error(`Invalid color: ${color}`);
+                    const col = this.getColor(command, color);
 
                     const { bot, brush, protect, wars, force, wait }
                             = command.optional(
@@ -439,7 +445,50 @@ export class PPScript {
                     else botInst.placePixel(pixel);
                     break;
                 }
-                command.error("Invalid draw; must be 'draw image' or 'draw pixel'")
+                if(args.hasOwnProperty("text")) {
+                    command.only("string0", "at", "x", "y", "with", "font", "string1", "and", "textColor",
+                                 "backgroundColor", "fillColor", "spaceLength", "separatorLength", "lineGap", "protect", "wars", "force");
+                    
+                    const { string0, x, y } = command.expect('string0', ['x', 'number'], ['y', 'number']);
+
+                    const { string1, textColor, backgroundColor, fillColor, spaceLength, separatorLength, lineGap, protect, wars, force, wait, bot } =
+                        command.optional(
+                            ['string1', "SMALL_FONT"], ['textColor', '5'], ['backgroundColor', '-1'], ['fillColor', '-1'],
+                            ['spaceLength', 2], ['separatorLength', 1], ['lineGap', 1],
+                            ['protect', false], ['wars', false], ['force', false], ['wait', true],
+                            ['bot', Object.keys(this.bots)[0]],
+                        );
+
+                    const textCol = this.getColor(command, textColor);
+                    const bgCol   = this.getColor(command, backgroundColor);
+                    const fillCol = this.getColor(command, fillColor);
+
+                    const font = Font[string1 as keyof typeof Font] ?? Font.SMALL_FONT;
+
+                    const botInst = this.bots[(bot as string)];
+                    if(!botInst) command.error(`Unknown bot: ${bot}`); 
+
+                    const text: ITextObject = {
+                        font,
+                        text: string0 as string,
+                        x: x as number,
+                        y: y as number,
+                        textColor: textCol,
+                        backgroundColor: bgCol,
+                        fillColor: fillCol,
+                        spaceLength: spaceLength as number,
+                        separatorLength: separatorLength as number,
+                        lineGap: lineGap as number,
+                        protect: protect as boolean,
+                        wars: wars as boolean,
+                        force: force as boolean,
+                    };
+
+                    if(wait as boolean) await botInst.drawText(text);
+                    else botInst.drawText(text);
+                    break;
+                }
+                command.error("Invalid draw; must be 'draw image', 'draw pixel', or 'draw text'")
                 break;
             }
 
@@ -461,6 +510,19 @@ export class PPScript {
                     ignorePixelPacket: ignorePixelPacket as boolean,
                     lineClears: lineClears as boolean,
                 });
+                break;
+            }
+
+            case 'speed': {
+                command.only('number0', 'bot');
+                
+                const { number0 } = command.expect('number0');
+                const { bot } = command.optional(['bot', Object.keys(this.bots)[0]]);
+
+                const botInst = this.bots[(bot as string)];
+                if(!botInst) command.error(`Unknown bot: ${bot}`);
+
+                botInst.setPlacementSpeed(number0);
                 break;
             }
 

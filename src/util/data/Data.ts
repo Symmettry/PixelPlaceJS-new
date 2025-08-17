@@ -39,8 +39,10 @@ export interface IImage {
     mode?: Modes | DrawingFunction,
     /** If the image should be protected; defaults to false */
     protect?: boolean;
-    /** If the bot should add all the pixels to protection immediately, before drawing */
+    /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
     fullProtect?: boolean;
+    /** If it should replace already protected pixels; defaults to true */
+    replaceProtection?: boolean;
     /** If the image is transparent; defaults to false */
     transparent?: boolean;
     /** If pixels should be placed if it's in a warzone (during a war); defaults to false */

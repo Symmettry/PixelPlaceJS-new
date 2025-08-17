@@ -126,19 +126,19 @@ export class TextWriter {
         this.placeX = this.x;
         this.placeY = this.y;
 
-        constant(this, 'textColor', textColor);
-        constant(this, 'backgroundColor', backgroundColor);
-        constant(this, "fillColor", fillColor);
+        constant(this, 'textColor', textColor ?? Color.BLACK);
+        constant(this, 'backgroundColor', backgroundColor ?? -1);
+        constant(this, "fillColor", fillColor ?? -1);
 
-        constant(this, 'spaceLength', spaceLength);
-        constant(this, 'separatorLength', separatorLength);
-        constant(this, 'lineGap', lineGap);
+        constant(this, 'spaceLength', spaceLength ?? 1);
+        constant(this, 'separatorLength', separatorLength ?? 1);
+        constant(this, 'lineGap', lineGap ?? 1);
 
-        constant(this, "data", font instanceof Object && font.characters && font.height ? font : typeof font == 'number' ? fontData[font] : undefined);
+        constant(this, "data", font instanceof Object && font.characters && font.height ? font : typeof font == 'number' ? fontData[font] : fontData[Font.SMALL_FONT]);
 
-        constant(this, 'protect', protect);
-        constant(this, 'wars', wars);
-        constant(this, 'force', force);
+        constant(this, 'protect', protect ?? false);
+        constant(this, 'wars', wars ?? false);
+        constant(this, 'force', force ?? false);
     }
 
     generateSpacePixels(): SpotData {

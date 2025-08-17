@@ -6,6 +6,7 @@ import { Modes } from "../data/Modes";
 import { IImage } from "../data/Data";
 import { constant } from "../Constant";
 import { ImageData } from "../data/Data";
+import { Color } from "../data/Color";
 
 /**
  * Represents a drawing mode that draws on a pixel array.
@@ -34,6 +35,8 @@ export class ImageDrawer {
 
     private protect!: boolean;
     private fullProtect!: boolean;
+    private replaceProtection!: boolean;
+
     private transparent!: boolean;
     private wars!: boolean;
     private force!: boolean;
@@ -48,14 +51,15 @@ export class ImageDrawer {
         constant(this, 'x', image.x);
         constant(this, 'y', image.y);
 
-        constant(this, 'mode', image.mode || Modes.TOP_LEFT_TO_RIGHT);
+        constant(this, 'mode', image.mode ?? Modes.TOP_LEFT_TO_RIGHT);
 
-        constant(this, 'protect', image.protect || false);
-        constant(this, 'fullProtect', image.fullProtect || false);
+        constant(this, 'protect', image.protect ?? false);
+        constant(this, 'fullProtect', (image.fullProtect ?? false) && image.protect);
+        constant(this, 'replaceProtection', (image.replaceProtection ?? true) && image.protect);
 
-        constant(this, 'transparent', image.transparent || false);
-        constant(this, 'wars', image.wars || false);
-        constant(this, 'force', image.force || false);
+        constant(this, 'transparent', image.transparent ?? false);
+        constant(this, 'wars', image.wars ?? false);
+        constant(this, 'force', image.force ?? false);
 
         constant(this, "drawingStrategies", {
 
@@ -158,6 +162,7 @@ export class ImageDrawer {
                     await this.draw(x, y, pixels);
                 } 
             }
+
         });
     }
 
@@ -173,14 +178,25 @@ export class ImageDrawer {
         const nx = this.x + x;
         const ny = this.y + y;
 
+        if(!this.replaceProtection && this.instance.protector.getColor(x, y) != undefined)
+            return Promise.resolve();
+
         return this.instance.placePixel({
             x: nx,
             y: ny,
             col: color,
-            protect: this.protect,
             wars: this.wars,
+            protect: this.protect,
             force: this.force,
         });
+    }
+
+    private skipPixel(x: number, y: number, col: Color): boolean {
+        if(!this.protect) return true;
+        if(!this.replaceProtection && this.instance.protector.getColor(x, y) != undefined) {
+            return true;
+        }
+        return false;
     }
 
     async begin(): Promise<void> {
@@ -217,9 +233,13 @@ export class ImageDrawer {
                 }
 
                 if(this.fullProtect) {
-                    for (let y = 0; y < data.height; y++) 
-                        for (let x = 0; x < data.width; x++) 
-                            this.instance.protect(this.x + x, this.y + y, data.pixels[x][y]);
+                    for (let y = 0; y < data.height; y++) {
+                        for (let x = 0; x < data.width; x++) { 
+                            const col = data.pixels[x][y];
+                            if(this.skipPixel(x, y, col)) continue;
+                            this.instance.protect(this.x + x, this.y + y, col);
+                        }
+                    }
                 }
 
                 if(typeof this.mode == 'function') {

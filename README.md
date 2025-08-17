@@ -230,10 +230,10 @@ create
 
 ### Drawing
 
-For both of these, you can do bot="name" to set what bot does which. It will default to the first bot if not specified.
+For all of these, you can do bot="name" to set what bot does which. It will default to the first bot if not specified.<br>
+The bot can draw with the `draw` command
 
 #### Images
-Images can be drawn with the `draw` command
 ```
 draw image at x=123 y=123 path="/path/to/image.png"
 ```
@@ -243,13 +243,21 @@ draw image at x=123 y=123 path="" protect=yes wars=no force=no mode=FROM_CENTER
 ```
 
 #### Pixels
-Pixels can be drawn with the `draw` command
 ```
 draw pixel at x=123 y=123 color=RED
 ```
 They also have settings
 ```
 draw pixel at x=123 y=123 color=RED brush=1 protect=yes wars=no force=no
+```
+
+#### Text
+```
+draw text "My Text" at x=123 y=123
+```
+They have a lot of settings
+```
+draw text "My Text" at x=123 y=123 with font "SMALL_FONT" and textColor=1 "backgroundColor", "fillColor", "spaceLength", "separatorLength", "lineGap", "protect", "wars", "force"
 ```
 
 #### Variables
@@ -270,6 +278,18 @@ sleep 1000
 print "World"
 ```
 
+#### Speed
+You can change the placing speed with `speed`, this is in MS
+```
+speed 16
+```
+You can change specific bot speeds too
+```
+speed 16 bot="fast bot"
+speed 20 bot="slow bot"
+```
+The default placing speed of PPJS is 14ms with load barriers of +1 +2 +3 so it'll max around 17ms under sustained load.
+
 #### Loops
 Loops can be done like this
 ```
@@ -281,6 +301,21 @@ You can also use variables in them with this syntax
 ```
 repeat number0=variable
     print "{index}"
+end
+```
+Or infinitely like this
+```
+repeat forever:
+    print "FOREVER!"
+end
+```
+This will stop the rest of the bot ^^^ so you should use `sleep` between each, and run it async if you have operations after it
+```
+async
+    repeat forever:
+        print "{index}"
+        sleep 100
+    end
 end
 ```
 They can be exited with `break` (this is kinda useless until i implement conditional statements but shh)
