@@ -403,26 +403,30 @@ export class Bot {
             return;
         }
 
-        this.connection!.timePixel(queuedPixel);
+        const isNew = this.connection!.timePixel(queuedPixel);
         this.emit(Packets.SENT.PIXEL, [x, y, col == Color.OCEAN ? -100 : col, brush]);
         this.connection!.canvas!.pixelData!.set(x, y, col);
         this.lastPixel = Date.now();
 
         // statistics
-        this.stats.pixels.placing.attempted++;
+        const pixelStats = this.stats.pixels;
 
-        this.stats.pixels.placing.last_pos[0] = x;
-        this.stats.pixels.placing.last_pos[1] = y;
+        if(isNew) pixelStats.placing.attempted++;
 
-        if(!this.stats.pixels.colors[col])this.stats.pixels.colors[col] = 0;
-        this.stats.pixels.colors[col]++;
+        pixelStats.placing.failed = pixelStats.placing.attempted - pixelStats.placing.placed - this.connection!.waitingOn();
 
-        if(this.stats.pixels.placing.first_time == -1) this.stats.pixels.placing.first_time = Date.now();
+        pixelStats.placing.last_pos[0] = x;
+        pixelStats.placing.last_pos[1] = y;
+
+        if(!pixelStats.colors[col])pixelStats.colors[col] = 0;
+        pixelStats.colors[col]++;
+
+        if(pixelStats.placing.first_time == -1) pixelStats.placing.first_time = Date.now();
 
         if(protect) {
             // most accurate i can get it sigh
-            this.stats.pixels.protection.repaired++;
-            this.stats.pixels.protection.last_repair = Date.now();
+            pixelStats.protection.repaired++;
+            pixelStats.protection.last_repair = Date.now();
         }
     }
 
