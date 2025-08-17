@@ -191,7 +191,7 @@ export class ImageDrawer {
         });
     }
 
-    private skipPixel(x: number, y: number, col: Color): boolean {
+    private skipPixel(x: number, y: number): boolean {
         if(!this.protect) return true;
         if(!this.replaceProtection && this.instance.protector.getColor(x, y) != undefined) {
             return true;
@@ -235,9 +235,8 @@ export class ImageDrawer {
                 if(this.fullProtect) {
                     for (let y = 0; y < data.height; y++) {
                         for (let x = 0; x < data.width; x++) { 
-                            const col = data.pixels[x][y];
-                            if(this.skipPixel(x, y, col)) continue;
-                            this.instance.protect(this.x + x, this.y + y, col);
+                            if(this.skipPixel(this.x + x, this.y + y)) continue;
+                            this.instance.protect(this.x + x, this.y + y, data.pixels[x][y]);
                         }
                     }
                 }
