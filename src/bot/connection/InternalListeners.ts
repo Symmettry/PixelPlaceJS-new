@@ -105,7 +105,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
-            this.bot.rate = 14; // this is most stable for me; considering the load barriers
+            this.bot.rate = 11;
 
             if(this.bot.checkRate == -2) {
                 this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);

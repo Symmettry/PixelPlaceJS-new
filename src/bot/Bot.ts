@@ -50,7 +50,7 @@ export class Bot {
     ratelimitTime: number = 0;
 
     /** Adds a fail safe for pixel packets per second, will shut the bot off if it sends more than this in a second */
-    failSafe: number = 1000/12;
+    failSafe: number = 1000/10;
 
     /** Max time a pixel will be waiting for. Setting place rate will increase this if it's higher. */
     maxPixelWait: number = 100;
@@ -66,9 +66,9 @@ export class Bot {
     /** Current load barrier index */
     currentBarrier: number = 0;
     /** Amount of sustained packet load to cause increases */
-    loadBarriers: number[] = [0,1000,1500,2500];
+    loadBarriers: number[] = [0,500,1500,2500,5000];
     /** Slowdown amount in ms after sustained load passes barriers */
-    loadIncreases: number[] = [0,1,2,3];
+    loadIncreases: number[] = [0,1,2,3,4];
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;

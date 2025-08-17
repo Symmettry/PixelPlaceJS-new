@@ -3,7 +3,7 @@ PixelPlace JS v2 basically
 
 https://www.npmjs.com/package/pixelplacejs-new
 
-Extremely versatile NodeJS library for pixelplace.
+Extremely versatile NodeJS library for pixelplace. Alongside PPScript language for running the best bot without coding knowledge!
 
 Easily capable of drawing 3000x3000 images (May have a delay on hefty sorting like FROM_CENTER or TO_CENTER)
 
@@ -12,6 +12,25 @@ Able to do many many things unlike most bots (Like chat bots -- Erebot is made i
 Also supports a closely-english custom scripting language!!!
 
 [View Documentation](https://symmettry.github.io/PixelPlaceJS-new/)
+
+## Table of Contents
+- [Installation](#installation)
+- [Coded Bot Instructions](#useful-bot-stuff)
+- [Coded Full Bot](#full-bot)
+- [PPScript](#ppscript)
+- [PPScript Example](#ppscript-example)
+
+## Installation
+
+### PPScript Installation
+Go to [releases](https://github.com/Symmettry/PixelPlaceJS-new/releases/tag/Release) and download the zip of your OS type<br>
+Extract the zip and find where the ppscript .sh file is.<br>
+Create a file called "bot.ppscript" and inside of it, write the data for your bot<br>
+Then drag this file onto the ppscript .sh file and the bot will run!
+
+### PPJS Installation
+`npm i pixelplacejs-new`
+yeah that's it lol
 
 ### Useful Bot Stuff
 
@@ -344,4 +363,26 @@ If you need some js things like math and stuff you can use the js() function
 ```
 set x=js("5 + 10")
 print "{x}"
+```
+
+## PPScript Example
+```
+bot name="mybot" authKey="..." authToken="..." authId="..."
+create
+
+debug ignorePixelPacket=true lineClears=true
+
+login
+
+print "Logged in to PXP!"
+
+async
+    repeat forever:
+        set x=parts("pixels.placing" object=stats())
+        print "{x}" newLine=no lineClear=yes
+        sleep 100
+    end
+end
+
+draw image at x=500 y=500 path="/data/image.png" protect=yes bot="mybot"
 ```
