@@ -6,7 +6,8 @@ import { Modes } from "../data/Modes";
 import { IImage } from "../data/Data";
 import { constant } from "../Constant";
 import { ImageData } from "../data/Data";
-import { Color } from "../data/Color";
+
+type DrawHook = (x: number, y: number) => Promise<void>;
 
 /**
  * Represents a drawing mode that draws on a pixel array.
@@ -16,7 +17,7 @@ import { Color } from "../data/Color";
  */
 export type DrawingFunction = (
     pixels: ImageData,
-    draw: (x: number, y: number) => Promise<void>,
+    draw: DrawHook,
 ) => Promise<void>;
 
 /**
@@ -29,6 +30,7 @@ export class ImageDrawer {
     private path!: string;
 
     private mode!: Modes | DrawingFunction;
+    private byColor!: boolean;
 
     private x!: number;
     private y!: number;
@@ -41,7 +43,7 @@ export class ImageDrawer {
     private wars!: boolean;
     private force!: boolean;
 
-    private drawingStrategies!: {[key in Modes]: (pixels: ImageData) => Promise<void>};
+    private drawingStrategies!: {[key in Modes]: (pixels: ImageData, draw: DrawHook) => Promise<void>};
 
     constructor(instance: Bot, image: IImage) {
         constant(this, 'instance', instance);
@@ -52,6 +54,7 @@ export class ImageDrawer {
         constant(this, 'y', image.y);
 
         constant(this, 'mode', image.mode ?? Modes.TOP_LEFT_TO_RIGHT);
+        constant(this, 'byColor', image.byColor ?? false);
 
         constant(this, 'protect', image.protect ?? false);
         constant(this, 'fullProtect', (image.fullProtect ?? false) && image.protect);
@@ -63,47 +66,47 @@ export class ImageDrawer {
 
         constant(this, "drawingStrategies", {
 
-            [Modes.TOP_LEFT_TO_RIGHT]: async (pixels: ImageData) => {
+            [Modes.TOP_LEFT_TO_RIGHT]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let y = 0; y < pixels.height; y++) 
                     for (let x = 0; x < pixels.width; x++) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.TOP_RIGHT_TO_LEFT]: async (pixels: ImageData) => {
+            [Modes.TOP_RIGHT_TO_LEFT]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let y = 0; y < pixels.height; y++) 
                     for (let x = pixels.width; x >= 0; x--) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.BOTTOM_LEFT_TO_RIGHT]: async (pixels: ImageData) => {
+            [Modes.BOTTOM_LEFT_TO_RIGHT]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let y = pixels.height; y >= 0; y--) 
                     for (let x = 0; x < pixels.width; x++) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.BOTTOM_RIGHT_TO_LEFT]: async (pixels: ImageData) => {
+            [Modes.BOTTOM_RIGHT_TO_LEFT]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let y = pixels.height; y >= 0; y--) 
                     for (let x = pixels.width; x >= 0; x--) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.LEFT_TOP_TO_BOTTOM]: async (pixels: ImageData) => {
+            [Modes.LEFT_TOP_TO_BOTTOM]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let x = 0; x < pixels.width; x++) 
                     for (let y = 0; y < pixels.height; y++) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.LEFT_BOTTOM_TO_TOP]: async (pixels: ImageData) => {
+            [Modes.LEFT_BOTTOM_TO_TOP]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let x = 0; x < pixels.width; x++) 
                     for (let y = pixels.height; y >= 0; y--) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.RIGHT_TOP_TO_BOTTOM]: async (pixels: ImageData) => {
+            [Modes.RIGHT_TOP_TO_BOTTOM]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let x = pixels.width; x >= 0; x--) 
                     for (let y = 0; y < pixels.height; y++) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.RIGHT_BOTTOM_TO_TOP]: async (pixels: ImageData) => {
+            [Modes.RIGHT_BOTTOM_TO_TOP]: async (pixels: ImageData, draw: DrawHook) => {
                 for (let x = pixels.width; x >= 0; x--) 
                     for (let y = pixels.height; y >= 0; y--) 
-                        await this.draw(x, y, pixels);
+                        await draw(x, y);
             },
-            [Modes.FROM_CENTER]: async (pixels: ImageData) => {
+            [Modes.FROM_CENTER]: async (pixels: ImageData, draw: DrawHook) => {
                 const centerX = Math.floor(pixels.width / 2);
                 const centerY = Math.floor(pixels.height / 2);
 
@@ -118,10 +121,10 @@ export class ImageDrawer {
                 pixelDistances.sort((a, b) => a[2] - b[2]);
 
                 for (const pixel of pixelDistances) {
-                    await this.draw(pixel[0], pixel[1], pixels);
+                    await draw(pixel[0], pixel[1]);
                 }
             },
-            [Modes.TO_CENTER]: async (pixels: ImageData) => {
+            [Modes.TO_CENTER]: async (pixels: ImageData, draw: DrawHook) => {
                 const centerX = Math.floor(pixels.width / 2);
                 const centerY = Math.floor(pixels.height / 2);
 
@@ -136,11 +139,11 @@ export class ImageDrawer {
                 pixelDistances.sort((a, b) => b[2] - a[2]);
 
                 for (const pixel of pixelDistances) {
-                    await this.draw(pixel[0], pixel[1], pixels);
+                    await draw(pixel[0], pixel[1]);
                 }
             },
 
-            [Modes.RAND]: async (pixels: ImageData) => {
+            [Modes.RAND]: async (pixels: ImageData, draw: DrawHook) => {
                 const totalPixels = pixels.width * pixels.height;
                 const coordinates = new Array(totalPixels);
             
@@ -159,7 +162,7 @@ export class ImageDrawer {
                 for (let i = 0; i < totalPixels; i++) {
                     const x = coordinates[i] % pixels.width;
                     const y = Math.floor(coordinates[i] / pixels.width);
-                    await this.draw(x, y, pixels);
+                    await draw(x, y);
                 } 
             }
 
@@ -241,16 +244,36 @@ export class ImageDrawer {
                     }
                 }
 
-                if(typeof this.mode == 'function') {
-                    const drawHook = (x: number, y: number) => {
-                        return this.draw(x, y, data);
+                const func = typeof this.mode == 'function' ? this.mode : this.drawingStrategies[this.mode];
+                if (!func) throw new Error(`Invalid mode: ${this.mode}`)
+
+                if(this.byColor) {
+                    const dataSets: {[key: string]: ImageData} = {};
+                    for (let x = 0; x < data.width; x++) {
+                        for (let y = 0; y < data.height; y++) {
+                            const col = data.pixels[x][y];
+                            if(!dataSets[col]) {
+                                dataSets[col] = { width: data.width, height: data.height, pixels: [] };
+                            }
+                            if(!dataSets[col].pixels[x]) dataSets[col].pixels[x] = [];
+                            dataSets[col].pixels[x][y] = col;
+                        }
                     }
-                    await this.mode(data, drawHook);
-                    return resolve();
+                    for(const colData of Object.values(dataSets)) {
+                        const drawHook = (x: number, y: number) => {
+                            return this.draw(x, y, colData);
+                        }
+                        await func(colData, drawHook);
+                    }
+                    resolve();
+                    return;
+                }
+
+                                const drawHook = (x: number, y: number) => {
+                    return this.draw(x, y, data);
                 }
                 
-                if (!this.drawingStrategies[this.mode]) throw new Error(`Invalid mode: ${this.mode}`)
-                await (this.drawingStrategies[this.mode])(data);
+                await func(data, drawHook);
                 resolve();
             });
         });

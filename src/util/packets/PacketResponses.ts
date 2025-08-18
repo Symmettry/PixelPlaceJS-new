@@ -1,5 +1,5 @@
 import { Color } from "../data/Color";
-import { IArea } from "../data/Data";
+import { ChatChannel, IArea, ItemName } from "../data/Data";
 import { PPError } from "../data/Errors";
 import { RECEIVED } from "./Packets";
 
@@ -220,9 +220,6 @@ export type UserProfilePacket = {
     /** Whether the user is online. This will be false if all other values aren't set. */
     online: false,
 };
-
-export type ItemName = "Pixel Missile" | "Pixel Bomb" | "Atomic Pixel Bomb" | "Rainbow Username" | "Name Change" | "3 days - Premium" |
-                       "1 month - Premium" | "1 year - Premium" | "XMAS Username" | "Treasure Chest";
 
 /**
  * Represents a notification for item use.
@@ -468,18 +465,23 @@ export type PaintingPlayersPacket = {
     [id: number]: {color: number, username: string}
 };
 
+export enum FightType {
+    GUILD = 0,
+    PLAYER = 1,
+}
+
 /**
  * Represents an area fight start notification.
  */
 export type AreaFightStartPacket = {
     /** The timestamp when the fight ends. */
-    fightEndAt: number,
+    fightEndAt: EpochTimeStamp,
     /** The type of fight. */
-    fightType: number,
+    fightType: FightType,
     /** The fight id. */
     id: number,
     /** The timestamp of the next fight. */
-    nextFightAt: number
+    nextFightAt: EpochTimeStamp
 };
 
 /**
@@ -491,13 +493,13 @@ export type AreaFightEndPacket = {
     /** Whether the area was defended. */
     defended: boolean,
     /** The fight type. */
-    fightType: 1,
+    fightType: FightType,
     /** The fight id. */
     id: number,
     /** The timestamp of the next fight. */
-    nextFight: number,
+    nextFight: EpochTimeStamp,
     /** The type of the next fight. */
-    nextFightType: number,
+    nextFightType: FightType,
     /** The number of ores. */
     ores: number,
     /** The owner of the area. */
@@ -621,8 +623,8 @@ export type ChatMessagePacket = {
     /** Whether the message has the Halloween effect. */
     halloween: boolean,
     /** The channel of the message. */
-    channel: string,
-    /** The number of golden pixels. */
+    channel: ChatChannel,
+    /** The number of golden pixels? idk */
     golden: number,
     /** The mentioned user. */
     mention: string,

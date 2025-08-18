@@ -8,9 +8,9 @@ import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
 import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
-import { HeaderTypes } from "../../PixelPlace";
-import { OutgoingHttpHeaders } from "http";
+import { HeadersFunc } from "../../PixelPlace";
 import { PacketSendMap } from "../../util/packets/PacketSends";
+import { NetUtil } from "../../util/NetUtil";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -35,7 +35,9 @@ export class Connection {
 
     private econnrefusedTimer: number = 0;
 
-    headers: (type: HeaderTypes) => OutgoingHttpHeaders;
+    private netUtil!: NetUtil;
+
+    headers: HeadersFunc;
 
     private shouldRelog: boolean;
 
@@ -48,7 +50,7 @@ export class Connection {
     packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
 
-    constructor(bot: Bot, params: IBotParams, stats: IStatistics, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
+    constructor(bot: Bot, params: IBotParams, stats: IStatistics, netUtil: NetUtil, headers: HeadersFunc) {
         constant(this, 'bot', bot);
 
         this.authKey = params.authData.authKey;
@@ -63,6 +65,7 @@ export class Connection {
 
         constant(this, 'boardId', params.boardID);
 
+        constant(this, 'netUtil', netUtil);
         constant(this, 'packetHandler', new PacketHandler(this, params.authData));
 
         this.relog = this.relog.bind(this);
@@ -143,7 +146,7 @@ export class Connection {
             }
 
             // create the canvas
-            this.canvas = Canvas.getCanvas(this.boardId, this.headers);
+            this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers);
 
             this.socket.on('close', (code: number, reason: Buffer) => {
                 this.socketClosed(code, reason);
@@ -179,11 +182,12 @@ export class Connection {
                 }
             });
 
-            const userId = await this.canvas.fetchCanvasData();
+            const [userId, premium] = await this.canvas.fetchCanvasData();
             if(userId == 0) {
                 console.log(`~~WARN~~ This bot is not logged in! (Auth key of '${this.authKey.substring(0, 5)}')`)
             }
             this.bot.userId = userId;
+            this.bot.premium = premium;
         });
     }
 
@@ -335,6 +339,10 @@ export class Connection {
      */
     getConfirmPing(): number {
         return this.packetHandler.internalListeners.confirmPing;
+    }
+
+    hasPixelTime(x: number, y: number): boolean {
+        return this.packetHandler.internalListeners.pixelTime.hasOwnProperty(`${x},${y}`);
     }
 
 }

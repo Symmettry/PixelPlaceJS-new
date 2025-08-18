@@ -2,7 +2,9 @@ import { Bot } from "./bot/Bot";
 import { OutgoingHttpHeaders } from "http2";
 import { IBotParams } from "./util/data/Data";
 
-export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog";
+export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-user";
+
+export type HeadersFunc = (type: HeaderTypes) => OutgoingHttpHeaders;
 
 /**
  * Contains all bots and handles them.
@@ -26,7 +28,7 @@ class PixelPlace {
      * @param headers A function that receives the type and returns header object.
      * @returns this
      */
-    setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders): PixelPlace {
+    setHeaders(headers: HeadersFunc): PixelPlace {
         this.bots.forEach(bot => bot.setHeaders(headers));
         return this;
     }
@@ -65,6 +67,7 @@ class PixelPlace {
                     h['Accept']        = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
                     break;
                 case "get-painting":
+                case "get-user":
                 case 'relog':
                     h['Accept']        = "application/json, text/javascript, */*; q=0.01";
                     break;

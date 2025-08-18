@@ -1,16 +1,24 @@
 import ndarray from 'ndarray';
 import * as https from 'https';
-import { IncomingMessage, OutgoingHttpHeaders } from 'http';
+import { IncomingMessage } from 'http';
 import { IRGBColor } from './data/Data';
 import { Color } from './data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from './packets/PacketResponses';
-import { HeaderTypes } from '../PixelPlace';
+import { HeadersFunc } from '../PixelPlace';
+import { NetUtil, PaintingData } from './NetUtil';
 
 const canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: number, headers: (type: HeaderTypes) => OutgoingHttpHeaders): Canvas {
-    return hasCanvas(boardId) ? canvases.get(boardId)?.setHeaders(headers) || new Canvas(boardId, headers) : new Canvas(boardId, headers);
+export function getCanvas(boardId: number, netUtil: NetUtil, headers: HeadersFunc): Canvas {
+    const existing = canvases.get(boardId);
+    if (existing) {
+        existing.setHeaders(headers);
+        return existing;
+    }
+    const canvas = new Canvas(boardId, netUtil, headers);
+    canvases.set(boardId, canvas);
+    return canvas;
 }
 
 export function hasCanvas(boardId: number): boolean {
@@ -126,11 +134,13 @@ export class Canvas {
     canvasWidth!: number;
     canvasHeight!: number;
 
-    headers: (type: HeaderTypes) => OutgoingHttpHeaders;
+    headers: HeadersFunc;
+    netUtil: NetUtil;
 
-    constructor(boardId: number, headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
+    constructor(boardId: number, netUtil: NetUtil, headers: HeadersFunc) {
         this.boardId = boardId;
         this.headers = headers;
+        this.netUtil = netUtil;
 
         // make a default array to store some changes;
         this.pixelData = this.createNDArray(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE);
@@ -145,8 +155,8 @@ export class Canvas {
         return ndarray(new Uint16Array(width * height).fill(Color.WHITE), [width, height]);
     }
 
-    async fetchCanvasData(): Promise<number> {
-        return new Promise<number>((resolve, reject) => {
+    async fetchCanvasData(): Promise<[number, boolean]> {
+        return new Promise<[number, boolean]>((resolve, reject) => {
             this.getPaintingData().then(data => {
                 this.canvasWidth = data.width;
                 this.canvasHeight = data.height;
@@ -158,7 +168,7 @@ export class Canvas {
 
                 canvases.set(this.boardId, this);
 
-                resolve(data.userId);
+                resolve([data.userId, data.premium]);
             }).catch(reject);
         });
     }
@@ -283,29 +293,20 @@ export class Canvas {
     }
 
     private loadPixels(pixels: PixelPacket): void {
-        pixels.forEach(pixel => {
-            const [x, y, col] = pixel;
+        for(const [x, y, col] of pixels) {
             this.pixelData.set(x, y, col);
-        });
+        }
     }
 
-    private async getPaintingData(): Promise<{ width: number, height: number, userId: number }> {
-        const headers = this.headers("get-painting");
-        const response = await fetch(`https://pixelplace.io/api/get-painting.php?id=${this.boardId}&connected=1`, {
-            method: 'GET',
-            headers: headers as HeadersInit,
-        });
+    private async getPaintingData(): Promise<{ width: number, height: number, userId: number, premium: boolean }> {
+        const data: PaintingData = await this.netUtil.getPaintingData(this.boardId);
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
         const width = data.painting.width;
         const height = data.painting.height;
         const userId = data.user.id;
+        const premium = data.user.premium.active;
 
-        return { width, height, userId };
+        return { width, height, userId, premium };
     }
 
     /**
@@ -328,7 +329,7 @@ export class Canvas {
      * Reassigns headers function.
      * @param headers The headers function.
      */
-    setHeaders(headers: (type: HeaderTypes) => OutgoingHttpHeaders) {
+    setHeaders(headers: HeadersFunc) {
         this.headers = headers;
     }
 

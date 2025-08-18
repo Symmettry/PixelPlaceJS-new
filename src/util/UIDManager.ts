@@ -5,7 +5,6 @@ import { Packets } from "./packets/Packets";
 export default class UIDManager {
 
     pp: Bot;
-    premium: boolean = false;
 
     uidMap: Map<number, string> = new Map();
 
@@ -17,17 +16,15 @@ export default class UIDManager {
         pixels.forEach(([,,,,uid]) => {
             if(!uid || uid == 0) return;
             this.register(uid);
-            this.premium = true;
         })
     }
     onUsername(packet: UsernamePacket) {
         this.uidMap.set(packet.id, packet.name);
-        this.premium = true;
     }
 
     async getUsername(uid: string | number): Promise<string> {
-        if(!this.premium) {
-            console.error(`~~ERROR~~ Attempted access on getUsername(${uid}), but the account is not premium!`);
+        if(!this.pp.premium) {
+            console.error(`~~ERROR~~ getUsername() called but the account is not premium!`);
             return "";
         }
 

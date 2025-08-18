@@ -105,7 +105,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.RATE_CHANGE, (rate: RateChangePacket) => {
-            this.bot.rate = 11;
+            this.bot.rate = 12;
 
             if(this.bot.checkRate == -2) {
                 this.bot.setPlacementSpeed(() => this.bot.rate, true, this.bot.suppress);
@@ -132,6 +132,8 @@ export class InternalListeners {
         const PIXEL_PACKET_TIME = 50;
         let lastPixelPacket = Date.now();
         this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
+            if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
+
             const now = Date.now();
 
             const deltaTime = now - lastPixelPacket;
@@ -141,35 +143,26 @@ export class InternalListeners {
                 this.bot.lagAmount = Math.max(0, this.bot.lagAmount - 5);
             }
 
-            if(now - this.bot.lastPixel > PIXEL_PACKET_TIME) {
-                this.bot.sustainingLoad = Math.floor(Math.max(0, this.bot.sustainingLoad / 2 - 200));
-                while(this.bot.currentBarrier > 0 && this.bot.sustainingLoad < this.bot.loadIncreases[this.bot.currentBarrier]) {
-                    this.bot.currentBarrier--;
-                }
-            }
-
             for(const [key, [time, queuedPixel]] of Object.entries(this.pixelTime)) {
                 if(now - time < 500) continue;
                 delete this.pixelTime[key];
                 this.bot.addToSendQueue(queuedPixel);
+                this.bot.stats.pixels.placing.failed++;
             }
 
             if(pixels.length == 0) return;
 
-            const hasUID = pixels[0].length == 5;
-            if(hasUID) {
+            if(this.bot.premium) {
                 // pass the pixel update to the uid manager
                 const uidMan = this.bot.getUidManager()
                 if(uidMan != null) uidMan.onPixels(pixels);
             }
 
-            if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
-
             if(missileDelay && pixels.find(n => n[4] === 0)) {
                 missileDelay = false;
 
                 // wait a delay so that we repair n stuff a bit later
-                await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+                await new Promise<void>((resolve) => setTimeout(resolve, 3000));
             }
 
             if(this.bot.protector) this.bot.protector.detectPixels(pixels);
@@ -177,7 +170,8 @@ export class InternalListeners {
 
         const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;
         let confirmTimes: number[] = [], avg = 0;
-        this.listen(RECEIVED.PIXEL_CONFIRM, ([[x, y]]) => {
+        this.listen(RECEIVED.PIXEL_CONFIRM, ([[x,y]]) => {
+
             const key = `${x},${y}`;
             if(!this.pixelTime[key]) {
                 // owmince bug :(

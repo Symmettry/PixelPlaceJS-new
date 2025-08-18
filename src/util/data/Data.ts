@@ -37,6 +37,8 @@ export interface IImage {
     path: string;
     /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
     mode?: Modes | DrawingFunction,
+    /** If it should draw each color independently; defaults to false */
+    byColor?: boolean;
     /** If the image should be protected; defaults to false */
     protect?: boolean;
     /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
@@ -62,6 +64,33 @@ export type ImageData = {
     height: number,
     pixels: Color[][],
 }
+
+export type Icon = "admin" | "moderator" | "chat-moderator" | "former-global-moderator" | "1-year" | "3-months" | "1-month" | "3-days" | "nitro" | "vip" | "bread" | "gifter" | "booster" | "painting-owner" | "painting-moderator" | "snowball" | "partner" | "art-dealer-1" | "art-dealer-2" | "art-dealer-3";
+export type ItemName = "Pixel Missile" | "Pixel Bomb" | "Atomic Bomb" | "1 month - Premium" | "1 year - Premium" | "Rainbow Username" | "Guild Bomb" | "Avatar Bomb" | "Name Change" | "XMAS Username" | "3 days - Premium" | "HALLOWEEN Username" | "Treasure Chest";
+export type ChatChannel = "global" | "whisper" | "guild" | "nonenglish" | "painting";
+
+export type AuctionData = {
+    id: number;
+    owner_id: number;
+    owner_username: string;
+    under_auction: number;
+    painting_id: number;
+    author_id: number;
+    author_username: string;
+    /** Icon[] but joined with , */
+    author_icons: string;
+    frame_id: number;
+    gems_id: number;
+    current_bid: number;
+    current_bid_user_id: number;
+    current_bid_username: number;
+    auction_expire_time: EpochTimeStamp;
+    bids: number;
+    sp: number;
+    bg: number;
+    burned: number;
+    created_at: EpochTimeStamp;
+};
 
 /**
  * Contains authentication data for pixelplace.
@@ -203,6 +232,8 @@ export interface IStatistics {
             repaired: number,
             /** Timestamp of the last pixel repair. */
             last_repair: number,
+            /** Amount of pixels missed. idk why this happens */
+            missed: number,
         },
         /** Object mapping color codes to pixel counts. */
         colors: {
@@ -264,6 +295,7 @@ export function defaultStatistics(): IStatistics {
                 protected: 0,
                 repaired: 0,
                 last_repair: -1,
+                missed: 0,
             },
             colors: { },
         },

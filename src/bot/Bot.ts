@@ -10,10 +10,11 @@ import { Bounds } from '../util/Bounds.js';
 import { ITextObject, TextWriter } from '../util/drawing/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
-import { HeaderTypes } from '../PixelPlace.js';
+import { HeadersFunc, HeaderTypes } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
 import { Color } from '../util/data/Color.js';
 import { PacketSendMap } from '../util/packets/PacketSends.js';
+import { NetUtil, PaintingData, UserData } from '../util/NetUtil.js';
 
 /**
  * The pixelplace bot.
@@ -35,7 +36,7 @@ export class Bot {
     private uidman!: UIDManager;
 
     // ! it's set with setHeaders()
-    headers!: (type: HeaderTypes) => OutgoingHttpHeaders;
+    headers!: HeadersFunc;
 
     private debugger: boolean = false;
     private debuggerOptions: IDebuggerOptions = {};
@@ -43,6 +44,8 @@ export class Bot {
     private connection: Connection | null = null;
 
     private params: IBotParams;
+
+    private netUtil!: NetUtil;
 
     /** If the bot is ratelimited. */
     ratelimited: boolean = false;
@@ -66,14 +69,19 @@ export class Bot {
     /** Current load barrier index */
     currentBarrier: number = 0;
     /** Amount of sustained packet load to cause increases */
-    loadBarriers: number[] = [0,500,1500,2500,5000];
+    loadBarriers: number[] = [0,1500,2500];
     /** Slowdown amount in ms after sustained load passes barriers */
-    loadIncreases: number[] = [0,1,2,3,4];
+    loadIncreases: number[] = [0,1,2];
+    /** Will reset load to 0 after passing this; this works fine because detected rate is lower after it's been slowed down for a while. */
+    loadReset: number = 5000;
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
+
     /** The user id of the bot */
     userId: number = -1;
+    /** If the bot is premium */
+    premium: boolean = false;
 
     /**
      * Creates a bot instance
@@ -92,6 +100,7 @@ export class Bot {
             const headers: OutgoingHttpHeaders = {};
             switch(type) {
                 case 'get-painting':
+                case 'get-user':
                 case 'relog':
                     headers.accept = 'application/json, text/javascript, */*; q=0.01'
                     break;
@@ -108,6 +117,7 @@ export class Bot {
 
         constant(this, 'boardId', params.boardID);
         constant(this, 'protector', new Protector(this));
+        constant(this, 'netUtil', new NetUtil(this.headers));
         
         this.autoRestart = autoRestart;
         this.handleErrors = handleErrors;
@@ -123,12 +133,44 @@ export class Bot {
         this.queueLoop();
     }
 
+    private lastVerification: EpochTimeStamp = Date.now();
     private queueLoop() {
         if(this.sendQueue.length == 0) {
+            if(this.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 1000) {
+                for(const [nx, ys] of Object.entries(this.protector.protectedPixels)) {
+                    if(nx == null) continue;
+                    const x = parseInt(nx);
+                    for(const [ny, col] of Object.entries(ys)) {
+                        if(ny == null) continue;
+                        const y = parseInt(ny);
+                        if(this.getPixelAt(x, y) != col && !this.connection!.hasPixelTime(x, y)) {
+                            this.stats.pixels.protection.missed++;
+                            this.placePixel({
+                                x, y, col,
+                                protect: true,
+                            });
+                        }
+                    }
+                }
+                this.lastVerification = Date.now();
+
+                this.sustainingLoad = Math.floor(Math.max(0, this.sustainingLoad / 3 - 400));
+                while(this.currentBarrier > 0 && this.sustainingLoad < this.loadIncreases[this.currentBarrier]) {
+                    this.currentBarrier--;
+                }
+            }
+
             setTimeout(() => this.queueLoop(), 10);
         } else {
             this.goThroughPixels();
         }
+    }
+
+    /**
+     * @returns amount of pixels in queue
+     */
+    queuedPixels(): number {
+        return this.getConnection().waitingOn();
     }
 
     /**
@@ -141,6 +183,25 @@ export class Bot {
             throw "This bot does not have the uid manager enabled. new Auth(authObj, boardId, true)";
         }
         return this.uidman.getUsername(uid);
+    }
+
+    /**
+     * Gets user data
+     * @param name Name of the user
+     * @param reload If it should reload or return the cached value when called again. Defaults to false
+     */
+    async getUserData(name: string, reload: boolean=false): Promise<UserData> {
+        return this.netUtil.getUserData(name, reload);
+    }
+    
+    /**
+     * Gets painting data
+     * @param canvasId The canvas to get painting data of
+     * @param reload If it should reload or return the cached value when called again. Defaults to false.
+     * @param connected Connected or not. Not too useful. Defaults to true.
+     */
+    async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData> {
+        return this.netUtil.getPaintingData(canvasId, reload, connected);
     }
 
     /**
@@ -188,7 +249,7 @@ export class Bot {
      * @returns A promise that will resolve once the socket opens.
      */
     async Connect(): Promise<void> {
-        this.connection = new Connection(this, this.params, this.stats, this.headers);
+        this.connection = new Connection(this, this.params, this.stats, this.netUtil, this.headers);
         await this.connection.Connect();
         if(this.debugger) this.addDebuggerInternal();
     }
@@ -356,6 +417,9 @@ export class Bot {
         }
 
         this.sustainingLoad++;
+        if(this.sustainingLoad >= this.loadReset) {
+            this.sustainingLoad = 0;
+        }
         if(this.sustainingLoad > this.loadBarriers[this.currentBarrier]) {
             if(this.currentBarrier != this.loadBarriers.length - 1 && this.sustainingLoad > this.loadBarriers[this.currentBarrier + 1]) {
                 this.currentBarrier++;
@@ -413,8 +477,6 @@ export class Bot {
 
         if(isNew) pixelStats.placing.attempted++;
 
-        pixelStats.placing.failed = pixelStats.placing.attempted - pixelStats.placing.placed - this.connection!.waitingOn();
-
         pixelStats.placing.last_pos[0] = x;
         pixelStats.placing.last_pos[1] = y;
 
@@ -448,7 +510,7 @@ export class Bot {
      * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
      * @returns A promise that resolves upon the pixel being sent.
      */
-    async placePixel(pixel: IPixel, forcePlacementSpeed: number = -1): Promise<void> {
+    async placePixel(pixel: IPixel): Promise<void> {
         const {x, y, col, protect = false, force = false } = pixel;
 
         const conn = this.getConnection();
@@ -465,22 +527,14 @@ export class Bot {
         // we still want to protect it even if it's same color, so it's done prior.
         this.protector.updateProtection(protect, x, y, col);
 
-        // Do not add to queue.
-        const curCol = this.getPixelAt(x, y);
-        if((curCol == col && !force) || curCol == Color.OCEAN || curCol == null) {
-            return Promise.resolve();
-        }
-
         if(this.resendQueue.length > 0) {
             const pixel: IPixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
                 await this.placePixel(pixel);
             }
         }
-
-        const placementSpeed = forcePlacementSpeed == -1 ? this.getPlacementSpeed() : forcePlacementSpeed;
-
-        return new Promise<void>((resolve) => this.addToSendQueue({data: pixel, speed: placementSpeed, resolve}) );
+        
+        return new Promise<void>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
     }
 
     /**
@@ -663,7 +717,7 @@ export class Bot {
      * Sets the request headers. This will automatically add the auth cookie.
      * @param headers An object of headers.
      */
-    setHeaders(ogFunc: (type: HeaderTypes) => OutgoingHttpHeaders) {
+    setHeaders(ogFunc: HeadersFunc) {
         const headersFunc = (type: HeaderTypes) => {
             const data = ogFunc(type);
             data.cookie = this.connection!.generateAuthCookie() + data.cookie;

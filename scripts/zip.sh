@@ -28,6 +28,7 @@ cp -r "$ROOT_DIR/dist" "$ROOT_DIR/build/pixelplacejs/"
 cp -r "$ROOT_DIR/used_node_modules" "$ROOT_DIR/build/pixelplacejs/node_modules"
 cp -r "$ROOT_DIR/node_windows" "$ROOT_DIR/build/pixelplacejs/"
 cp "$SCRIPTS_DIR/ppscript.bat" "$ROOT_DIR/build/"
+cp "$SCRIPTS_DIR/bot.ppscript" "$ROOT_DIR/build/"
 
 (
   cd "$ROOT_DIR/build"
@@ -41,6 +42,7 @@ cp -r "$ROOT_DIR/dist" "$ROOT_DIR/build/pixelplacejs/"
 cp -r "$ROOT_DIR/used_node_modules" "$ROOT_DIR/build/pixelplacejs/node_modules"
 cp -r "$ROOT_DIR/node_linux" "$ROOT_DIR/build/pixelplacejs/"
 cp "$SCRIPTS_DIR/ppscript.sh" "$ROOT_DIR/build/"
+cp "$SCRIPTS_DIR/bot.ppscript" "$ROOT_DIR/build/"
 
 (
   cd "$ROOT_DIR/build"

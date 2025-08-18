@@ -1,4 +1,5 @@
 import { Color } from "../data/Color";
+import { ChatChannel } from "../data/Data";
 import { SENT } from "./Packets";
 
 export interface PacketSendMap {
@@ -77,7 +78,7 @@ export type ClientChatMessagePacket = {
     /** The message being sent. */
     text: string,
     /** The type of chat to send the message to. */
-    type: "global" | "whisper" | "painting",
+    type: ChatChannel,
     /** Targeted user; this is the username for who you're whispering to. Empty for normal chat messages, since it won't do anything. */
     target: string,
     /** Mentioned user. Will be empty string if you don't ping anyone. */
