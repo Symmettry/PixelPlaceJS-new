@@ -20,6 +20,8 @@ export type DrawingFunction = (
     draw: DrawHook,
 ) => Promise<void>;
 
+const SQRT2M1 = Math.sqrt(2) - 1;
+
 /**
  * Utility function for drawing images.
  */
@@ -34,6 +36,8 @@ export class ImageDrawer {
 
     private x!: number;
     private y!: number;
+    private width: number;
+    private height: number;
 
     private protect!: boolean;
     private fullProtect!: boolean;
@@ -42,6 +46,9 @@ export class ImageDrawer {
     private transparent!: boolean;
     private wars!: boolean;
     private force!: boolean;
+
+    private performant!: boolean;
+    private hypot!: (dx: number, dy: number) => number;
 
     private drawingStrategies!: {[key in Modes]: (pixels: ImageData, draw: DrawHook) => Promise<void>};
 
@@ -53,6 +60,9 @@ export class ImageDrawer {
         constant(this, 'x', image.x);
         constant(this, 'y', image.y);
 
+        this.width = image.width ?? -1;
+        this.height = image.height ?? -1;
+
         constant(this, 'mode', image.mode ?? Modes.TOP_LEFT_TO_RIGHT);
         constant(this, 'byColor', image.byColor ?? false);
 
@@ -63,6 +73,14 @@ export class ImageDrawer {
         constant(this, 'transparent', image.transparent ?? false);
         constant(this, 'wars', image.wars ?? false);
         constant(this, 'force', image.force ?? false);
+
+        constant(this, 'performant', image.performant ?? false);
+
+        this.hypot = !this.performant ? Math.hypot :
+                    (dx, dy) => {
+                        const ax = Math.abs(dx), ay = Math.abs(dy);
+                        return ax < ay ? ay + SQRT2M1 * ax : ax + SQRT2M1 * ay;
+                    };
 
         constant(this, "drawingStrategies", {
 
@@ -165,7 +183,7 @@ export class ImageDrawer {
 
         for (let y = 0; y <= centerY; y++) {
             for (let x = 0; x <= centerX; x++) {
-                const d = Math.hypot(centerX - x, centerY - y);
+                const d = this.hypot(centerX - x, centerY - y);
 
                 const i1 = y * w + x;
                 const i2 = y * w + (w - 1 - x);
@@ -234,8 +252,19 @@ export class ImageDrawer {
                     return;
                 }
 
+                if (this.width > 0 && this.height > 0) {
+                    img = img.resize(this.width, this.height, Jimp.RESIZE_BILINEAR);
+                } else if (this.width > 0) {
+                    img = img.resize(this.width, Jimp.AUTO, Jimp.RESIZE_BILINEAR);
+                } else if (this.height > 0) {
+                    img = img.resize(Jimp.AUTO, this.height, Jimp.RESIZE_BILINEAR);
+                }
+
                 const data: ImageData = { width: img.bitmap.width, height: img.bitmap.height, pixels: [] };
 
+                this.width = data.width;
+                this.height = data.height;
+                
                 for (let x = 0; x < img.bitmap.width; x++) {
                     data.pixels[x] = [];
                     for (let y = 0; y < img.bitmap.height; y++) {

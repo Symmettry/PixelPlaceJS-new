@@ -33,18 +33,30 @@ export interface IImage {
     x: number;
     /** Y position of the image */
     y: number;
+
+    /** Width of the image; defaults to the actual width of the image */
+    width?: number;
+    /** Height of the image; defaults to the actual height of the image */
+    height?: number;
+
     /** Path of the image */
     path: string;
+
     /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
     mode?: Modes | DrawingFunction,
+     /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
+    performant?: boolean;
+
     /** If it should draw each color independently; defaults to false */
     byColor?: boolean;
+
     /** If the image should be protected; defaults to false */
     protect?: boolean;
     /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
     fullProtect?: boolean;
     /** If it should replace already protected pixels; defaults to true */
     replaceProtection?: boolean;
+
     /** If the image is transparent; defaults to false */
     transparent?: boolean;
     /** If pixels should be placed if it's in a warzone (during a war); defaults to false */

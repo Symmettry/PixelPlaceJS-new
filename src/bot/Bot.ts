@@ -435,7 +435,9 @@ export class Bot {
 
         if(Date.now() - this.lastQueueTime > 100 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
             console.log("~~PIXELPLACE LAGGING~~");
-            queuedPixel.speed += 1000;
+            setTimeout(() => {this.addToSendQueue(queuedPixel)}, 2000);
+            this.queueLoop();
+            return;
         }
 
         if(this.ratelimited) queuedPixel.speed += 100;

@@ -379,14 +379,15 @@ export class PPScript {
                 const args = command.args();
 
                 if(args.hasOwnProperty('image')) {
-                    command.only('image', 'at', 'x', 'y', 'path', 'bot', 'mode', 'protect', 'fullProtect', 'transparent', 'wars', 'force', 'wait');
+                    command.only('image', 'at', 'x', 'y', 'path', 'bot', 'mode', 'protect', 'fullProtect', 'transparent', 'wars', 'force', 'width', 'height', 'wait');
                     const { x, y, path } = command.expect(['x', 'number'], ['y', 'number'], ['path', 'string']);
 
-                    const { bot, mode, protect, fullProtect, transparent, wars, force, wait }
+                    const { bot, mode, protect, fullProtect, transparent, wars, force, width, height, wait }
                             = command.optional(
                                 ['bot', Object.keys(this.bots)[0]],
                                 ['mode', "TOP_LEFT_TO_RIGHT"], ['protect', false], ['fullProtect', false],
                                 ['transparent', false], ['wars', false], ['force', false],
+                                ['width', -1], ['height', -1],
                                 ['wait', true],
                             );
 
@@ -409,6 +410,8 @@ export class PPScript {
                         transparent: transparent as boolean,
                         wars: wars as boolean,
                         force: force as boolean,
+                        width: width as number,
+                        height: height as number,
                     };
 
                     if(wait as boolean) await botInst.drawImage(image);
