@@ -22,6 +22,8 @@ export class InternalListeners {
 
     confirmPing: number = -1;
 
+    lastPixelPacket: number = Date.now();
+
     constructor(bot: Bot, connection: Connection) {
 
         constant(this, 'map', new Map());
@@ -130,17 +132,16 @@ export class InternalListeners {
         });
 
         const PIXEL_PACKET_TIME = 50;
-        let lastPixelPacket = Date.now();
         this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
             if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
 
             const now = Date.now();
 
-            const deltaTime = now - lastPixelPacket;
-            lastPixelPacket = now;
+            const deltaTime = now - this.lastPixelPacket;
+            this.lastPixelPacket = now;
 
             if(deltaTime < PIXEL_PACKET_TIME + 20) {
-                this.bot.lagAmount = Math.max(0, this.bot.lagAmount - 5);
+                this.bot.lagAmount = Math.max(0, this.bot.lagAmount / 2 - 10);
             }
 
             for(const [key, [time, queuedPixel]] of Object.entries(this.pixelTime)) {
@@ -188,7 +189,7 @@ export class InternalListeners {
                 this.confirmPing = avg;
 
                 const test = this.confirmPing + ABOVE_AVG;
-                this.bot.lagAmount = Math.max(0, delta - test);
+                this.bot.lagAmount = this.bot.lagAmount * 0.1 + Math.max(0, delta - test);
             } else {
                 // for now
                 this.confirmPing = delta;

@@ -61,7 +61,7 @@ export class Bot {
     /** Amount of detected new lag ms; based on pixel confirm response times */
     lagAmount: number = 0;
     /** Ms to increase pixels when lagging; per lag amount ms */
-    lagIncreasePerMs: number = 0.25;
+    lagIncreasePerMs: number = 1;
 
     /** Amount of sustained packets */
     sustainingLoad: number = 0;
@@ -133,6 +133,7 @@ export class Bot {
         this.queueLoop();
     }
 
+    private lastQueueTime: EpochTimeStamp = Date.now();
     private lastVerification: EpochTimeStamp = Date.now();
     private queueLoop() {
         if(this.sendQueue.length == 0) {
@@ -159,11 +160,12 @@ export class Bot {
                     this.currentBarrier--;
                 }
             }
-
+            
             setTimeout(() => this.queueLoop(), 10);
-        } else {
-            this.goThroughPixels();
+            return;
         }
+        this.lastQueueTime = Date.now();
+        this.goThroughPixels();
     }
 
     /**
@@ -431,7 +433,12 @@ export class Bot {
 
         queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
-        if(this.ratelimited) queuedPixel.speed += 50;
+        if(Date.now() - this.lastQueueTime > 100 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
+            console.log("~~PIXELPLACE LAGGING~~");
+            queuedPixel.speed += 1000;
+        }
+
+        if(this.ratelimited) queuedPixel.speed += 100;
 
         this.accurateTimeout(() => this.sendPixel(queuedPixel), Math.min(queuedPixel.speed, this.maxPixelWait));
         return;
@@ -445,14 +452,6 @@ export class Bot {
             setTimeout(() => {
                 this.addToSendQueue(queuedPixel);
             }, 2000);
-            return;
-        }
-
-        if(this.ratelimited) {
-            this.queueLoop();
-            setTimeout(() => {
-                this.addToSendQueue(queuedPixel);
-            }, this.ratelimitTime * 1000 + 5000);
             return;
         }
 
@@ -533,7 +532,7 @@ export class Bot {
                 await this.placePixel(pixel);
             }
         }
-        
+
         return new Promise<void>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
     }
 

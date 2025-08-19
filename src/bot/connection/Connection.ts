@@ -345,4 +345,8 @@ export class Connection {
         return this.packetHandler.internalListeners.pixelTime.hasOwnProperty(`${x},${y}`);
     }
 
+    timeSinceConfirm(): number {
+        return this.packetHandler.internalListeners.lastPixelPacket;
+    }
+
 }

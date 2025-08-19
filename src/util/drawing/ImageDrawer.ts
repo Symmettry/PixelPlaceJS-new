@@ -107,39 +107,23 @@ export class ImageDrawer {
                         await draw(x, y);
             },
             [Modes.FROM_CENTER]: async (pixels: ImageData, draw: DrawHook) => {
-                const centerX = Math.floor(pixels.width / 2);
-                const centerY = Math.floor(pixels.height / 2);
+                const [indices, distances] = this.circularSort(pixels);
+                indices.sort((a, b) => distances[a] - distances[b]);
 
-                const pixelDistances = [];
-                for (let x = 0; x < pixels.width; x++) {
-                    for (let y = 0; y < pixels.height; y++) {
-                        const distance = Math.hypot(centerX - x, centerY - y);
-                        pixelDistances.push([x, y, distance]);
-                    }
-                }
-
-                pixelDistances.sort((a, b) => a[2] - b[2]);
-
-                for (const pixel of pixelDistances) {
-                    await draw(pixel[0], pixel[1]);
+                for (const i of indices) {
+                    const x = i % pixels.width;
+                    const y = (i / pixels.width) | 0;
+                    await draw(x, y);
                 }
             },
             [Modes.TO_CENTER]: async (pixels: ImageData, draw: DrawHook) => {
-                const centerX = Math.floor(pixels.width / 2);
-                const centerY = Math.floor(pixels.height / 2);
+                const [indices, distances] = this.circularSort(pixels);
+                indices.sort((a, b) => distances[b] - distances[a]);
 
-                const pixelDistances = [];
-                for (let x = 0; x < pixels.width; x++) {
-                    for (let y = 0; y < pixels.height; y++) {
-                        const distance = Math.hypot(centerX - x, centerY - y);
-                        pixelDistances.push([x, y, distance]);
-                    }
-                }
-
-                pixelDistances.sort((a, b) => b[2] - a[2]);
-
-                for (const pixel of pixelDistances) {
-                    await draw(pixel[0], pixel[1]);
+                for (const i of indices) {
+                    const x = i % pixels.width;
+                    const y = (i / pixels.width) | 0;
+                    await draw(x, y);
                 }
             },
 
@@ -167,6 +151,36 @@ export class ImageDrawer {
             }
 
         });
+    }
+
+    private circularSort(pixels: ImageData): [indices: number[], distances: Float32Array] {
+        const centerX = Math.floor(pixels.width / 2);
+        const centerY = Math.floor(pixels.height / 2);
+
+        const w = pixels.width;
+        const h = pixels.height;
+        const total = w * h;
+
+        const distances = new Float32Array(total);
+
+        for (let y = 0; y <= centerY; y++) {
+            for (let x = 0; x <= centerX; x++) {
+                const d = Math.hypot(centerX - x, centerY - y);
+
+                const i1 = y * w + x;
+                const i2 = y * w + (w - 1 - x);
+                const i3 = (h - 1 - y) * w + x;
+                const i4 = (h - 1 - y) * w + (w - 1 - x);
+
+                distances[i1] = d;
+                distances[i2] = d;
+                distances[i3] = d;
+                distances[i4] = d;
+            }
+        }
+
+        const indices = Array.from({ length: total }, (_, i) => i);
+        return [indices, distances];
     }
 
     private getColor(x: number, y: number, pixels: ImageData): number | null {
