@@ -5,3 +5,5 @@ if "%~1"=="" (
 )
 
 .\pixelplacejs\node_windows\node.exe .\pixelplacejs\dist\PPScript.js %*
+
+timeout /t -1
