@@ -158,6 +158,11 @@ export class Canvas {
     async fetchCanvasData(): Promise<[number, boolean]> {
         return new Promise<[number, boolean]>((resolve, reject) => {
             this.getPaintingData().then(data => {
+                if(data == null) {
+                    reject();
+                    return;
+                }
+
                 this.canvasWidth = data.width;
                 this.canvasHeight = data.height;
     
@@ -207,16 +212,24 @@ export class Canvas {
     async loadCanvasPicture(): Promise<void> {
         const imageUrl = `https://pixelplace.io/canvas/${this.boardId}.png?t200000=${Date.now()}`;
 
-        const buffer = await new Promise<Buffer>((resolve, reject) => {
-            https.get(imageUrl, { headers: this.headers("canvas-image") }, (response: IncomingMessage) => {
+        const buffer = (await new Promise<Buffer>((resolve, reject) => {
+            https.get(imageUrl, { headers: this.headers("canvas-image", this.boardId) }, (response: IncomingMessage) => {
                 const chunks: Buffer[] = [];
                 response.on('data', (chunk: Buffer) => { chunks.push(chunk); });
                 response.on('end', () => { resolve(Buffer.concat(chunks)); });
                 response.on('error', (error: Error) => { reject(error); });
             });
-        });
+        })).toString();
 
-        const img = await Jimp.read(buffer);
+        let img: Jimp;
+        try {
+            img = await Jimp.read(buffer);
+        } catch (err) {
+            console.error(err);
+            console.log(buffer);
+            console.log("error!! is cloudflare on? do you have cf clearance set?");
+            process.exit();
+        }
 
         for (let x = 0; x < img.bitmap.width; x++) {
             for (let y = 0; y < img.bitmap.height; y++) {
@@ -298,8 +311,9 @@ export class Canvas {
         }
     }
 
-    private async getPaintingData(): Promise<{ width: number, height: number, userId: number, premium: boolean }> {
-        const data: PaintingData = await this.netUtil.getPaintingData(this.boardId);
+    private async getPaintingData(): Promise<{ width: number, height: number, userId: number, premium: boolean } | null> {
+        const data: PaintingData | null = await this.netUtil.getPaintingData(this.boardId);
+        if(data == null) return null;
 
         const width = data.painting.width;
         const height = data.painting.height;

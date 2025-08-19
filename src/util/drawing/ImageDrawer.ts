@@ -264,6 +264,8 @@ export class ImageDrawer {
 
                 this.width = data.width;
                 this.height = data.height;
+
+                if(this.instance.boardId)
                 
                 for (let x = 0; x < img.bitmap.width; x++) {
                     data.pixels[x] = [];

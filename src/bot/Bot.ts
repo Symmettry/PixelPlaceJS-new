@@ -22,7 +22,7 @@ import { NetUtil, PaintingData, UserData } from '../util/NetUtil.js';
 export class Bot {
 
     protector!: Protector;
-    private boardId!: number;
+    boardId!: number;
 
     private prevPlaceValue: number = 0;
 
@@ -45,7 +45,7 @@ export class Bot {
 
     private params: IBotParams;
 
-    private netUtil!: NetUtil;
+    private netUtil: NetUtil;
 
     /** If the bot is ratelimited. */
     ratelimited: boolean = false;
@@ -69,9 +69,9 @@ export class Bot {
     /** Current load barrier index */
     currentBarrier: number = 0;
     /** Amount of sustained packet load to cause increases */
-    loadBarriers: number[] = [0,1500,2500];
+    loadBarriers: number[] = [0,500,1000,1500];
     /** Slowdown amount in ms after sustained load passes barriers */
-    loadIncreases: number[] = [0,1,2];
+    loadIncreases: number[] = [0,1,2,3];
     /** Will reset load to 0 after passing this; this works fine because detected rate is lower after it's been slowed down for a while. */
     loadReset: number = 5000;
 
@@ -96,6 +96,8 @@ export class Bot {
             throw new Error("Key 'boardID' not present in bot parameters!");
         }
 
+        this.netUtil = new NetUtil(this, this.headers);
+
         this.setHeaders((type: HeaderTypes) => {
             const headers: OutgoingHttpHeaders = {};
             switch(type) {
@@ -117,7 +119,6 @@ export class Bot {
 
         constant(this, 'boardId', params.boardID);
         constant(this, 'protector', new Protector(this));
-        constant(this, 'netUtil', new NetUtil(this.headers));
         
         this.autoRestart = autoRestart;
         this.handleErrors = handleErrors;
@@ -192,7 +193,7 @@ export class Bot {
      * @param name Name of the user
      * @param reload If it should reload or return the cached value when called again. Defaults to false
      */
-    async getUserData(name: string, reload: boolean=false): Promise<UserData> {
+    async getUserData(name: string, reload: boolean=false): Promise<UserData | null> {
         return this.netUtil.getUserData(name, reload);
     }
     
@@ -202,7 +203,7 @@ export class Bot {
      * @param reload If it should reload or return the cached value when called again. Defaults to false.
      * @param connected Connected or not. Not too useful. Defaults to true.
      */
-    async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData> {
+    async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData | null> {
         return this.netUtil.getPaintingData(canvasId, reload, connected);
     }
 
@@ -720,12 +721,13 @@ export class Bot {
      */
     setHeaders(ogFunc: HeadersFunc) {
         const headersFunc = (type: HeaderTypes) => {
-            const data = ogFunc(type);
-            data.cookie = this.connection!.generateAuthCookie() + data.cookie;
+            const data = ogFunc(type, this.boardId);
+            data.cookie = this.connection!.generateAuthCookie() + " " + data.cookie;
             return data;
         };
 
         this.headers = headersFunc;
+        this.netUtil.headers = this.headers;
         if(this.connected()) {
             this.connection!.headers = this.headers;
             this.connection!.canvas.headers = this.headers;

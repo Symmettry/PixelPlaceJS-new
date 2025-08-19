@@ -4,7 +4,7 @@ import { IBotParams } from "./util/data/Data";
 
 export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-user";
 
-export type HeadersFunc = (type: HeaderTypes) => OutgoingHttpHeaders;
+export type HeadersFunc = (type: HeaderTypes, boardId: number) => OutgoingHttpHeaders;
 
 /**
  * Contains all bots and handles them.
@@ -38,38 +38,40 @@ class PixelPlace {
      * @param cookie 
      */
     setCFClearance(cookie: string): PixelPlace {
-        return this.setHeaders((type) => {
+        return this.setHeaders((type, boardId) => {
             const h: {[key: string]: string} = {
-                "Accept-Encoding": "gzip, deflate, br, zstd",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Cookie": `cf_clearance=${cookie};`,
-                "Priority": "u=1, i",
-                "Referer": "https://pixelplace.io/",
-                "Sec-Ch-Ua": "\"Brave\";v=\"125\", \"Chromium\";v=\"125\", \"Not.A/Brand\";v=\"24\"",
-                "Sec-Ch-Ua-Mobile": "?0",
-                "Sec-Ch-Ua-Model": "\"\"",
-                "Sec-Ch-Ua-Platform": "\"Windows\"",
-                "Sec-Ch-Ua-Platform-Version": "\"10.0.0\"",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-origin",
-                "Sec-Gpc": "1",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-                "X-Requested-With": "XMLHttpRequest"
+                "accept-language": "en-US,en;q=0.8",
+                "priority": "i",
+                "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Brave\";v=\"138\"",
+                "sec-ch-ua-arch": "\"x86\"",
+                "sec-ch-ua-bitness": "\"64\"",
+                "sec-ch-ua-full-version-list": "\"Not)A;Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"138.0.0.0\", \"Brave\";v=\"138.0.0.0\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-model": "\"\"",
+                "sec-ch-ua-platform": "\"Linux\"",
+                "sec-ch-ua-platform-version": "\"6.16.1\"",
+                "sec-fetch-site": "same-origin",
+                "sec-gpc": "1",
+                "cookie": `cf_clearance=${cookie}`,
+                "Referer": `https://pixelplace.io/${boardId}`
             };
             switch(type) {
                 case "socket":
-                    h["Connection"]    = "Upgrade";
-                    h["Cache-Control"] = "no-cache";
+                    h["connection"]    = "Upgrade";
                     break;
                  case "canvas-image":
-                    h["Cache-Control"] = "no cache";
-                    h['Accept']        = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+                    h['accept']        = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+                    h['sec-fetch-dest'] = 'image';
+                    h['sec-fetch-mode'] = 'no-cors';
                     break;
                 case "get-painting":
                 case "get-user":
                 case 'relog':
-                    h['Accept']        = "application/json, text/javascript, */*; q=0.01";
+                    h['sec-fetch-dest'] = 'empty';
+                    h['sec-fetch-mode'] = 'cors';
+                    h['x-requested-with'] = 'XMLHttpRequest';
+                    h['accept']        = "application/json, text/javascript, */*; q=0.01";
+                    h['priority']  = 'u=1, i';
                     break;
             }
             return h;

@@ -142,6 +142,7 @@ src/**
 docs/**
 node_windows/**
 node_linux/**
+node_macos/**
 used_node_modules/**
 scripts/**
 release/**

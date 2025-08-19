@@ -1,3 +1,4 @@
+import { Bot } from "../bot/Bot";
 import { HeadersFunc } from "../PixelPlace";
 import { Color } from "./data/Color";
 import { AuctionData, Icon } from "./data/Data";
@@ -411,13 +412,24 @@ export type UserData = {
 
 export class NetUtil {
 
-    private headers: HeadersFunc;
-
     private paintingCache: {[key: string]: PaintingData} = {};
     private userCache: {[key: string]: UserData} = {};
 
-    constructor(headersFunc: HeadersFunc) {
+    private bot: Bot;
+
+    headers: HeadersFunc;
+
+    constructor(bot: Bot, headersFunc: HeadersFunc) {
         this.headers = headersFunc;
+        this.bot = bot;
+    }
+
+    private async notOkay(data: Response): Promise<null> {
+        const text = await data.text();
+        if(text.includes("Just a moment...")) {
+            throw new Error("Cloudflare authentication is invalid! pp#setCFClearance('cookie')");
+        }
+        throw new Error("Invalid user data received!!\n" + text);
     }
 
     /**
@@ -426,14 +438,18 @@ export class NetUtil {
      * @param reload If it should reload or return the cached value when called again. Defaults to false.
      * @param connected Connected or not. Not too useful. Defaults to true.
      */
-    async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData> {
+    async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData | null> {
         if(this.paintingCache[canvasId] && !reload) return this.paintingCache[canvasId];
 
         const data = await fetch("https://pixelplace.io/api/get-painting.php?id=" + canvasId + "&connected=" + (connected ? 1 : 0), {
-            "headers": this.headers("get-painting") as HeadersInit,
+            "headers": this.headers("get-painting", this.bot.boardId) as HeadersInit,
             "body": null,
             "method": "GET",
         });
+        if(!data.ok) {
+            return this.notOkay(data);
+        }
+
         return (await data.json()) as PaintingData;
     }
 
@@ -442,15 +458,19 @@ export class NetUtil {
      * @param name Name of the user
      * @param reload If it should reload or return the cached value when called again. Defaults to false
      */
-    async getUserData(name: string, reload: boolean=false): Promise<UserData> {
+    async getUserData(name: string, reload: boolean=false): Promise<UserData | null> {
         name = name.toLowerCase();
         if(this.userCache[name] && !reload) return this.userCache[name];
 
         const data = await fetch("https://pixelplace.io/api/get-user.php?username=" + name, {
-            "headers": this.headers("get-user") as HeadersInit,
+            "headers": this.headers("get-user", this.bot.boardId) as HeadersInit,
             "body": null,
             "method": "GET",
         });
+        if(!data.ok) {
+            return this.notOkay(data);
+        }
+
         return (await data.json()) as UserData;
     }
 

@@ -75,7 +75,7 @@ export class Connection {
     private async relog(): Promise<{ authKey?: string | undefined; authToken?: string | undefined; authId?: string | undefined; }> {
         console.log("~~Refreshing auth data~~");
         try {
-            const headers = this.headers('relog');
+            const headers = this.headers('relog', this.boardId);
             headers.cookie += this.generateAuthCookie();
 
             const res = await fetch("https://pixelplace.io/api/relog.php", {
@@ -136,9 +136,7 @@ export class Connection {
 
             // connect to PixelPlace
             this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
-                headers: {
-                    ...this.headers("socket"),
-                },
+                headers: this.headers("socket", this.boardId),
             });
 
             if(Canvas.hasCanvas(this.boardId)) {

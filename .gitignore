@@ -136,6 +136,7 @@ ppjs-relog-authdata-*
 
 node_linux/
 node_windows/
+node_macos/
 used_node_modules/
 
 release/
