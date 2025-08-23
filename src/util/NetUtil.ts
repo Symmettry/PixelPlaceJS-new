@@ -2,8 +2,11 @@ import { IncomingMessage, OutgoingHttpHeaders } from "http";
 import { Bot } from "../bot/Bot";
 import { HeadersFunc } from "../PixelPlace";
 import { Color } from "./data/Color";
-import { AuctionData, Icon } from "./data/Data";
+import { AuctionData, BoardTemplate, Icon } from "./data/Data";
 import https from 'https';
+
+/** YYYY-MM-DD HH:MM:SS */
+type CreationDate = `${number}-${number}-${number} ${number}:${number}:${number}`;
 
 /**
  * Painting data. There's a lot. I didn't bother JSDoc'ing some.
@@ -82,17 +85,17 @@ export type PaintingData = {
             }
         }[];
         /** Creation date in format YYYY-MM-DD HH:MM:SS */
-        createdAt: string;
+        createdAt: CreationDate;
         /** If protection is enabled */
         protection: boolean;
         /** If shop items are enabled */
         shopItems: boolean;
         /** If discord is required to apply */
         discordRequired: boolean;
-        /** The rate of the canvas */
+        /** The rate of the canvas in pixels / second */
         rate: number;
         /** The template used */
-        template: number;
+        template: BoardTemplate;
         /** The amount of pixels placed on it */
         pixels: number;
         /** If dot detection is enabled */

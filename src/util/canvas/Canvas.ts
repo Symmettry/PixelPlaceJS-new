@@ -1,7 +1,7 @@
 import ndarray from 'ndarray';
 import fs from 'fs';
 import path from 'path';
-import { IRGBColor } from '../data/Data';
+import { BoardTemplate, IRGBColor } from '../data/Data';
 import { Color } from '../data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from '../packets/PacketResponses';
@@ -185,6 +185,8 @@ export class Canvas {
 
     regionData: number[][] | null = null;
 
+    boardTemplate!: BoardTemplate;
+
     constructor(data: ReqCanvas | ClientCanvas) {
         if(data.type == 0) {
             const { boardId, headers, netUtil } = data as ReqCanvas;
@@ -197,18 +199,15 @@ export class Canvas {
 
             // now start loading it asap
             this.loadCanvasPicture();
-        } else {
-            this.serverClient = (data as ClientCanvas).serverClient;
-            const { boardID, canvasData, width, height } = this.serverClient;
-
-            this.boardId = boardID;
-
-            this.loadFromCanvasData(canvasData, width, height);
+            return;
         }
 
-        if(this.boardId == 7) {
-            this.loadRegionData();
-        }
+        this.serverClient = (data as ClientCanvas).serverClient;
+        const { boardID, canvasData, width, height } = this.serverClient;
+
+        this.boardId = boardID;
+
+        this.loadFromCanvasData(canvasData, width, height);
     }
 
     decodeVarInt(buffer: Buffer, start: number) {
@@ -255,7 +254,9 @@ export class Canvas {
     }
 
     getRegionAt(x: number, y: number): RegionData {
-        if(this.boardId != 7 || this.regionData == null) throw new Error(`Region data is only readable on canvas 7.`);
+        if(this.boardTemplate != BoardTemplate.PIXEL_WORLD_WAR || this.regionData == null)
+            throw new Error(`Region data is only readable on world war canvases.`);
+
         if(x > 2500 || x < 0) throw new Error(`Invalid x coordinate: ${x}`);
         if(y > 2088 || y < 0) throw new Error(`Invalid y coordinate: ${y}`);
         if(this.pixelData.get(x, y) == Color.OCEAN) return REGIONS[0];
@@ -312,14 +313,19 @@ export class Canvas {
             return Promise.resolve([this.serverClient.userID, this.serverClient.uidManager, this.serverClient.username]);
         }
         return new Promise<[number, boolean, string]>((resolve, reject) => {
-            this.getPaintingData().then(data => {
+            this.netUtil.getPaintingData(this.boardId).then(data => {
                 if(data == null) {
                     reject();
                     return;
                 }
 
-                this.canvasWidth = data.width;
-                this.canvasHeight = data.height;
+                this.canvasWidth = data.painting.width;
+                this.canvasHeight = data.painting.height;
+
+                this.boardTemplate = data.painting.template as BoardTemplate;
+                if(this.boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
+                    this.loadRegionData();
+                }
     
                 // this is dumb but it's whatever
                 const newArray = this.createNDArray(this.canvasWidth, this.canvasHeight);
@@ -328,7 +334,7 @@ export class Canvas {
 
                 canvases.set(this.boardId, this);
 
-                resolve([data.userId, data.premium, data.username]);
+                resolve([data.user.id, data.user.premium.active, data.user.name]);
             }).catch(reject);
         });
     }
@@ -435,19 +441,6 @@ export class Canvas {
         for(const [x, y, col] of pixels) {
             this.pixelData.set(x, y, col);
         }
-    }
-
-    private async getPaintingData(): Promise<{ width: number, height: number, userId: number, premium: boolean, username: string } | null> {
-        const data: PaintingData | null = await this.netUtil.getPaintingData(this.boardId);
-        if(data == null) return null;
-
-        const width = data.painting.width;
-        const height = data.painting.height;
-        const userId = data.user.id;
-        const premium = data.user.premium.active;
-        const username = data.user.name;
-
-        return { width, height, userId, premium, username };
     }
 
     /**

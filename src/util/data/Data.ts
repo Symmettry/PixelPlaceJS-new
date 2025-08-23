@@ -39,13 +39,24 @@ export interface IUnverifiedPixel {
 export interface IQueuedPixel {
     data: Pixel;
     speed: number;
-    resolve: (value: PlaceResults) => void;
+    resolve: ((value: PlaceResults) => void) | null;
 }
 
 export type PlaceResults = {
     pixel: Pixel;
     oldColor: Color | null;
 } | null;
+
+/** Canvas templates */
+export enum BoardTemplate {
+    BLANK = 0,
+    PIXEL_WORLD_WAR = 1,
+    WORLD_WAR_NO_BORDERS = 2,
+    USA = 3,
+    MEXICO = 4,
+    CHINA = 5,
+    RUSSIA = 6,
+}
 
 export type Rectangle = {
     /** X of the rectangle; top left */

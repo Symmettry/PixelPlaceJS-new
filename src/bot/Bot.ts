@@ -372,7 +372,7 @@ export class Bot {
     }
 
     private resolvePixel(oldCol: Color, queuedPixel: IQueuedPixel): void {
-        queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: oldCol });
+        if(queuedPixel.resolve) queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: oldCol });
         setImmediate(() => this.goThroughPixels());
     }
 
@@ -386,10 +386,16 @@ export class Bot {
             return;
         }
 
+        let colAtSpot: Color | undefined;
         let queuedPixel: IQueuedPixel | undefined;
         do {
+            if(queuedPixel != undefined) this.resolvePixel(colAtSpot!, queuedPixel);
             queuedPixel = this.sendQueue.shift();
-        } while (queuedPixel == undefined && this.sendQueue.length > 0);
+            colAtSpot = queuedPixel ? this.getPixelAt(queuedPixel.data.x, queuedPixel.data.y) : undefined;
+        } while ((colAtSpot == undefined || colAtSpot == Color.OCEAN || queuedPixel == undefined
+            || (!queuedPixel.data.force && colAtSpot == queuedPixel.data.col))
+            && this.sendQueue.length > 0);
+
         if(queuedPixel == undefined) {
             this.queueLoop();
             return;
@@ -404,15 +410,8 @@ export class Bot {
             return;
         }
 
-        const {x, y, col, protect, wars, force} = queuedPixel.data;
+        const {x, y, protect, wars } = queuedPixel.data;
 
-        const colAtSpot = this.getPixelAt(x, y);
-
-        const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN;
-        if(skippedColor) {
-            this.resolvePixel(colAtSpot!, queuedPixel);
-            return;
-        }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
         if(skippedWar) {
             if(protect) {
@@ -429,7 +428,7 @@ export class Bot {
                     this.sendAfterWarDone.push(queuedPixel.data);
                 }
             }
-            this.resolvePixel(colAtSpot, queuedPixel)
+            this.resolvePixel(colAtSpot!, queuedPixel)
             return;
         }
 
@@ -577,7 +576,6 @@ export class Bot {
             }
         }
 
-        // we still want to protect it even if it's same color, so it's done prior.
         this.protector.updateProtection(protect, x, y, col);
 
         if(this.resendQueue.length > 0) {
@@ -591,7 +589,7 @@ export class Bot {
         if(async) {
             return new Promise<PlaceResults>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
         }
-        this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve: () => {}})
+        this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve: null})
         return Promise.resolve({ pixel, oldColor: this.getPixelAt(x, y) } as PlaceResults);
     }
 
