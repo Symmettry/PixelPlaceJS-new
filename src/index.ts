@@ -7,7 +7,7 @@ export { Packets } from "./util/packets/Packets";
 export { PPError, ErrorMessages } from "./util/data/Errors";
 export { TextWriter } from "./util/drawing/fonts/TextWriter";
 export { Font, FontData } from "./util/drawing/fonts/Font";
-export { ImageData, IAuthData, IBotParams, BrushTypes, QueueSide } from "./util/data/Data";
+export { PixelSetData as ImageData, IAuthData, IBotParams, BrushTypes, QueueSide } from "./util/data/Data";
 export { FightType } from "./util/packets/PacketResponses";
 export { ClientPackets, ServerPackets, PixelPipeType } from "./browser/SocketData";
 export { AnimationType } from "./util/drawing/AnimationDrawer";

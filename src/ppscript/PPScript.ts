@@ -348,7 +348,7 @@ export class PPScript {
                 const { authKey, authToken, authId }
                         = command.expect(['authKey', 'string'], ['authToken', 'string'], ['authId', 'string']);
                 
-                const { name, boardID, uidManager } = command.optional(['name', 'bot'], ['boardID', 7], ['uidManager', false]);
+                const { name, boardID } = command.optional(['name', 'bot'], ['boardID', 7]);
 
                 this.params[(name as string)] = {
                     authData: {
@@ -357,7 +357,6 @@ export class PPScript {
                         authId:    (authId as string),
                     },
                     boardID: boardID as number,
-                    uidManager: uidManager as boolean,
                 };
                 break;
             }

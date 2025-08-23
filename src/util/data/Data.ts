@@ -11,6 +11,16 @@ export type PixelFlags = {
     force?: boolean;
     /** Queue input side */
     side?: QueueSide;
+    /**
+     * If it should respond with a Promise<void> of when it completes
+     * 
+     * This is useful to set with images/rects/etc. if you want to sort or use queue after without waiting.
+     * 
+     * Place results when using async will be predicted because it's given immediately
+     * 
+     * Defaults to true.
+     * */
+    async?: boolean;
 }
 
 /**
@@ -58,7 +68,7 @@ export type Rectangle = {
  * @property height - The height of the image.
  * @property pixels - The two-dimensional array of pixel colors. Read with data.pixels[x][y]
  */
-export type ImageData = {
+export type PixelSetData = {
     width: number,
     height: number,
     pixels: (Color | null)[][],
@@ -115,8 +125,6 @@ export interface IBotParams {
     boardID: number;
     /** If the auth data should be relogged. */
     relog?: boolean;
-    /** If the UID Manager should be enabled, defaults to false */
-    uidManager?: boolean;
 }
 
 /**

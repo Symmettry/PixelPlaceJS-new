@@ -1,8 +1,8 @@
 import * as Canvas from '../util/canvas/Canvas.js';
-import { Image, ImageDrawer } from '../util/drawing/ImageDrawer.js';
+import { Image, ImageDrawer, DrawingMode, drawingStrategies, DrawingFunction } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, Rectangle, PlaceResults } from '../util/data/Data.js';
+import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, Rectangle, PlaceResults, PixelSetData, BrushTypes } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
@@ -17,13 +17,14 @@ import { PacketSendMap } from '../util/packets/PacketSends.js';
 import { NetUtil, PaintingData, UserData } from '../util/NetUtil.js';
 import { ServerClient } from '../browser/client/ServerClient.js';
 import { Animation, AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
+import { Modes } from '../util/data/Modes.js';
 
 /**
  * The pixelplace bot.
  */
 export class Bot {
 
-    private static alerted: boolean = false;
+    private static alertedDisallow: boolean = false;
 
     protector!: Protector;
     boardId!: number;
@@ -130,10 +131,6 @@ export class Bot {
         
         this.autoRestart = autoRestart;
         this.handleErrors = handleErrors;
-
-        if(params.uidManager) {
-            this.uidman = new UIDManager(this);
-        }
 
         this.Load = this.Load.bind(this);
         this.Connect = this.Connect.bind(this);
@@ -532,6 +529,13 @@ export class Bot {
     }
 
     /**
+     * @returns if an x,y is on the canvas
+     */
+    isValidPosition(x: number, y: number): boolean {
+        return this.getCanvas()?.isValidPosition(x, y);
+    }
+
+    /**
      * Places a pixel
      * @param x The x coordinate of the pixel.
      * @param y The y coordinate of the pixel.
@@ -543,10 +547,16 @@ export class Bot {
      * @returns A promise that resolves upon the pixel being sent.
      */
     async placePixel(pixel: Pixel): Promise<PlaceResults> {
-        const {x, y, col, protect = false } = pixel;
+        pixel.async ??= true;
+        pixel.protect ??= false;
+        pixel.brush ??= BrushTypes.NORMAL;
+        pixel.force ??= false;
+        pixel.wars ??= false;
+        pixel.side ??= QueueSide.BACK;
 
-        const conn = this.getConnection();
-        if(x > conn.canvas.canvasWidth || x < 0 || y > conn.canvas.canvasHeight || y < 0) {
+        const {x, y, col, protect, async } = pixel;
+
+        if(!this.isValidPosition(x, y)) {
             console.log("~~WARN~~ Skipping invalid position: ", x, y);
             return Promise.resolve(null);
         }
@@ -556,11 +566,14 @@ export class Bot {
             return Promise.resolve(null);
         }
 
-        if(!Bot.alerted) {
+        if(this.boardId == 7) {
             const region = this.getRegionAt(x, y);
-            if(!region.canBot) {
-                Bot.alerted = true;
+            if(!Bot.alertedDisallow && !region.canBot) {
+                Bot.alertedDisallow = true;
                 console.warn(`~~WARN~~ You are botting in a disallowed area: ${region.name} @ (${x},${y})\nThis warning will not repeat again.`);
+            } else if(!this.premium && region.name == "Premium Island") {
+                console.warn(`~~WARN~~ Your account is not premium, and the bot tried to place at ${x},${y} on Premium Island.`);
+                return Promise.resolve(null);
             }
         }
 
@@ -570,12 +583,73 @@ export class Bot {
         if(this.resendQueue.length > 0) {
             const pixel: Pixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
-                await this.placePixel(pixel);
+                const p = this.placePixel(pixel);
+                if(pixel.async) await p;
             }
         }
 
-        return new Promise<PlaceResults>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
+        if(async) {
+            return new Promise<PlaceResults>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
+        }
+        this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve: () => {}})
+        return Promise.resolve({ pixel, oldColor: this.getPixelAt(x, y) } as PlaceResults);
     }
+
+    /**
+     * Sorts the current queue with a drawing mode
+     * 
+     * You can take advantage of this by adding a bunch of pixels into queue and not await'ing on them, then sort.
+     */
+    sortQueue(mode: DrawingMode) {
+        const queueMap: { [key: number]: { [key: number]: IQueuedPixel } } = {};
+        const pixels: (Color | null)[][] = [];
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        for (const p of this.sendQueue) {
+            const { x, y } = p.data;
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+
+            queueMap[x] ??= {};
+            queueMap[x][y] = p;
+        }
+
+        for (const p of this.sendQueue) {
+            const { x, y, col } = p.data;
+            const nx = x - minX;
+            const ny = y - minY;
+            pixels[nx] ??= [];
+            pixels[nx][ny] = col;
+        }
+
+        const pixelSet: PixelSetData = {
+            width: maxX - minX + 1,
+            height: maxY - minY + 1,
+            pixels
+        };
+
+        this.sendQueue = [];
+
+        const func: DrawingFunction =
+            typeof mode === "number" && drawingStrategies[mode]
+                ? drawingStrategies[mode]
+                : mode as DrawingFunction;
+
+        const hook = async (x: number, y: number): Promise<void> => {
+            const tx = minX + x, ty = minY + y;
+            if(!queueMap[tx] || !queueMap[tx][ty]) return Promise.resolve();
+
+            this.sendQueue.push(queueMap[tx][ty]);
+            return Promise.resolve();
+        };
+
+        func(pixelSet, hook, Math.hypot);
+    }
+
 
     /**
      * Sends a value through the socket. It's recommended to use emit() over this.
@@ -664,6 +738,10 @@ export class Bot {
 
     }
 
+    readQueue(): readonly IQueuedPixel[] {
+        return this.sendQueue as readonly IQueuedPixel[];
+    }
+
     /**
      * Draws a rectangle
      * @param x X position of rectangle
@@ -680,6 +758,12 @@ export class Bot {
                 await this.placePixel({
                     x, y,
                     col: getCol(x, y),
+                    protect: rect.protect,
+                    force: rect.force,
+                    wars: rect.wars,
+                    brush: rect.brush,
+                    side: rect.side,
+                    async: rect.async,
                 });
             }
         }
@@ -871,6 +955,15 @@ export class Bot {
      */
     getRegionAt(x: number, y: number): Canvas.RegionData {
         return this.getCanvas()?.getRegionAt(x, y);
+    }
+
+    /**
+     * Creates the UID manager. This is internal use.
+     */
+    createUIDMan() {
+        if(!this.premium) throw new Error(`Cannot create when not premium.`);
+        if(this.uidman) throw new Error(`Uid manager already exists.`);
+        this.uidman = new UIDManager(this);
     }
 
 }

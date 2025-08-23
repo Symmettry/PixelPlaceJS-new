@@ -11,7 +11,6 @@ import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketRespon
 import { HeadersFunc } from "../../PixelPlace";
 import { PacketSendMap } from "../../util/packets/PacketSends";
 import { NetUtil } from "../../util/NetUtil";
-import { SocketHook } from "../../browser/SocketHook";
 import { ServerClient } from "../../browser/client/ServerClient";
 
 /**
@@ -199,6 +198,10 @@ export class Connection {
             this.bot.username = username;
             this.bot.userId = userId;
             this.bot.premium = premium;
+
+            if(premium) {
+                this.bot.createUIDMan();
+            }
         });
     }
 

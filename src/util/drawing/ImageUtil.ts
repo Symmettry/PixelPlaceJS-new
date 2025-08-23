@@ -1,14 +1,14 @@
 import Jimp from "jimp";
 import { ImagePixels } from "./ImageDrawer";
 import fs from 'fs';
-import { ImageData } from "../data/Data";
+import { PixelSetData } from "../data/Data";
 import { Canvas } from "../canvas/Canvas";
 import mime = require("mime-types");
 import { NetUtil } from "../NetUtil";
 import { HeadersFunc } from "../../PixelPlace";
 
 export class ImageUtil {
-    static applyJimp(width: number, height: number, data: ImageData, err: Error | null, img: Jimp): [width: number, height: number] {
+    static applyJimp(width: number, height: number, data: PixelSetData, err: Error | null, img: Jimp): [width: number, height: number] {
         if (err) {
             throw err;
         }
@@ -43,8 +43,8 @@ export class ImageUtil {
     }
 
     static async getPixelData(width: number, height: number, headers: HeadersFunc, boardId: number,
-                              path?: string, url?: string, pixels?: ImagePixels): Promise<ImageData> {
-        const data: ImageData = { width, height, pixels: [] };
+                              path?: string, url?: string, pixels?: ImagePixels): Promise<PixelSetData> {
+        const data: PixelSetData = { width, height, pixels: [] };
         if(path) {
             if (!fs.existsSync(path)) {
                 throw new Error(`File does not exist at path: ${path}`);

@@ -1,4 +1,4 @@
-import { ImageMode, ImagePixels } from "./ImageDrawer";
+import { DrawingMode, ImagePixels } from "./ImageDrawer";
 import fs from 'fs';
 import { parseGIF, decompressFrames } from 'gifuct-js';
 import { Bot } from "../../bot/Bot";
@@ -15,7 +15,7 @@ type FrameCall<T> = (frame: number) => T;
 type AnimationData<T> = T | FrameCall<T>;
 
 type AnimationCoord = AnimationData<number>;
-type AnimationMode = AnimationData<ImageMode>;
+type AnimationMode = AnimationData<DrawingMode>;
 type AnimationTimings = number[] | AnimationData<number>;
 
 type PathAnimationData = {

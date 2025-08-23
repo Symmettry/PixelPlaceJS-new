@@ -1,11 +1,11 @@
 import { Bot } from "../../bot/Bot";
 import { Modes } from "../data/Modes";
 import { constant } from "../Constant";
-import { BrushTypes, ImageData, PixelFlags, PlaceResults, QueueSide } from "../data/Data";
+import { BrushTypes, PixelSetData, PixelFlags, PlaceResults, QueueSide } from "../data/Data";
 import { Color } from "../data/Color";
 import { ImageUtil } from "./ImageUtil";
 
-export type ImageMode = Modes | DrawingFunction;
+export type DrawingMode = Modes | DrawingFunction;
 export type ImagePixels = (Color | null)[][];
 
 type LocalFile = {
@@ -36,7 +36,7 @@ export type Image = {
     height?: number;
 
     /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
-    mode?: ImageMode,
+    mode?: DrawingMode,
      /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
     performant?: boolean;
 
@@ -57,17 +57,136 @@ type SetImage = Image & SetPixels;
 type UrlImage = Image & UrlFile;
 
 type DrawHook = (x: number, y: number) => Promise<void>;
+type HypotFunction = (dx: number, dy: number) => number;
 
 /**
- * Represents a drawing mode that draws on a pixel array.
- * @param pixels - The pixel array to draw on.
- * @param draw - A function that draws the image color at a specific coordinate.
+ * Represents a function that will take the pixels and call draw() in the order it draws. This is used for images and for sorting queue.
+ * @param pixels - The pixel array to draw
+ * @param draw - A function that marks the drawing of that x,y at that time
+ * @param hypot - Optional, uses performant hypot when drawn that way.
  * @returns A promise which resolves when the image is done drawing.
  */
 export type DrawingFunction = (
-    pixels: ImageData,
+    pixels: PixelSetData,
     draw: DrawHook,
+    hypot: HypotFunction,
 ) => Promise<void>;
+
+export const drawingStrategies: {[key in Modes]: DrawingFunction} = {
+    [Modes.TOP_LEFT_TO_RIGHT]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let y = 0; y < pixels.height; y++) 
+            for (let x = 0; x < pixels.width; x++) 
+                await draw(x, y);
+    },
+    [Modes.TOP_RIGHT_TO_LEFT]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let y = 0; y < pixels.height; y++) 
+            for (let x = pixels.width; x >= 0; x--) 
+                await draw(x, y);
+    },
+    [Modes.BOTTOM_LEFT_TO_RIGHT]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let y = pixels.height; y >= 0; y--) 
+            for (let x = 0; x < pixels.width; x++) 
+                await draw(x, y);
+    },
+    [Modes.BOTTOM_RIGHT_TO_LEFT]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let y = pixels.height; y >= 0; y--) 
+            for (let x = pixels.width; x >= 0; x--) 
+                await draw(x, y);
+    },
+    [Modes.LEFT_TOP_TO_BOTTOM]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let x = 0; x < pixels.width; x++) 
+            for (let y = 0; y < pixels.height; y++) 
+                await draw(x, y);
+    },
+    [Modes.LEFT_BOTTOM_TO_TOP]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let x = 0; x < pixels.width; x++) 
+            for (let y = pixels.height; y >= 0; y--) 
+                await draw(x, y);
+    },
+    [Modes.RIGHT_TOP_TO_BOTTOM]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let x = pixels.width; x >= 0; x--) 
+            for (let y = 0; y < pixels.height; y++) 
+                await draw(x, y);
+    },
+    [Modes.RIGHT_BOTTOM_TO_TOP]: async (pixels: PixelSetData, draw: DrawHook) => {
+        for (let x = pixels.width; x >= 0; x--) 
+            for (let y = pixels.height; y >= 0; y--) 
+                await draw(x, y);
+    },
+    [Modes.FROM_CENTER]: async (pixels: PixelSetData, draw: DrawHook, hypot: HypotFunction) => {
+        const [indices, distances] = circularSort(pixels, hypot);
+        indices.sort((a, b) => distances[a] - distances[b]);
+
+        for (const i of indices) {
+            const x = i % pixels.width;
+            const y = (i / pixels.width) | 0;
+            await draw(x, y);
+        }
+    },
+    [Modes.TO_CENTER]: async (pixels: PixelSetData, draw: DrawHook, hypot: HypotFunction) => {
+        const [indices, distances] = circularSort(pixels, hypot);
+        indices.sort((a, b) => distances[b] - distances[a]);
+
+        for (const i of indices) {
+            const x = i % pixels.width;
+            const y = (i / pixels.width) | 0;
+            await draw(x, y);
+        }
+    },
+
+    [Modes.RAND]: async (pixels: PixelSetData, draw: DrawHook) => {
+        const totalPixels = pixels.width * pixels.height;
+        const coordinates = new Array(totalPixels);
+    
+        // initialize the coordinates array
+        for (let i = 0; i < totalPixels; i++) {
+            coordinates[i] = i;
+        }
+    
+        // fisher-yates shuffle algorithm
+        for (let i = totalPixels - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [coordinates[i], coordinates[j]] = [coordinates[j], coordinates[i]];
+        }
+    
+        // draw the pixels in the shuffled order
+        for (let i = 0; i < totalPixels; i++) {
+            const x = coordinates[i] % pixels.width;
+            const y = Math.floor(coordinates[i] / pixels.width);
+            await draw(x, y);
+        } 
+    }
+
+}
+function circularSort(pixels: PixelSetData, hypot: HypotFunction): [indices: number[], distances: Float32Array] {
+    const centerX = Math.floor(pixels.width / 2);
+    const centerY = Math.floor(pixels.height / 2);
+
+    const w = pixels.width;
+    const h = pixels.height;
+    const total = w * h;
+
+    const distances = new Float32Array(total);
+
+    for (let y = 0; y <= centerY; y++) {
+        for (let x = 0; x <= centerX; x++) {
+            const d = hypot(centerX - x, centerY - y);
+
+            const i1 = y * w + x;
+            const i2 = y * w + (w - 1 - x);
+            const i3 = (h - 1 - y) * w + x;
+            const i4 = (h - 1 - y) * w + (w - 1 - x);
+
+            distances[i1] = d;
+            distances[i2] = d;
+            distances[i3] = d;
+            distances[i4] = d;
+        }
+    }
+
+    const indices = Array.from({ length: total }, (_, i) => i);
+    return [indices, distances];
+}
 
 const SQRT2M1 = Math.sqrt(2) - 1;
 
@@ -103,9 +222,7 @@ export class ImageDrawer {
     private replace!: PlaceResults[][];
 
     private performant!: boolean;
-    private hypot!: (dx: number, dy: number) => number;
-
-    private drawingStrategies!: {[key in Modes]: (pixels: ImageData, draw: DrawHook) => Promise<void>};
+    private hypot!: HypotFunction;
 
     private placeResults: PlaceResults[][] = [];
 
@@ -154,132 +271,14 @@ export class ImageDrawer {
                         const ax = Math.abs(dx), ay = Math.abs(dy);
                         return ax < ay ? ay + SQRT2M1 * ax : ax + SQRT2M1 * ay;
                     };
-
-        constant(this, "drawingStrategies", {
-
-            [Modes.TOP_LEFT_TO_RIGHT]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let y = 0; y < pixels.height; y++) 
-                    for (let x = 0; x < pixels.width; x++) 
-                        await draw(x, y);
-            },
-            [Modes.TOP_RIGHT_TO_LEFT]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let y = 0; y < pixels.height; y++) 
-                    for (let x = pixels.width; x >= 0; x--) 
-                        await draw(x, y);
-            },
-            [Modes.BOTTOM_LEFT_TO_RIGHT]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let y = pixels.height; y >= 0; y--) 
-                    for (let x = 0; x < pixels.width; x++) 
-                        await draw(x, y);
-            },
-            [Modes.BOTTOM_RIGHT_TO_LEFT]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let y = pixels.height; y >= 0; y--) 
-                    for (let x = pixels.width; x >= 0; x--) 
-                        await draw(x, y);
-            },
-            [Modes.LEFT_TOP_TO_BOTTOM]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let x = 0; x < pixels.width; x++) 
-                    for (let y = 0; y < pixels.height; y++) 
-                        await draw(x, y);
-            },
-            [Modes.LEFT_BOTTOM_TO_TOP]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let x = 0; x < pixels.width; x++) 
-                    for (let y = pixels.height; y >= 0; y--) 
-                        await draw(x, y);
-            },
-            [Modes.RIGHT_TOP_TO_BOTTOM]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let x = pixels.width; x >= 0; x--) 
-                    for (let y = 0; y < pixels.height; y++) 
-                        await draw(x, y);
-            },
-            [Modes.RIGHT_BOTTOM_TO_TOP]: async (pixels: ImageData, draw: DrawHook) => {
-                for (let x = pixels.width; x >= 0; x--) 
-                    for (let y = pixels.height; y >= 0; y--) 
-                        await draw(x, y);
-            },
-            [Modes.FROM_CENTER]: async (pixels: ImageData, draw: DrawHook) => {
-                const [indices, distances] = this.circularSort(pixels);
-                indices.sort((a, b) => distances[a] - distances[b]);
-
-                for (const i of indices) {
-                    const x = i % pixels.width;
-                    const y = (i / pixels.width) | 0;
-                    await draw(x, y);
-                }
-            },
-            [Modes.TO_CENTER]: async (pixels: ImageData, draw: DrawHook) => {
-                const [indices, distances] = this.circularSort(pixels);
-                indices.sort((a, b) => distances[b] - distances[a]);
-
-                for (const i of indices) {
-                    const x = i % pixels.width;
-                    const y = (i / pixels.width) | 0;
-                    await draw(x, y);
-                }
-            },
-
-            [Modes.RAND]: async (pixels: ImageData, draw: DrawHook) => {
-                const totalPixels = pixels.width * pixels.height;
-                const coordinates = new Array(totalPixels);
-            
-                // initialize the coordinates array
-                for (let i = 0; i < totalPixels; i++) {
-                    coordinates[i] = i;
-                }
-            
-                // fisher-yates shuffle algorithm
-                for (let i = totalPixels - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [coordinates[i], coordinates[j]] = [coordinates[j], coordinates[i]];
-                }
-            
-                // draw the pixels in the shuffled order
-                for (let i = 0; i < totalPixels; i++) {
-                    const x = coordinates[i] % pixels.width;
-                    const y = Math.floor(coordinates[i] / pixels.width);
-                    await draw(x, y);
-                } 
-            }
-
-        });
     }
 
-    private circularSort(pixels: ImageData): [indices: number[], distances: Float32Array] {
-        const centerX = Math.floor(pixels.width / 2);
-        const centerY = Math.floor(pixels.height / 2);
-
-        const w = pixels.width;
-        const h = pixels.height;
-        const total = w * h;
-
-        const distances = new Float32Array(total);
-
-        for (let y = 0; y <= centerY; y++) {
-            for (let x = 0; x <= centerX; x++) {
-                const d = this.hypot(centerX - x, centerY - y);
-
-                const i1 = y * w + x;
-                const i2 = y * w + (w - 1 - x);
-                const i3 = (h - 1 - y) * w + x;
-                const i4 = (h - 1 - y) * w + (w - 1 - x);
-
-                distances[i1] = d;
-                distances[i2] = d;
-                distances[i3] = d;
-                distances[i4] = d;
-            }
-        }
-
-        const indices = Array.from({ length: total }, (_, i) => i);
-        return [indices, distances];
-    }
-
-    private getColor(x: number, y: number, pixels: ImageData): number | null {
+    private getColor(x: number, y: number, pixels: PixelSetData): number | null {
         if(pixels.pixels[x] == null || pixels.pixels[x][y] == null) return null;
         return pixels.pixels[x][y];
     }
 
-    async draw(x: number, y: number, pixels: ImageData): Promise<void> {
+    async draw(x: number, y: number, pixels: PixelSetData): Promise<void> {
         const color = this.getColor(x, y, pixels);
         if(color == null) return Promise.resolve();
 
@@ -315,7 +314,7 @@ export class ImageDrawer {
 
     async begin(): Promise<PlaceResults[][]> {
 
-        const data: ImageData = await ImageUtil.getPixelData(this.width, this.height, this.instance.headers, this.instance.boardId,
+        const data: PixelSetData = await ImageUtil.getPixelData(this.width, this.height, this.instance.headers, this.instance.boardId,
                         this.path, this.url, this.pixels);
 
         this.width = data.width;
@@ -423,11 +422,11 @@ export class ImageDrawer {
             }
         }
 
-        const func = typeof this.mode == 'function' ? this.mode : this.drawingStrategies[this.mode];
+        const func = typeof this.mode == 'function' ? this.mode : drawingStrategies[this.mode];
         if (!func) throw new Error(`Invalid mode: ${this.mode}`)
 
         if(this.byColor) {
-            const dataSets: {[key: string]: ImageData} = {};
+            const dataSets: {[key: string]: PixelSetData} = {};
             for (let x = 0; x < data.width; x++) {
                 for (let y = 0; y < data.height; y++) {
                     const col = data.pixels[x][y];
@@ -443,7 +442,7 @@ export class ImageDrawer {
                 const drawHook = (x: number, y: number) => {
                     return this.draw(x, y, colData);
                 }
-                await func(colData, drawHook);
+                await func(colData, drawHook, this.hypot);
             }
             return this.placeResults;
         }
@@ -452,7 +451,7 @@ export class ImageDrawer {
             return this.draw(x, y, data);
         }
         
-        await func(data, drawHook);
+        await func(data, drawHook, this.hypot);
 
         return this.placeResults;
     }

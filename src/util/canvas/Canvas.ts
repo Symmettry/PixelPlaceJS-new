@@ -49,8 +49,10 @@ enum CanvasState {
     FULLY_LOADED,
 }
 
+type RegionName = "Ocean" | "Antarctica" | "Coin Islands" | "Listenbourg" | "Premium Island" | "Russia" | "Greenland" | "South America"
+                | "USA" | "Central America" | "Canada" | "Alaska" | "Australia" | "Africa" | "Europe" | "Turkey" | "Asia";
 export type RegionData = {
-    name: string;
+    name: RegionName;
     canProtect: boolean;
     canBot: boolean;
 }
@@ -497,6 +499,10 @@ export class Canvas {
     static getRandomColor(): Color {
         const v: Color[] = Object.values(this.rgbToColor);
         return v[Math.floor(Math.random() * v.length)];
+    }
+
+    isValidPosition(x: number, y: number) {
+        return x >= 0 && y >= 0 && x < this.canvasWidth && y < this.canvasHeight;
     }
 
 }

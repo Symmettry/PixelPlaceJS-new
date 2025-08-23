@@ -27,10 +27,7 @@ export class Protector {
     }
 
     protect(x: number, y: number, col: Color | null) {
-        const { canvasWidth, canvasHeight } = this.pp.getCanvas();
-        if(!col || x <= 0 || y <= 0 || x > canvasWidth || y > canvasHeight) return;
-
-        if(this.pp.getPixelAt(x, y) == Color.OCEAN) return;
+        if(!col || !this.pp.isValidPosition(x, y) || this.pp.getPixelAt(x, y) == Color.OCEAN) return;
 
         if(!Protector.alerted) {
             const region = this.pp.getRegionAt(x, y);
@@ -49,6 +46,8 @@ export class Protector {
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
     }
     unprotect(x: number, y: number) {
+        if(!this.pp.isValidPosition(x, y)) return;
+
         const protectColor = this.getColor(x, y);
         if (protectColor == undefined) return;
         
@@ -57,6 +56,7 @@ export class Protector {
     }
 
     getColor(x: number, y: number): number | undefined {
+        if(!this.pp.isValidPosition(x, y)) return;
         return this.protectedPixels[x] && this.protectedPixels[x][y];
     }
 
