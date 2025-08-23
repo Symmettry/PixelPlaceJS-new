@@ -389,7 +389,7 @@ export class Bot {
         let colAtSpot: Color | undefined;
         let queuedPixel: IQueuedPixel | undefined;
         do {
-            if(queuedPixel != undefined) this.resolvePixel(colAtSpot!, queuedPixel);
+            if(queuedPixel != undefined && queuedPixel.resolve) queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: colAtSpot! });
             queuedPixel = this.sendQueue.shift();
             colAtSpot = queuedPixel ? this.getPixelAt(queuedPixel.data.x, queuedPixel.data.y) : undefined;
         } while ((colAtSpot == undefined || colAtSpot == Color.OCEAN || queuedPixel == undefined
@@ -401,7 +401,7 @@ export class Bot {
             return;
         }
 
-        if(Date.now() - this.lastQueueTime > 100 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
+        if(Date.now() - this.lastQueueTime > 400 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
             console.log("~~PIXELPLACE LAGGING~~");
             setTimeout(() => {
                 this.sendQueue.unshift(queuedPixel);
@@ -583,6 +583,13 @@ export class Bot {
             if(pixel != null) {
                 const p = this.placePixel(pixel);
                 if(pixel.async) await p;
+            }
+        }
+
+        if(this.sendQueue.length == 0) {
+            const colAtSpot = this.getPixelAt(x, y);
+            if(colAtSpot == col) {
+                return Promise.resolve({ pixel, oldColor: col });
             }
         }
 
