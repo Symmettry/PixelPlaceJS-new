@@ -23,6 +23,8 @@ import { Animation, AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
  */
 export class Bot {
 
+    private static alerted: boolean = false;
+
     protector!: Protector;
     boardId!: number;
 
@@ -552,6 +554,14 @@ export class Bot {
         if(!Canvas.Canvas.isValidColor(col)) {
             console.log("~~WARN~~ Skipping invalid color: ", col, ", at", x, y);
             return Promise.resolve(null);
+        }
+
+        if(!Bot.alerted) {
+            const region = this.getRegionAt(x, y);
+            if(!region.canBot) {
+                Bot.alerted = true;
+                console.warn(`~~WARN~~ You are botting in a disallowed area: ${region.name} @ (${x},${y})\nThis warning will not repeat again.`);
+            }
         }
 
         // we still want to protect it even if it's same color, so it's done prior.

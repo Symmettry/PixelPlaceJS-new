@@ -8,6 +8,8 @@ import { PixelPacket } from "./packets/PacketResponses";
  */
 export class Protector {
 
+    private static alerted = false;
+
     protectedPixels: {[key: number]: {[key: number]: Color}};
 
     private pp: Bot;
@@ -25,11 +27,21 @@ export class Protector {
     }
 
     protect(x: number, y: number, col: Color | null) {
-        if(!col) return;
+        const { canvasWidth, canvasHeight } = this.pp.getCanvas();
+        if(!col || x <= 0 || y <= 0 || x > canvasWidth || y > canvasHeight) return;
+
+        if(this.pp.getPixelAt(x, y) == Color.OCEAN) return;
+
+        if(!Protector.alerted) {
+            const region = this.pp.getRegionAt(x, y);
+            if(!region.canProtect) {
+                Protector.alerted = true;
+                console.warn(`~~WARN~~ You are protecting in a disallowed area: ${region.name} @ (${x},${y})\nThis warning will not repeat again.`);
+            }
+        }
 
         const protectColor = this.getColor(x, y);
         if (protectColor != undefined && protectColor == col) return;
-        if(this.pp.getPixelAt(x, y) == Color.OCEAN) return;
 
         if(!this.protectedPixels[x]) this.protectedPixels[x] = {};
         this.protectedPixels[x][y] = col;
