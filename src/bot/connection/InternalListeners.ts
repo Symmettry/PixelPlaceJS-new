@@ -183,8 +183,10 @@ export class InternalListeners {
 
             this.bot.stats.pixels.placing.placed++;
 
-            const delta = Date.now() - this.pixelTime[key][0];
+            const [t, p] = this.pixelTime[key];
+            const delta = Date.now() - t;
             delete this.pixelTime[key];
+            this.connection!.canvas!.pixelData!.set(x, y, p.data.col);
 
             if(confirmTimes.length == CONFIRM_CHECKS) {
                 this.confirmPing = avg;

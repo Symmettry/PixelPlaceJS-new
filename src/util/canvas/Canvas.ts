@@ -1,13 +1,13 @@
 import ndarray from 'ndarray';
-import * as https from 'https';
-import { IncomingMessage } from 'http';
-import { IRGBColor } from './data/Data';
-import { Color } from './data/Color';
+import fs from 'fs';
+import path from 'path';
+import { IRGBColor } from '../data/Data';
+import { Color } from '../data/Color';
 import Jimp = require('jimp');
-import { PixelPacket } from './packets/PacketResponses';
-import { HeadersFunc } from '../PixelPlace';
-import { NetUtil, PaintingData } from './NetUtil';
-import { ServerClient } from '../browser/client/ServerClient';
+import { PixelPacket } from '../packets/PacketResponses';
+import { HeadersFunc } from '../../PixelPlace';
+import { NetUtil, PaintingData } from '../NetUtil';
+import { ServerClient } from '../../browser/client/ServerClient';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -47,6 +47,32 @@ enum CanvasState {
     PACKET_LOADED,
     IMAGE_LOADED,
     FULLY_LOADED,
+}
+
+export type RegionData = {
+    name: string;
+    canProtect: boolean;
+    canBot: boolean;
+}
+
+const REGIONS: {[key: number]: RegionData} = {
+     0: {name: "Ocean"          , canBot:  true, canProtect:  true},
+     1: {name: "Antarctica"     , canBot:  true, canProtect:  true},
+     2: {name: "Coin Islands"   , canBot:  true, canProtect:  true},
+     3: {name: "Listenbourg"    , canBot:  true, canProtect:  true},
+     4: {name: "Premium Island" , canBot:  true, canProtect: false},
+     5: {name: "Russia"         , canBot:  true, canProtect: false},
+     6: {name: "Greenland"      , canBot:  true, canProtect: false},
+     7: {name: "South America"  , canBot:  true, canProtect: false},
+     8: {name: "USA"            , canBot: false, canProtect: false},
+     9: {name: "Central America", canBot: false, canProtect: false},
+    10: {name: "Canada"         , canBot: false, canProtect: false},
+    11: {name: "Alaska"         , canBot: false, canProtect: false},
+    12: {name: "Australia"      , canBot: false, canProtect: false},
+    13: {name: "Africa"         , canBot: false, canProtect: false},
+    14: {name: "Europe"         , canBot: false, canProtect: false},
+    15: {name: "Turkey"         , canBot: false, canProtect: false},
+    16: {name: "Asia"           , canBot: false, canProtect: false},
 }
 
 const MAX_CANVAS_SIZE = 3000;
@@ -155,6 +181,8 @@ export class Canvas {
 
     serverClient: ServerClient | undefined;
 
+    regionData: number[][] | null = null;
+
     constructor(data: ReqCanvas | ClientCanvas) {
         if(data.type == 0) {
             const { boardId, headers, netUtil } = data as ReqCanvas;
@@ -167,15 +195,69 @@ export class Canvas {
 
             // now start loading it asap
             this.loadCanvasPicture();
-            return;
+        } else {
+            this.serverClient = (data as ClientCanvas).serverClient;
+            const { boardID, canvasData, width, height } = this.serverClient;
+
+            this.boardId = boardID;
+
+            this.loadFromCanvasData(canvasData, width, height);
         }
 
-        this.serverClient = (data as ClientCanvas).serverClient;
-        const { boardID, canvasData, width, height } = this.serverClient;
+        if(this.boardId == 7) {
+            this.loadRegionData();
+        }
+    }
 
-        this.boardId = boardID;
+    decodeVarInt(buffer: Buffer, start: number) {
+        let result = 0, shift = 0, pos = start, flag = 0;
+        while (true) {
+            const byte = buffer[pos++];
+            if (shift === 0) flag = byte & 1; // first bit is flag
+            result |= ((byte & 0x7F) >> (shift === 0 ? 1 : 0)) << shift;
+            shift += shift === 0 ? 7 - 1 : 7;
+            if ((byte & 0x80) === 0) break;
+        }
+        return { value: result, flag, nextPos: pos };
+    }
 
-        this.loadFromCanvasData(canvasData, width, height);
+    // todo: fix some minor off pixels such as 652,1085
+    loadRegionData() {
+        const buffer = fs.readFileSync(path.join(__dirname, 'mapdata.bin')) as unknown as Buffer;
+
+        const width = 2500;
+        const height = 2088;
+
+        this.regionData = Array.from({ length: width }, () => Array(height).fill(0));
+
+        let i = 0, x = 0, y = 0;
+        while (i < buffer.length) {
+            const codeVar = this.decodeVarInt(buffer, i);
+            const code = codeVar.value;
+            i = codeVar.nextPos;
+
+            const trackVar = this. decodeVarInt(buffer, i);
+            const track = trackVar.value;
+            i = trackVar.nextPos;
+
+            for(let j=0;j<track;j++) {
+                this.regionData[x] ??= [];
+                this.regionData[x][y] = code;
+                x++;
+                if(x >= 2500) {
+                    x = 0;
+                    y++;
+                }
+            }
+        }
+    }
+
+    getRegionAt(x: number, y: number): RegionData {
+        if(this.boardId != 7 || this.regionData == null) throw new Error(`Region data is only readable on canvas 7.`);
+        if(x > 2500 || x < 0) throw new Error(`Invalid x coordinate: ${x}`);
+        if(y > 2088 || y < 0) throw new Error(`Invalid y coordinate: ${y}`);
+        if(this.pixelData.get(x, y) == Color.OCEAN) return REGIONS[0];
+        return REGIONS[this.regionData[x][y]];
     }
 
     loadFromCanvasData(canvasData: number[], width: number, height: number) {

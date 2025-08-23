@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -d"
+    "build": "tsc && cp src/util/canvas/mapdata.bin dist/util/canvas/mapdata.bin"
   },
   "repository": {
     "type": "git",
@@ -27,12 +27,12 @@
   "devDependencies": {
     "@types/mime-types": "^2.1.1",
     "@types/ndarray": "^1.0.14",
-    "@types/node": "^20.6.5",
+    "@types/node": "^24.3.0",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
     "eslint": "^9.4.0",
     "typedoc-plugin-not-exported": "^0.1.6",
-    "typescript": "^4.5.4"
+    "typescript": "^5.9.2"
   }
 }

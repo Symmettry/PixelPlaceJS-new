@@ -6,7 +6,7 @@ import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { Connection } from "./Connection";
 import { InternalListeners } from "./InternalListeners";
 
-export type PacketListeners = Map<string | Packets, [func: (...args: any) => void | ((args: any) => void), boolean][]>;
+export type PacketListeners = Map<string | Packets, [func: (...args: any) => void | ((args: any) => void), pre: boolean][]>;
 
 export class PacketHandler {
 

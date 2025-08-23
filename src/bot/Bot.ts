@@ -1,4 +1,4 @@
-import * as Canvas from '../util/Canvas.js';
+import * as Canvas from '../util/canvas/Canvas.js';
 import { Image, ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
@@ -387,11 +387,11 @@ export class Bot {
             return;
         }
 
-        let queuedPixel;
+        let queuedPixel: IQueuedPixel | undefined;
         do {
             queuedPixel = this.sendQueue.shift();
-        } while (queuedPixel == null && this.sendQueue.length > 0);
-        if(queuedPixel == null) {
+        } while (queuedPixel == undefined && this.sendQueue.length > 0);
+        if(queuedPixel == undefined) {
             this.queueLoop();
             return;
         }
@@ -499,7 +499,6 @@ export class Bot {
 
         const isNew = this.connection!.timePixel(queuedPixel);
         this.emit(Packets.SENT.PIXEL, [x, y, col == Color.OCEAN ? -100 : col, brush]);
-        this.connection!.canvas!.pixelData!.set(x, y, col);
         this.lastPixel = Date.now();
 
         // statistics
@@ -846,8 +845,22 @@ export class Bot {
         return Canvas.Canvas.getRandomColor();
     }
 
+    /**
+     * @returns If the spot is protected or not
+     */
     isProtected(x: number, y: number): boolean {
         return this.protector.getColor(x, y) != undefined;
+    }
+
+    /**
+     * Gets the regional data for a pixel
+     * 
+     * This only works on canvas 7.
+     * 
+     * Region data has the name, botting status, and repairing status.
+     */
+    getRegionAt(x: number, y: number): Canvas.RegionData {
+        return this.getCanvas()?.getRegionAt(x, y);
     }
 
 }

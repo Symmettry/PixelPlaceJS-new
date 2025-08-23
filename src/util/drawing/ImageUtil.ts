@@ -2,7 +2,7 @@ import Jimp from "jimp";
 import { ImagePixels } from "./ImageDrawer";
 import fs from 'fs';
 import { ImageData } from "../data/Data";
-import { Canvas } from "../Canvas";
+import { Canvas } from "../canvas/Canvas";
 import mime = require("mime-types");
 import { NetUtil } from "../NetUtil";
 import { HeadersFunc } from "../../PixelPlace";

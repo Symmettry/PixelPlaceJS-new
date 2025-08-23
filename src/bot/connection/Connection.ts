@@ -1,4 +1,4 @@
-import * as Canvas from "../../util/Canvas";
+import * as Canvas from "../../util/canvas/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets } from "../../util/packets/Packets";
@@ -93,13 +93,13 @@ export class Connection {
                 method: "GET"
             });
             
-            const cookies = res.headers.getSetCookie()?.map(value => value.split(";")[0]);
+            const cookies = res.headers.getSetCookie()?.map((value: string) => value.split(";")[0]);
             if(cookies == null || cookies.length == 0 || cookies[0].startsWith("authKey=deleted")) {
                 console.log("Could not relog. Get new auth data and try again.");
                 return {};
             }
 
-            const [authId, authKey, authToken] = cookies.map(value => value.split("=")[1]);
+            const [authId, authKey, authToken] = cookies.map((value: string) => value.split("=")[1]);
             const newAuthData: IAuthData = {authKey, authToken, authId};
 
             this.packetHandler.updateAuth(newAuthData);

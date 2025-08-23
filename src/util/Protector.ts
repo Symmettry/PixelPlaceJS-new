@@ -20,7 +20,6 @@ export class Protector {
     }
 
     updateProtection(protect: boolean, x: number, y: number, col: Color) {
-        console.log("protect update",protect,x,y,col);
         if(protect) this.protect(x, y, col);
         else this.unprotect(x, y);
     }
