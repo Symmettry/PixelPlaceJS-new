@@ -20,11 +20,14 @@ export class Protector {
     }
 
     updateProtection(protect: boolean, x: number, y: number, col: Color) {
+        console.log("protect update",protect,x,y,col);
         if(protect) this.protect(x, y, col);
         else this.unprotect(x, y);
     }
 
-    protect(x: number, y: number, col: Color) {
+    protect(x: number, y: number, col: Color | null) {
+        if(!col) return;
+
         const protectColor = this.getColor(x, y);
         if (protectColor != undefined && protectColor == col) return;
         if(this.pp.getPixelAt(x, y) == Color.OCEAN) return;

@@ -146,3 +146,5 @@ node_macos/**
 used_node_modules/**
 scripts/**
 release/**
+userscript/**
+tests/**

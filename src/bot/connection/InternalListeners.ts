@@ -1,3 +1,4 @@
+import { ServerClient } from "../../browser/client/ServerClient";
 import { constant } from "../../util/Constant";
 import { Color } from "../../util/data/Color";
 import { IArea, IQueuedPixel } from "../../util/data/Data";
@@ -33,7 +34,7 @@ export class InternalListeners {
 
         this.listen(RECEIVED.ERROR, (value: PPError) => {
             // process before checking handle errors
-            if(value == PPError.INVALID_AUTH) {
+            if(this.bot.params instanceof ServerClient && value == PPError.INVALID_AUTH) {
                 this.connection.newInit(true);
                 return;
             }

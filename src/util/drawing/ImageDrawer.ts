@@ -1,11 +1,60 @@
 import { Bot } from "../../bot/Bot";
-import fs from 'fs';
-import Jimp from 'jimp';
-import mime = require("mime-types");
 import { Modes } from "../data/Modes";
-import { IImage } from "../data/Data";
 import { constant } from "../Constant";
-import { ImageData } from "../data/Data";
+import { BrushTypes, ImageData, PixelFlags, PlaceResults, QueueSide } from "../data/Data";
+import { Color } from "../data/Color";
+import { ImageUtil } from "./ImageUtil";
+
+export type ImageMode = Modes | DrawingFunction;
+export type ImagePixels = (Color | null)[][];
+
+type LocalFile = {
+    /** Path of the image */
+    path: string;
+};
+type SetPixels = {
+    /** Pixel set of the image */
+    pixels: ImagePixels;
+};
+type UrlFile = {
+    /** Url to image */
+    url: string;
+}
+
+/**
+ * Image data.
+ */
+export type Image = {
+    /** X position of the image */
+    x: number;
+    /** Y position of the image */
+    y: number;
+
+    /** Width of the image; defaults to the actual width of the image */
+    width?: number;
+    /** Height of the image; defaults to the actual height of the image */
+    height?: number;
+
+    /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
+    mode?: ImageMode,
+     /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
+    performant?: boolean;
+
+    /** If it should draw each color independently; defaults to false */
+    byColor?: boolean;
+
+    /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
+    fullProtect?: boolean;
+    /** If it should replace already protected pixels; defaults to true */
+    replaceProtection?: boolean;
+
+    /** Takes the set of place results (e.g. from a previous draw) and will merge it in, and replace any pixels that were done by the old call. */
+    replace?: PlaceResults[][];
+} & (LocalFile | SetPixels | UrlFile) & PixelFlags;
+
+type LocalImage = Image & LocalFile;
+type SetImage = Image & SetPixels;
+type UrlImage = Image & UrlFile;
 
 type DrawHook = (x: number, y: number) => Promise<void>;
 
@@ -29,7 +78,9 @@ export class ImageDrawer {
 
     private instance!: Bot;
 
-    private path!: string;
+    private path?: string;
+    private pixels?: ImagePixels;
+    private url?: string;
 
     private mode!: Modes | DrawingFunction;
     private byColor!: boolean;
@@ -43,22 +94,41 @@ export class ImageDrawer {
     private fullProtect!: boolean;
     private replaceProtection!: boolean;
 
-    private transparent!: boolean;
     private wars!: boolean;
     private force!: boolean;
+
+    private brush!: BrushTypes;
+    private side!: QueueSide;
+
+    private replace!: PlaceResults[][];
 
     private performant!: boolean;
     private hypot!: (dx: number, dy: number) => number;
 
     private drawingStrategies!: {[key in Modes]: (pixels: ImageData, draw: DrawHook) => Promise<void>};
 
-    constructor(instance: Bot, image: IImage) {
+    private placeResults: PlaceResults[][] = [];
+
+    isLocal(image: Image): image is LocalImage {
+        return (image as any).path != undefined;
+    }
+    isSet(image: Image): image is SetImage {
+        return (image as any).pixels != undefined;
+    }
+    isUrl(image: Image): image is UrlImage {
+        return (image as any).url != undefined;
+    }
+    
+    constructor(instance: Bot, image: Image) {
         constant(this, 'instance', instance);
 
-        constant(this, 'path', image.path);
+        if(this.isLocal(image)) this.path = image.path;
+        else if (this.isUrl(image)) this.url = image.url;
+        else if (this.isSet(image)) this.pixels = image.pixels;
+        else throw new Error(`Missing path, url, or pixels on image: ${image}`);
 
-        constant(this, 'x', image.x);
-        constant(this, 'y', image.y);
+        this.x = image.x;
+        this.y = image.y;
 
         this.width = image.width ?? -1;
         this.height = image.height ?? -1;
@@ -70,11 +140,14 @@ export class ImageDrawer {
         constant(this, 'fullProtect', (image.fullProtect ?? false) && image.protect);
         constant(this, 'replaceProtection', (image.replaceProtection ?? true) && image.protect);
 
-        constant(this, 'transparent', image.transparent ?? false);
         constant(this, 'wars', image.wars ?? false);
         constant(this, 'force', image.force ?? false);
+        constant(this, 'brush', image.brush ?? BrushTypes.NORMAL);
+        constant(this, 'side', image.side ?? QueueSide.BACK);
 
         constant(this, 'performant', image.performant ?? false);
+
+        constant(this, 'replace', image.replace ?? []);
 
         this.hypot = !this.performant ? Math.hypot :
                     (dx, dy) => {
@@ -216,14 +289,20 @@ export class ImageDrawer {
         if(!this.replaceProtection && this.instance.protector.getColor(x, y) != undefined)
             return Promise.resolve();
 
-        return this.instance.placePixel({
+        if(!this.placeResults[nx]) this.placeResults[nx] = [];
+        const placeResult = await this.instance.placePixel({
             x: nx,
             y: ny,
-            col: color,
+            col: Math.abs(color),
             wars: this.wars,
             protect: this.protect,
             force: this.force,
+            brush: this.brush,
+            side: this.side,
         });
+
+        if(color < 0) return;
+        this.placeResults[nx][ny] = placeResult;
     }
 
     private skipPixel(x: number, y: number): boolean {
@@ -234,94 +313,148 @@ export class ImageDrawer {
         return false;
     }
 
-    async begin(): Promise<void> {
+    async begin(): Promise<PlaceResults[][]> {
 
-        if (!fs.existsSync(this.path)) {
-            throw new Error(`File does not exist at path: ${this.path}`);
+        const data: ImageData = await ImageUtil.getPixelData(this.width, this.height, this.instance.headers, this.instance.boardId,
+                        this.path, this.url, this.pixels);
+
+        this.width = data.width;
+        this.height = data.height;
+
+        if(this.replace.length > 0) {
+
+            // replace is in the format of [nx][ny], where data.pixels is [x][y]
+            // we need to increase the width of data.pixels to match replace and convert replace to [nx][ny]
+
+            const dClean = data.pixels.filter(n => n);
+            const rClean = this.replace.filter(n => n);
+
+            // maxY is a bit annoying; the highest value from the different amounts of y's
+            const dMaxY = Math.max(...dClean.map(n => n.length));
+            const dMinY = Math.min(...dClean.map(n => n.findIndex(n => n)));
+
+            // first non-null value
+            const rMinX = this.replace.findIndex(n => n);
+            // lowest non-null y value
+            const rMinY = Math.min(...rClean.map(ys => ys.findIndex(n => n)));
+
+            // length is the end x
+            const rMaxX = this.replace.length;
+            // just highest of lengths
+            const rMaxY = Math.max(...rClean.map(ys => ys.length));
+
+            // translate it down to our relative coordinates
+            const tMinX = rMinX - this.x;
+            const tMinY = rMinY - this.y;
+            const tMaxX = rMaxX - this.x;
+            const tMaxY = rMaxY - this.y;
+
+            // if it's past our x, we don't need to move ours
+            if(tMinX > 0) {
+                // if it's greater than our width, we gotta extend it
+                if(tMaxX > this.width) {
+                    this.width = tMaxX;
+                    for(let i = data.pixels.length; i < tMaxX; i++) {
+                        data.pixels[i] = [];
+                    }
+                } else {
+                    // otherwise, it's in bounds
+                }
+            } else {
+                // but if it is behind it, we need to move our x to align and include it
+                this.x += tMinX;
+
+                // make a copy and clear
+                const clone = [...data.pixels];
+                data.pixels = [];
+
+                // put all the values back in but shift them by the amount so they correctly align with the new relative
+                for(const [x, ys] of Object.entries(clone)) {
+                    data.pixels[Number(x) - tMinX] = ys;
+                }
+            }
+
+            // if it's past our y we don't need to move ours
+            if(tMinY > 0) {
+                if(tMaxY > dMaxY) {
+                    this.height = rMaxY - Math.min(dMinY, rMinY);
+                    // extend each column to match new height
+                    for(const col of data.pixels) {
+                        while(col.length < tMaxY) col.push(null);
+                    }
+                } else {
+                    // it's in bounds
+                }
+            } else {
+                // prepend rows
+                const shift = -tMinY;
+                for(const col of data.pixels) {
+                    if(col == null) continue;
+                    for(let i = 0; i < shift; i++) {
+                        col.unshift(null);
+                    }
+                }
+                // this'll decrease it
+                this.y += tMinY;
+            }
+
+            data.width = this.width;
+            data.height = this.height;
+
+            for(let x=0;x<this.width;x++) {
+                if(!data.pixels[x]) data.pixels[x] = [];
+                for(let y=0;y<this.height;y++) {
+                    const ys = this.replace[this.x + x];
+                    if(ys == null) continue;
+                    const p = ys[this.y + y];
+                    if(p == null || p.oldColor == null) continue;
+                    data.pixels[x][y] ??= -p.oldColor;
+                }
+            }
+
+        }
+
+        if(this.fullProtect) {
+            for (let y = 0; y < data.height; y++) {
+                for (let x = 0; x < data.width; x++) { 
+                    if(this.skipPixel(this.x + x, this.y + y)) continue;
+                    this.instance.protect(this.x + x, this.y + y, Math.abs(data.pixels[x][y]!));
+                }
+            }
+        }
+
+        const func = typeof this.mode == 'function' ? this.mode : this.drawingStrategies[this.mode];
+        if (!func) throw new Error(`Invalid mode: ${this.mode}`)
+
+        if(this.byColor) {
+            const dataSets: {[key: string]: ImageData} = {};
+            for (let x = 0; x < data.width; x++) {
+                for (let y = 0; y < data.height; y++) {
+                    const col = data.pixels[x][y];
+                    if(!col) continue;
+                    if(!dataSets[col]) {
+                        dataSets[col] = { width: data.width, height: data.height, pixels: [] };
+                    }
+                    if(!dataSets[col].pixels[x]) dataSets[col].pixels[x] = [];
+                    dataSets[col].pixels[x][y] = col;
+                }
+            }
+            for(const colData of Object.values(dataSets)) {
+                const drawHook = (x: number, y: number) => {
+                    return this.draw(x, y, colData);
+                }
+                await func(colData, drawHook);
+            }
+            return this.placeResults;
+        }
+
+        const drawHook = (x: number, y: number) => {
+            return this.draw(x, y, data);
         }
         
-        const type = mime.lookup(this.path);
-        if (!type || !type.startsWith('image/')) {
-            throw new Error(`File at path: ${this.path} is not an image`);
-        }
+        await func(data, drawHook);
 
-        return new Promise<void>((resolve) => {
-            Jimp.read(this.path, async (err, img) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-
-                if (this.width > 0 && this.height > 0) {
-                    img = img.resize(this.width, this.height, Jimp.RESIZE_BILINEAR);
-                } else if (this.width > 0) {
-                    img = img.resize(this.width, Jimp.AUTO, Jimp.RESIZE_BILINEAR);
-                } else if (this.height > 0) {
-                    img = img.resize(Jimp.AUTO, this.height, Jimp.RESIZE_BILINEAR);
-                }
-
-                const data: ImageData = { width: img.bitmap.width, height: img.bitmap.height, pixels: [] };
-
-                this.width = data.width;
-                this.height = data.height;
-
-                if(this.instance.boardId)
-                
-                for (let x = 0; x < img.bitmap.width; x++) {
-                    data.pixels[x] = [];
-                    for (let y = 0; y < img.bitmap.height; y++) {
-                        const color = img.getPixelColor(x, y);
-                        const rgba = Jimp.intToRGBA(color);
-                        
-                        // Skip transparent pixels
-                        if (this.transparent && rgba.a === 0) continue;
-                        
-                        data.pixels[x][y] = this.instance.getClosestColorId(rgba);
-                    }
-                }
-
-                if(this.fullProtect) {
-                    for (let y = 0; y < data.height; y++) {
-                        for (let x = 0; x < data.width; x++) { 
-                            if(this.skipPixel(this.x + x, this.y + y)) continue;
-                            this.instance.protect(this.x + x, this.y + y, data.pixels[x][y]);
-                        }
-                    }
-                }
-
-                const func = typeof this.mode == 'function' ? this.mode : this.drawingStrategies[this.mode];
-                if (!func) throw new Error(`Invalid mode: ${this.mode}`)
-
-                if(this.byColor) {
-                    const dataSets: {[key: string]: ImageData} = {};
-                    for (let x = 0; x < data.width; x++) {
-                        for (let y = 0; y < data.height; y++) {
-                            const col = data.pixels[x][y];
-                            if(!dataSets[col]) {
-                                dataSets[col] = { width: data.width, height: data.height, pixels: [] };
-                            }
-                            if(!dataSets[col].pixels[x]) dataSets[col].pixels[x] = [];
-                            dataSets[col].pixels[x][y] = col;
-                        }
-                    }
-                    for(const colData of Object.values(dataSets)) {
-                        const drawHook = (x: number, y: number) => {
-                            return this.draw(x, y, colData);
-                        }
-                        await func(colData, drawHook);
-                    }
-                    resolve();
-                    return;
-                }
-
-                                const drawHook = (x: number, y: number) => {
-                    return this.draw(x, y, data);
-                }
-                
-                await func(data, drawHook);
-                resolve();
-            });
-        });
+        return this.placeResults;
     }
 
 }

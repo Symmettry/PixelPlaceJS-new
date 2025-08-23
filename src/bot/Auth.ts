@@ -7,11 +7,12 @@ export class AuthFile {
     /**
      * Creates auth data through reading the relog file
      * @param authKey The auth key to read; this can be the first 5 characters since it's what's used
+     * @param traverse Traverse folders, e.g. put '/tests/' to go to 'cwd/tests/ppjs-relog-authdata'
      */
-    static from(authKey: string): IAuthData {
+    static from(authKey: string, traverse: string = ""): IAuthData {
         authKey = authKey.substring(0, 5);
 
-        const file = path.join(process.cwd(), `ppjs-relog-authdata-${authKey}.json`);
+        const file = path.join(process.cwd(), traverse, `ppjs-relog-authdata-${authKey}.json`);
         if(!fs.existsSync(file)) {
             throw new Error(`There is no relog file for '${authKey}'!`);
         }

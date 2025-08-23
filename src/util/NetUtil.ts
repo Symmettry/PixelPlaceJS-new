@@ -1,7 +1,9 @@
+import { IncomingMessage, OutgoingHttpHeaders } from "http";
 import { Bot } from "../bot/Bot";
 import { HeadersFunc } from "../PixelPlace";
 import { Color } from "./data/Color";
 import { AuctionData, Icon } from "./data/Data";
+import https from 'https';
 
 /**
  * Painting data. There's a lot. I didn't bother JSDoc'ing some.
@@ -411,6 +413,7 @@ export type UserData = {
 };
 
 export class NetUtil {
+    private static extCache: {[key: string]: any} = {};
 
     private paintingCache: {[key: string]: PaintingData} = {};
     private userCache: {[key: string]: UserData} = {};
@@ -472,6 +475,18 @@ export class NetUtil {
         }
 
         return (await data.json()) as UserData;
+    }
+
+    static async getUrl(url: string, headers: OutgoingHttpHeaders) {
+        if(this.extCache[url]) return this.extCache[url];
+        return new Promise<Buffer>((resolve, reject) => {
+            https.get(url, { headers }, (response: IncomingMessage) => {
+                const chunks: Buffer[] = [];
+                response.on('data', (chunk: Buffer) => { chunks.push(chunk); });
+                response.on('end', () => { resolve(this.extCache[url] = Buffer.concat(chunks)); });
+                response.on('error', (error: Error) => { reject(error); });
+            });
+        });
     }
 
 }

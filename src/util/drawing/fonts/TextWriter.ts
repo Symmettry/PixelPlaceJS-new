@@ -1,13 +1,10 @@
-import { Bot } from "../../bot/Bot";
-import { constant } from "../Constant";
-import { Color } from "../data/Color";
-import { Font, FontData, fontData } from "./fonts/Font";
+import { Bot } from "../../../bot/Bot";
+import { constant } from "../../Constant";
+import { Color } from "../../data/Color";
+import { BrushTypes, PixelFlags, QueueSide } from "../../data/Data";
+import { Font, FontData, fontData } from "./Font";
 
-// todo: probably remake most of this class
-// the "TextBuilder" class can also be removed in favor of like ITextObject or something
-// also fix backgroundColor it doesnt work
-
-export interface ITextObject {
+export type TextData = {
     /** The text to write */
     text: string;
     /** The font the text is written in. Defaults to Font.SMALL_FONT. */
@@ -31,14 +28,7 @@ export interface ITextObject {
     separatorLength: number;
     /** Length between lines. Defaults to 1. */
     lineGap: number;
-
-    /** Protect pixels. Defaults to false. */
-    protect: boolean;
-    /** Place in war. Defaults to false. */
-    wars: boolean;
-    /** Force the packet. Defaults to false. */
-    force: boolean;
-}
+} & PixelFlags;
 
 type SpotData = [
     x: number,
@@ -106,11 +96,14 @@ export class TextWriter {
     private wars!: boolean;
     private force!: boolean;
 
+    private brush!: BrushTypes;
+    private side!: QueueSide;
+
     private bot!: Bot;
 
-    constructor(bot: Bot, obj: ITextObject) {
+    constructor(bot: Bot, obj: TextData) {
 
-        const { text, font, x, y, textColor, backgroundColor, fillColor, spaceLength, separatorLength, lineGap, protect, wars, force } = obj;
+        const { text, font, x, y, textColor, backgroundColor, fillColor, spaceLength, separatorLength, lineGap, protect, wars, force, brush, side } = obj;
 
         constant(this, 'bot', bot);
 
@@ -139,6 +132,9 @@ export class TextWriter {
         constant(this, 'protect', protect ?? false);
         constant(this, 'wars', wars ?? false);
         constant(this, 'force', force ?? false);
+        
+        constant(this, 'brush', brush ?? BrushTypes.NORMAL);
+        constant(this, 'side', side ?? QueueSide.BACK);
     }
 
     generateSpacePixels(): SpotData {
@@ -176,6 +172,17 @@ export class TextWriter {
         return [length, positions.map((pos, index) => [this.placeX + (index % length), this.placeY + Math.floor(index / length), pos ? this.textColor : this.backgroundColor])];
     }
 
+    async place(x: number, y: number, col: Color): Promise<void> {
+        await this.bot.placePixel({
+            x, y, col,
+            protect: this.protect,
+            wars: this.wars,
+            force: this.force,
+            brush: this.brush,
+            side: this.side,
+        });
+    }
+
     async begin(): Promise<[number, number]> {
         const points: string[] = this.text.split("");
 
@@ -186,12 +193,7 @@ export class TextWriter {
     
                 for(const [x, y, col] of pixels) {
                     if(col == -1) continue;
-                    await this.bot.placePixel({
-                        x, y, col,
-                        protect: this.protect,
-                        wars: this.wars,
-                        force: this.force,
-                    });
+                    await this.place(x, y, col);
                 }
     
                 this.placeX += length;
@@ -199,14 +201,7 @@ export class TextWriter {
                 if(this.backgroundColor != -1 && this.separatorLength > 0 && (i != points.length - 1 || this.fillColor != -1) && point != "\n" && points[i + 1] != "\n") {
                     for(let i2 = 0; i2 < this.separatorLength; i2++) {
                         for(let i3 = 0; i3 < this.data.height; i3++) {
-                            await this.bot.placePixel({
-                                x: this.placeX + i2,
-                                y: this.placeY + i3,
-                                col: this.backgroundColor,
-                                protect: this.protect,
-                                wars: this.wars,
-                                force: this.force,
-                            });
+                            await this.place(this.placeX + i2, this.placeY + i3, this.backgroundColor);
                         }
                     }
                 }

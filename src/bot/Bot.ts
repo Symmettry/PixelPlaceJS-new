@@ -1,13 +1,13 @@
 import * as Canvas from '../util/Canvas.js';
-import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
+import { Image, ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { IImage, IPixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions } from '../util/data/Data.js';
+import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, Rectangle, PlaceResults } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
-import { ITextObject, TextWriter } from '../util/drawing/TextWriter.js';
+import { TextData, TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeadersFunc, HeaderTypes } from '../PixelPlace.js';
@@ -15,6 +15,8 @@ import { OutgoingHttpHeaders } from 'http';
 import { Color } from '../util/data/Color.js';
 import { PacketSendMap } from '../util/packets/PacketSends.js';
 import { NetUtil, PaintingData, UserData } from '../util/NetUtil.js';
+import { ServerClient } from '../browser/client/ServerClient.js';
+import { Animation, AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
 
 /**
  * The pixelplace bot.
@@ -27,8 +29,8 @@ export class Bot {
     private prevPlaceValue: number = 0;
 
     private sendQueue: Array<IQueuedPixel> = [];
-    private resendQueue: Array<IPixel> = [];
-    private sendAfterWarDone: Array<IPixel> = [];
+    private resendQueue: Array<Pixel> = [];
+    private sendAfterWarDone: Array<Pixel> = [];
 
     autoRestart: boolean;
     handleErrors: boolean;
@@ -43,7 +45,7 @@ export class Bot {
 
     private connection: Connection | null = null;
 
-    private params: IBotParams;
+    params: IBotParams | ServerClient;
 
     private netUtil: NetUtil;
 
@@ -80,8 +82,12 @@ export class Bot {
 
     /** The user id of the bot */
     userId: number = -1;
+    /** Username of the bot */
+    username: string = "Guest";
     /** If the bot is premium */
     premium: boolean = false;
+    /** Special pixel queue info */
+    specialQueueInfo: { amount: number; time: number | Function; start: number; } | null = null;
 
     /**
      * Creates a bot instance
@@ -89,7 +95,7 @@ export class Bot {
      * @param autoRestart If the bot should restart when it closes. Defaults to true
      * @param handleErrors If errors should be handled when received -- invalid auth id will be processed regardless of this value. Defaults to true
      */
-    constructor(params: IBotParams, autoRestart: boolean = true, handleErrors: boolean = true) {
+    constructor(params: IBotParams | ServerClient, autoRestart: boolean = true, handleErrors: boolean = true) {
         this.params = params;
 
         if(!this.params.boardID) {
@@ -284,7 +290,7 @@ export class Bot {
      * @returns The closest color to rgb
      */
     getClosestColorId(rgb: IRGBColor): Color {
-        return this.getCanvas()?.getClosestColorId(rgb);
+        return Canvas.Canvas.getClosestColorId(rgb)!;
     }
     
     private getPlacementSpeed() {
@@ -343,7 +349,7 @@ export class Bot {
      * @param y The y coordinate of the pixel.
      * @param col The color of the pixel.
      */
-    protect(x: number, y: number, col: number): void {
+    protect(x: number, y: number, col: Color | null): void {
         this.protector.protect(x, y, col);
     }
     
@@ -366,8 +372,8 @@ export class Bot {
         setImmediate(loop);
     }
 
-    private resolvePixel(queuedPixel: IQueuedPixel): void {
-        queuedPixel.resolve();
+    private resolvePixel(oldCol: Color, queuedPixel: IQueuedPixel): void {
+        queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: oldCol });
         setImmediate(() => this.goThroughPixels());
     }
 
@@ -390,13 +396,22 @@ export class Bot {
             return;
         }
 
+        if(Date.now() - this.lastQueueTime > 100 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
+            console.log("~~PIXELPLACE LAGGING~~");
+            setTimeout(() => {
+                this.sendQueue.unshift(queuedPixel);
+                this.queueLoop();
+            }, 2000);
+            return;
+        }
+
         const {x, y, col, protect, wars, force} = queuedPixel.data;
 
         const colAtSpot = this.getPixelAt(x, y);
 
         const skippedColor = (!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN;
         if(skippedColor) {
-            this.resolvePixel(queuedPixel);
+            this.resolvePixel(colAtSpot!, queuedPixel);
             return;
         }
         const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
@@ -415,7 +430,7 @@ export class Bot {
                     this.sendAfterWarDone.push(queuedPixel.data);
                 }
             }
-            this.resolvePixel(queuedPixel)
+            this.resolvePixel(colAtSpot, queuedPixel)
             return;
         }
 
@@ -434,14 +449,26 @@ export class Bot {
 
         queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
-        if(Date.now() - this.lastQueueTime > 100 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
-            console.log("~~PIXELPLACE LAGGING~~");
-            setTimeout(() => {this.addToSendQueue(queuedPixel)}, 2000);
-            this.queueLoop();
-            return;
-        }
-
         if(this.ratelimited) queuedPixel.speed += 100;
+
+        if(this.specialQueueInfo) {
+            const { amount, time, start } = this.specialQueueInfo;
+            const isFunc = typeof time == 'function';
+            if(isFunc || Date.now() - start < time) {
+                if(amount < 0) {
+                    const call = () => {
+                        this.sendQueue.unshift(queuedPixel);
+                        this.goThroughPixels();
+                    };
+                    if(isFunc) time(call);
+                    else setTimeout(call, time);
+                    return;
+                }
+                queuedPixel.speed += amount;
+            } else {
+                this.specialQueueInfo = null;
+            }
+        }
 
         this.accurateTimeout(() => this.sendPixel(queuedPixel), Math.min(queuedPixel.speed, this.maxPixelWait));
         return;
@@ -460,11 +487,12 @@ export class Bot {
 
         const {x, y, col, brush = 1, wars = false, force = false, protect = false} = queuedPixel.data;
 
-        this.resolvePixel(queuedPixel);
-
         const colAtSpot = this.getPixelAt(x, y);
         const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
                             || (!wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y));
+
+        this.resolvePixel(colAtSpot!, queuedPixel);
+
         if(skipped) {
             return;
         }
@@ -498,7 +526,8 @@ export class Bot {
      * Internal use only
      */
     addToSendQueue(p: IQueuedPixel): void {
-        this.sendQueue.push(p);
+        if(!p.data.side || p.data.side == QueueSide.BACK) this.sendQueue.push(p);
+        else this.sendQueue.unshift(p);
     }
 
     /**
@@ -512,31 +541,31 @@ export class Bot {
      * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
      * @returns A promise that resolves upon the pixel being sent.
      */
-    async placePixel(pixel: IPixel): Promise<void> {
-        const {x, y, col, protect = false, force = false } = pixel;
+    async placePixel(pixel: Pixel): Promise<PlaceResults> {
+        const {x, y, col, protect = false } = pixel;
 
         const conn = this.getConnection();
         if(x > conn.canvas.canvasWidth || x < 0 || y > conn.canvas.canvasHeight || y < 0) {
             console.log("~~WARN~~ Skipping invalid position: ", x, y);
-            return Promise.resolve();
+            return Promise.resolve(null);
         }
 
-        if(!this.getCanvas().isValidColor(col)) {
+        if(!Canvas.Canvas.isValidColor(col)) {
             console.log("~~WARN~~ Skipping invalid color: ", col, ", at", x, y);
-            return Promise.resolve();
+            return Promise.resolve(null);
         }
 
         // we still want to protect it even if it's same color, so it's done prior.
         this.protector.updateProtection(protect, x, y, col);
 
         if(this.resendQueue.length > 0) {
-            const pixel: IPixel | undefined = this.resendQueue.shift();
+            const pixel: Pixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
                 await this.placePixel(pixel);
             }
         }
 
-        return new Promise<void>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
+        return new Promise<PlaceResults>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
     }
 
     /**
@@ -566,15 +595,32 @@ export class Bot {
      * @param transparent If the image is transparent. Will skip any 0 alpha pixels.
      * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
      * @param force If the pixel packet should still be sent if it doesn't change the color.
-     * @returns A promise that resolves once the image is done drawing.
+     * @returns A promise that resolves once the image is done drawing, contains place results for all placed pixels.
      */
-    async drawImage(image: IImage): Promise<void> {
+    async drawImage(image: Image): Promise<PlaceResults[][]> {
         this.stats.images.drawing++;
 
-        await new ImageDrawer(this, image).begin();
+        const res = await new ImageDrawer(this, image).begin();
 
         this.stats.images.drawing--;
         this.stats.images.finished++;
+
+        return res;
+    }
+
+    /**
+     * Plays an animation. If repeats is -1, it'll play forever and will skip the await. You can then use AnimationDrawer#stop
+     */
+    async playAnimation(animation: Animation): Promise<AnimationDrawer> {
+        this.stats.animations.playing++;
+
+        const drawer = new AnimationDrawer(this, animation);
+        await drawer.draw();
+
+        this.stats.animations.playing--;
+        this.stats.animations.finished++;
+
+        return drawer;
     }
 
     /**
@@ -582,7 +628,7 @@ export class Bot {
      * @param text Data for the text
      * @returns The ending position of the text.
      */
-    async drawText(text: ITextObject): Promise<[number, number]> {
+    async drawText(text: TextData): Promise<[number, number]> {
         return await new TextWriter(this, text).begin();
     }
 
@@ -607,6 +653,27 @@ export class Bot {
         this.stats.lines.drawing--;
         this.stats.lines.finished++;
 
+    }
+
+    /**
+     * Draws a rectangle
+     * @param x X position of rectangle
+     * @param y Y position of rectangle
+     * @param width width of rectangle
+     * @param height height of rectangle
+     * @param color color or function that maps x,y to color
+     */
+    async drawRect(rect: Rectangle): Promise<void> {
+        const getCol: any = typeof rect.color == 'number' ? (() => rect.color) : rect.color;
+        for(let h=0;h<rect.height;h++) {
+            for(let w=0;w<rect.width;w++) {
+                const x = rect.x + w, y = rect.y + h;
+                await this.placePixel({
+                    x, y,
+                    col: getCol(x, y),
+                });
+            }
+        }
     }
 
     /** Statistics that are modified internally. Use getStatistics() instead, since it updates other things. */
@@ -776,7 +843,11 @@ export class Bot {
      * Generates a random color
      */
     getRandomColor(): Color {
-        return this.getCanvas().getRandomColor();
+        return Canvas.Canvas.getRandomColor();
+    }
+
+    isProtected(x: number, y: number): boolean {
+        return this.protector.getColor(x, y) != undefined;
     }
 
 }

@@ -11,6 +11,8 @@ import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketRespon
 import { HeadersFunc } from "../../PixelPlace";
 import { PacketSendMap } from "../../util/packets/PacketSends";
 import { NetUtil } from "../../util/NetUtil";
+import { SocketHook } from "../../browser/SocketHook";
+import { ServerClient } from "../../browser/client/ServerClient";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -31,7 +33,7 @@ export class Connection {
 
     stats: IStatistics;
 
-    socket!: WebSocket;
+    socket!: WebSocket | ServerClient;
 
     private econnrefusedTimer: number = 0;
 
@@ -50,14 +52,22 @@ export class Connection {
     packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
 
-    constructor(bot: Bot, params: IBotParams, stats: IStatistics, netUtil: NetUtil, headers: HeadersFunc) {
+    serverClient: ServerClient | undefined;
+
+    constructor(bot: Bot, params: IBotParams | ServerClient, stats: IStatistics, netUtil: NetUtil, headers: HeadersFunc) {
         constant(this, 'bot', bot);
 
-        this.authKey = params.authData.authKey;
-        this.authToken = params.authData.authToken;
-        this.authId = params.authData.authId;
+        if(params instanceof ServerClient) {
+            this.shouldRelog = false;
+            this.serverClient = params;
+        } else {
+            const botParams = params as IBotParams;
+            this.authKey = botParams.authData.authKey;
+            this.authToken = botParams.authData.authToken;
+            this.authId = botParams.authData.authId;
 
-        this.shouldRelog = params.relog || false;
+            this.shouldRelog = botParams.relog || false;
+        }
 
         this.stats = stats;
 
@@ -66,7 +76,7 @@ export class Connection {
         constant(this, 'boardId', params.boardID);
 
         constant(this, 'netUtil', netUtil);
-        constant(this, 'packetHandler', new PacketHandler(this, params.authData));
+        constant(this, 'packetHandler', new PacketHandler(this, params));
 
         this.relog = this.relog.bind(this);
         this.Load = this.Load.bind(this);
@@ -129,47 +139,48 @@ export class Connection {
         return new Promise<void>((resolve) => this.Connect().then(this.Load).then(resolve));
     }
 
-    async Connect() {
+    private onopen(resolve: () => void) {
+        this.connected = true;
+        resolve();
 
+        // owicode so esoteric :100: :fire:
+        let time = Math.floor(new Date().getTime() / 1e3) + 120;
+        setInterval(() => {
+            const now = Math.floor(new Date().getTime() / 1e3);
+            if(time <= now) {
+                this.socket.send(`42["${Packets.SENT.HB}", " "]`);
+                time = now + (Math.floor(Math.random() * 20) + 73);
+            }
+        }, 5e3);
+    }
+
+    async Connect() {
         if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
         return new Promise<void>(async (resolve) => {
-
-            // connect to PixelPlace
-            this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
-                headers: this.headers("socket", this.boardId),
-            });
 
             if(Canvas.hasCanvas(this.boardId)) {
                 this.isWorld = false;
             }
 
-            // create the canvas
-            this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers);
+            if(this.serverClient) {
+                this.canvas = Canvas.createFromClient(this.serverClient);
+                this.socket = this.serverClient;
+                this.onopen(resolve);
+                this.stats.session.beginTime = Date.now();
+            } else {
+                // create the canvas
+                this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers);
+                // connect to PixelPlace
+                this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
+                    headers: this.headers("socket", this.boardId),
+                });
+            }
 
             this.socket.on('close', (code: number, reason: Buffer) => {
                 this.socketClosed(code, reason);
             });
 
-            this.socket.on('unexpected-response', (req, res) => {
-                console.error('Error:', res.statusCode, res.statusMessage);
-            });
-
-            this.socket.on('ping', this.socket.pong);
-
-            this.socket.on('open', () => {
-                this.connected = true;
-                resolve();
-
-                // owicode so esoteric :100: :fire:
-                let time = Math.floor(new Date().getTime() / 1e3) + 120;
-                setInterval(() => {
-                    const now = Math.floor(new Date().getTime() / 1e3);
-                    if(time <= now) {
-                        this.socket.send(`42["${Packets.SENT.HB}", " "]`);
-                        time = now + (Math.floor(Math.random() * 20) + 73);
-                    }
-                }, 5e3);
-            });
+            this.socket.on('open', () => this.onopen(resolve));
 
             this.socket.on('error', (error: Error) => {
                 this.socketError(error);
@@ -180,10 +191,12 @@ export class Connection {
                 }
             });
 
-            const [userId, premium] = await this.canvas.fetchCanvasData();
+            const [userId, premium, username] = await this.canvas.fetchCanvasData();
             if(userId == 0) {
-                console.log(`~~WARN~~ This bot is not logged in! (Auth key of '${this.authKey.substring(0, 5)}')`)
+                console.log(`~~WARN~~ This bot is not logged in!`,
+                    `${this.bot.params instanceof ServerClient ? `(Userscript bot)` : `(Auth key of '${this.authKey.substring(0, 5)}')`}`);
             }
+            this.bot.username = username;
             this.bot.userId = userId;
             this.bot.premium = premium;
         });
@@ -193,14 +206,9 @@ export class Connection {
 
     async Load() {
         if(!this.socket) throw "Bot has not connected yet.";
-        
-        this.pingInt = setInterval(() => {
-            if(this.connected) {
-                this.socket.ping();
-            }
-        }, 30000) as unknown as number;
 
         return new Promise<void>((resolve) => {
+            if(this.serverClient) resolve();
             this.loadResolve = resolve;
             this.socket.on("message", (data: Buffer) => {
                 this.stats.socket.received++;

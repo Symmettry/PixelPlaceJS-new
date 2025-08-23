@@ -1,8 +1,9 @@
 import fs from 'fs';
 import { Bot, Font, IBotParams, Modes, PixelPlace } from '..';
 import { Color } from '../util/data/Color';
-import { IImage, IPixel } from '../util/data/Data';
-import { ITextObject } from '../util/drawing/TextWriter';
+import { Pixel } from '../util/data/Data';
+import { TextData } from '../util/drawing/fonts/TextWriter';
+import { Image } from '../util/drawing/ImageDrawer';
 
 type Args = { [key: string]: [string | number | boolean | CallData, string] };
 type RuntimeArgs = { [key: string]: any }
@@ -379,14 +380,14 @@ export class PPScript {
                 const args = command.args();
 
                 if(args.hasOwnProperty('image')) {
-                    command.only('image', 'at', 'x', 'y', 'path', 'bot', 'mode', 'protect', 'fullProtect', 'transparent', 'wars', 'force', 'width', 'height', 'wait');
+                    command.only('image', 'at', 'x', 'y', 'path', 'bot', 'mode', 'protect', 'fullProtect', 'wars', 'force', 'width', 'height', 'wait');
                     const { x, y, path } = command.expect(['x', 'number'], ['y', 'number'], ['path', 'string']);
 
-                    const { bot, mode, protect, fullProtect, transparent, wars, force, width, height, wait }
+                    const { bot, mode, protect, fullProtect, wars, force, width, height, wait }
                             = command.optional(
                                 ['bot', Object.keys(this.bots)[0]],
                                 ['mode', "TOP_LEFT_TO_RIGHT"], ['protect', false], ['fullProtect', false],
-                                ['transparent', false], ['wars', false], ['force', false],
+                                ['wars', false], ['force', false],
                                 ['width', -1], ['height', -1],
                                 ['wait', true],
                             );
@@ -400,14 +401,13 @@ export class PPScript {
                     const botInst = this.bots[(bot as string)];
                     if(!botInst) command.error(`Unknown bot: ${bot}`);
 
-                    const image: IImage = {
+                    const image: Image = {
                         x: x as number,
                         y: y as number,
                         path: (path as string),
                         mode: modeVal,
                         protect: protect as boolean,
                         fullProtect: fullProtect as boolean,
-                        transparent: transparent as boolean,
                         wars: wars as boolean,
                         force: force as boolean,
                         width: width as number,
@@ -434,7 +434,7 @@ export class PPScript {
                     const botInst = this.bots[(bot as string)];
                     if(!botInst) command.error(`Unknown bot: ${bot}`);
 
-                    const pixel: IPixel = {
+                    const pixel: Pixel = {
                         x: x as number,
                         y: y as number,
                         col,
@@ -471,7 +471,7 @@ export class PPScript {
                     const botInst = this.bots[(bot as string)];
                     if(!botInst) command.error(`Unknown bot: ${bot}`); 
 
-                    const text: ITextObject = {
+                    const text: TextData = {
                         font,
                         text: string0 as string,
                         x: x as number,

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRIPTS_DIR="$ROOT_DIR/scripts"
 RELEASE_DIR="$ROOT_DIR/release"
 

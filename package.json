@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/Symmettry/PixelPlaceJS-new#readme",
   "dependencies": {
+    "gifuct-js": "^2.1.2",
     "jimp": "^0.22.12",
     "mime-types": "^2.1.35",
     "ndarray": "^1.0.19",

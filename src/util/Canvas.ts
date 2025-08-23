@@ -7,6 +7,7 @@ import Jimp = require('jimp');
 import { PixelPacket } from './packets/PacketResponses';
 import { HeadersFunc } from '../PixelPlace';
 import { NetUtil, PaintingData } from './NetUtil';
+import { ServerClient } from '../browser/client/ServerClient';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -16,13 +17,28 @@ export function getCanvas(boardId: number, netUtil: NetUtil, headers: HeadersFun
         existing.setHeaders(headers);
         return existing;
     }
-    const canvas = new Canvas(boardId, netUtil, headers);
+    const canvas = new Canvas({type: 0, boardId, netUtil, headers});
     canvases.set(boardId, canvas);
     return canvas;
 }
 
+export function createFromClient(serverClient: ServerClient): Canvas {
+    return new Canvas({type: 1, serverClient });
+}
+
 export function hasCanvas(boardId: number): boolean {
     return canvases.has(boardId);
+}
+
+type ReqCanvas = {
+    type: 0;
+    boardId: number;
+    netUtil: NetUtil;
+    headers: HeadersFunc;
+};
+type ClientCanvas = {
+    type: 1,
+    serverClient: ServerClient,
 }
 
 // states so they arent magic numbers
@@ -49,7 +65,7 @@ export class Canvas {
 
     private loadResolve: (() => void) | null = null;
 
-    rgbToColor: { [key: string]: Color } = {
+    static rgbToColor: { [key: string]: Color } = {
         "255,255,255": Color.WHITE,
         "196,196,196": Color.LIGHT_GRAY,
         "166,166,166": Color.A_BIT_LIGHT_GRAY,
@@ -115,38 +131,90 @@ export class Canvas {
         "69,255,200": Color.CYAN,
         "181,232,238": Color.BLUE_GREEN_WHITE
     };
-    colorToRgb: { [key: string]: [number, number, number] } = Object.entries(this.rgbToColor)
+    static colorToRgb: { [key: string]: [number, number, number] } = Object.entries(this.rgbToColor)
                                                   .reduce((c: any, [rgb, col]) => {
                                                         c[col] = rgb.split(",").map(parseFloat);
                                                         return c;
                                                     }, {});
-    colorToRgbInt: { [key: string]: number } = Object.entries(this.colorToRgb)
+    static colorToRgbInt: { [key: string]: number } = Object.entries(this.colorToRgb)
                                                   .reduce((c: any, [col, [r,g,b]]) => {
                                                         c[col] = Jimp.rgbaToInt(r,g,b,255);
                                                         return c;
                                                     }, {});
 
 
-    private validColorIds = Object.values(this.rgbToColor);
+    private static validColorIds = Object.values(this.rgbToColor);
 
     pixelData!: ndarray.NdArray<Uint16Array>;
 
     canvasWidth!: number;
     canvasHeight!: number;
 
-    headers: HeadersFunc;
-    netUtil: NetUtil;
+    headers!: HeadersFunc;
+    netUtil!: NetUtil;
 
-    constructor(boardId: number, netUtil: NetUtil, headers: HeadersFunc) {
-        this.boardId = boardId;
-        this.headers = headers;
-        this.netUtil = netUtil;
+    serverClient: ServerClient | undefined;
 
-        // make a default array to store some changes;
-        this.pixelData = this.createNDArray(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE);
+    constructor(data: ReqCanvas | ClientCanvas) {
+        if(data.type == 0) {
+            const { boardId, headers, netUtil } = data as ReqCanvas;
+            this.boardId = boardId;
+            this.headers = headers;
+            this.netUtil = netUtil;
 
-        // now start loading it asap
-        this.loadCanvasPicture();
+            // make a default array to store some changes;
+            this.pixelData = this.createNDArray(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE);
+
+            // now start loading it asap
+            this.loadCanvasPicture();
+            return;
+        }
+
+        this.serverClient = (data as ClientCanvas).serverClient;
+        const { boardID, canvasData, width, height } = this.serverClient;
+
+        this.boardId = boardID;
+
+        this.loadFromCanvasData(canvasData, width, height);
+    }
+
+    loadFromCanvasData(canvasData: number[], width: number, height: number) {
+        this.pixelData = this.createNDArray(width, height);
+
+        for(let i=0;i<canvasData.length;i++) {
+            const x = i % width;
+            const y = Math.floor(i / width);
+            this.pixelData.set(x, y, canvasData[i]);
+        }
+
+        this.setCanvasState(CanvasState.FULLY_LOADED);
+    }
+
+    setPixelData(x: number, y: number, r: number, g: number, b: number, a: number): void {
+        if (a === 0) r = g = b = 255;
+
+        if (r === 204 && g === 204 && b === 204) {
+            this.pixelData?.set(x, y, Color.OCEAN);
+            return;
+        }
+
+        const colId = Canvas.getColorId(r, g, b);
+        if (colId !== Color.OCEAN) {
+            this.pixelData?.set(x, y, colId);
+        }
+    }
+
+    finishCanvas() {
+        if (this.canvasState === CanvasState.PACKET_LOADED) {
+            this.loadCanvasData(this.canvasPacketData);
+        }
+        this.setCanvasState(CanvasState.IMAGE_LOADED)
+
+        for (const pixels of this.delayedPixelPacketData) {
+            this.loadPixels(pixels);
+        }
+
+        this.delayedPixelPacketData = [];
     }
 
     private createNDArray(width: number, height: number): ndarray.NdArray<Uint16Array> {
@@ -155,8 +223,11 @@ export class Canvas {
         return ndarray(new Uint16Array(width * height).fill(Color.WHITE), [width, height]);
     }
 
-    async fetchCanvasData(): Promise<[number, boolean]> {
-        return new Promise<[number, boolean]>((resolve, reject) => {
+    async fetchCanvasData(): Promise<[userID: number, uidManager: boolean, username: string]> {
+        if(this.serverClient) {
+            return Promise.resolve([this.serverClient.userID, this.serverClient.uidManager, this.serverClient.username]);
+        }
+        return new Promise<[number, boolean, string]>((resolve, reject) => {
             this.getPaintingData().then(data => {
                 if(data == null) {
                     reject();
@@ -173,7 +244,7 @@ export class Canvas {
 
                 canvases.set(this.boardId, this);
 
-                resolve([data.userId, data.premium]);
+                resolve([data.userId, data.premium, data.username]);
             }).catch(reject);
         });
     }
@@ -183,7 +254,7 @@ export class Canvas {
      * @param rgb Rgb data
      * @returns Color id closest to rgb
      */
-    getClosestColorId(rgb: IRGBColor): Color {
+    static getClosestColorId(rgb: IRGBColor): Color | null {
         const { r, g, b } = rgb;
 
         const strKey = `${r},${g},${b}`;
@@ -201,32 +272,22 @@ export class Canvas {
             closestColorId = this.rgbToColor[`${r2},${g2},${b2}`];
         }
     
-        return closestColorId;
+        return closestColorId == Color.OCEAN ? null : closestColorId;
     }
 
-    private getColorId(rgb: IRGBColor): Color {
-        const { r, g, b } = rgb;
-        return Object.prototype.hasOwnProperty.call(this.rgbToColor, `${r},${g},${b}`) ? this.rgbToColor[`${r},${g},${b}`] : Color.OCEAN;
+    private static getColorId(r: number, g: number, b: number): Color {
+        return this.rgbToColor[`${r},${g},${b}`] ?? this.getClosestColorId({r,g,b}) ?? Color.OCEAN;
     }
 
     async loadCanvasPicture(): Promise<void> {
         const imageUrl = `https://pixelplace.io/canvas/${this.boardId}.png?t200000=${Date.now()}`;
-
-        const buffer = (await new Promise<Buffer>((resolve, reject) => {
-            https.get(imageUrl, { headers: this.headers("canvas-image", this.boardId) }, (response: IncomingMessage) => {
-                const chunks: Buffer[] = [];
-                response.on('data', (chunk: Buffer) => { chunks.push(chunk); });
-                response.on('end', () => { resolve(Buffer.concat(chunks)); });
-                response.on('error', (error: Error) => { reject(error); });
-            });
-        })).toString();
+        const buffer = await NetUtil.getUrl(imageUrl, this.headers("canvas-image", this.boardId));
 
         let img: Jimp;
         try {
             img = await Jimp.read(buffer);
         } catch (err) {
             console.error(err);
-            console.log(buffer);
             console.log("error!! is cloudflare on? do you have cf clearance set?");
             process.exit();
         }
@@ -237,30 +298,11 @@ export class Canvas {
                 const rgba = Jimp.intToRGBA(color);
                 let { r, g, b, a } = rgba;
 
-                if (a === 0) r = g = b = 255;
-
-                if (r === 204 && g === 204 && b === 204) {
-                    this.pixelData?.set(x, y, Color.OCEAN);
-                    continue;
-                }
-
-                const colId = this.getColorId({ r, g, b });
-                if (colId !== Color.OCEAN) {
-                    this.pixelData?.set(x, y, colId);
-                }
+                this.setPixelData(x, y, r, g, b, a);
             }
         }
 
-        if (this.canvasState === CanvasState.PACKET_LOADED) {
-            this.loadCanvasData(this.canvasPacketData);
-        }
-        this.setCanvasState(CanvasState.IMAGE_LOADED)
-
-        for (const pixels of this.delayedPixelPacketData) {
-            this.loadPixels(pixels);
-        }
-
-        this.delayedPixelPacketData = [];
+        this.finishCanvas();
     }
 
     private setCanvasState(state: CanvasState) {
@@ -311,7 +353,7 @@ export class Canvas {
         }
     }
 
-    private async getPaintingData(): Promise<{ width: number, height: number, userId: number, premium: boolean } | null> {
+    private async getPaintingData(): Promise<{ width: number, height: number, userId: number, premium: boolean, username: string } | null> {
         const data: PaintingData | null = await this.netUtil.getPaintingData(this.boardId);
         if(data == null) return null;
 
@@ -319,14 +361,15 @@ export class Canvas {
         const height = data.painting.height;
         const userId = data.user.id;
         const premium = data.user.premium.active;
+        const username = data.user.name;
 
-        return { width, height, userId, premium };
+        return { width, height, userId, premium, username };
     }
 
     /**
      * @returns Pixelplace color list.
      */ 
-    getColors(): { [key: string]: Color; } {
+    static getColors(): { [key: string]: Color; } {
         return this.rgbToColor;
     }
 
@@ -334,7 +377,7 @@ export class Canvas {
      * @param col A color id.
      * @returns If it's a valid color or not.
      */
-    isValidColor(col: unknown): boolean {
+    static isValidColor(col: unknown): boolean {
         // non-numbers like null will be ignored fully.
         return typeof col == 'number' && (this.validColorIds.includes(col) || col == Color.OCEAN);
     }
@@ -357,7 +400,7 @@ export class Canvas {
         for (let y = 0; y < this.canvasHeight; y++) {
             for (let x = 0; x < this.canvasWidth; x++) {
                 const value = this.pixelData.get(x, y);
-                image.setPixelColor(value == Color.OCEAN ? oceanCol : this.colorToRgbInt[value], x, y);
+                image.setPixelColor(value == Color.OCEAN ? oceanCol : Canvas.colorToRgbInt[value], x, y);
             }
         }
 
@@ -369,7 +412,7 @@ export class Canvas {
     /**
      * Gets a random color
      */
-    getRandomColor(): Color {
+    static getRandomColor(): Color {
         const v: Color[] = Object.values(this.rgbToColor);
         return v[Math.floor(Math.random() * v.length)];
     }

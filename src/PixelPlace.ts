@@ -1,8 +1,10 @@
 import { Bot } from "./bot/Bot";
 import { OutgoingHttpHeaders } from "http2";
 import { IBotParams } from "./util/data/Data";
+import { SocketHook } from "./browser/SocketHook";
+import { BrowserSettings } from "./browser/SocketData";
 
-export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-user";
+export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-user" | "outside";
 
 export type HeadersFunc = (type: HeaderTypes, boardId: number) => OutgoingHttpHeaders;
 
@@ -19,7 +21,7 @@ class PixelPlace {
      * @param autoRestart If the bots should automatically restart when closed.
      * @param handleErrors If the bots should handle errors when received. Invalid auth id is always processed regardless of this value.
      */
-    constructor(params: IBotParams[], autoRestart: boolean = true, handleErrors: boolean = true) {
+    constructor(params: IBotParams[] = [], autoRestart: boolean = true, handleErrors: boolean = true) {
         this.bots = params.map(p => new Bot(p, autoRestart, handleErrors));
     }
 
@@ -104,6 +106,16 @@ class PixelPlace {
      */
     async Init(): Promise<void[]> {
         return this.CallOnBots(bot => bot.Init());
+    }
+
+    /**
+     * Starts a websocket server for userscript browser connection
+     * @param port Port of the socket
+     */
+    async startBrowserSocket(port: number, settings: BrowserSettings): Promise<SocketHook> {
+        const socket = new SocketHook(port, settings);
+        await socket.start();
+        return socket;
     }
 
 }

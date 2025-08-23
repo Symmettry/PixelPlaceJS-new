@@ -1,5 +1,6 @@
+import { ServerClient } from "../../browser/client/ServerClient";
 import { constant } from "../../util/Constant";
-import { IAuthData } from "../../util/data/Data";
+import { IAuthData, IBotParams } from "../../util/data/Data";
 import { MessageTuple, PacketResponseMap, PixelConfirmPacket, PixelPacket } from "../../util/packets/PacketResponses";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { Connection } from "./Connection";
@@ -18,12 +19,12 @@ export class PacketHandler {
     internalListeners!: InternalListeners;
     listeners!: PacketListeners;
 
-    constructor(connection: Connection, authData: IAuthData) {
+    constructor(connection: Connection, params: IBotParams | ServerClient) {
         constant(this, 'connection', connection);
 
         constant(this, 'listeners', new Map());
 
-        this.updateAuth(authData);
+        if(!(params instanceof ServerClient)) this.updateAuth((params as IBotParams).authData);
 
         this.internalListeners = new InternalListeners(connection.bot, connection);
     }

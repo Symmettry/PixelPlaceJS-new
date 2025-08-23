@@ -1,69 +1,56 @@
-import { Modes } from "./Modes";
-import { DrawingFunction } from "../drawing/ImageDrawer";
 import { Color } from "./Color";
+
+export type PixelFlags = {
+    /** Brush to use */
+    brush?: number;
+    /** Protect pixels */
+    protect?: boolean;
+    /** Place in wars */
+    wars?: boolean;
+    /** Force pixel placement even if it's the same color */
+    force?: boolean;
+    /** Queue input side */
+    side?: QueueSide;
+}
 
 /**
  * Pixel data.
  */
-export interface IPixel {
+export type Pixel = {
     x: number;
     y: number;
     col: Color;
-    brush?: number;
-    protect?: boolean;
-    wars?: boolean;
-    force?: boolean;
-}
+} & PixelFlags;
 
 export interface IUnverifiedPixel {
-    data: IPixel;
+    data: Pixel;
     originalColor: number;
 }
 export interface IQueuedPixel {
-    data: IPixel;
+    data: Pixel;
     speed: number;
-    resolve: (value: void | PromiseLike<void>) => void;
+    resolve: (value: PlaceResults) => void;
 }
 
-/**
- * Image data.
- */
-export interface IImage {
-    /** X position of the image */
+export type PlaceResults = {
+    pixel: Pixel;
+    oldColor: Color | null;
+} | null;
+
+export type Rectangle = {
+    /** X of the rectangle; top left */
     x: number;
-    /** Y position of the image */
+    /** Y of the rectangle; top left */
     y: number;
-
-    /** Width of the image; defaults to the actual width of the image */
-    width?: number;
-    /** Height of the image; defaults to the actual height of the image */
-    height?: number;
-
-    /** Path of the image */
-    path: string;
-
-    /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
-    mode?: Modes | DrawingFunction,
-     /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
-    performant?: boolean;
-
-    /** If it should draw each color independently; defaults to false */
-    byColor?: boolean;
-
-    /** If the image should be protected; defaults to false */
-    protect?: boolean;
-    /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
+    /** Width of the rectangle */
+    width: number;
+    /** Height of the rectangle */
+    height: number;
+    /** Color to draw in */
+    color: Color | ((x: number, y: number) => Color);
+    /** Protect all pixels instantly */
     fullProtect?: boolean;
-    /** If it should replace already protected pixels; defaults to true */
-    replaceProtection?: boolean;
-
-    /** If the image is transparent; defaults to false */
-    transparent?: boolean;
-    /** If pixels should be placed if it's in a warzone (during a war); defaults to false */
-    wars?: boolean;
-    /** Forces pixels to be placed regardless of if it's ocean or on the same color; defaults to false */
-    force?: boolean;
-}
+} & PixelFlags;
 
 /**
  * Represents image data consisting of width, height, and pixel colors.
@@ -74,7 +61,7 @@ export interface IImage {
 export type ImageData = {
     width: number,
     height: number,
-    pixels: Color[][],
+    pixels: (Color | null)[][],
 }
 
 export type Icon = "admin" | "moderator" | "chat-moderator" | "former-global-moderator" | "1-year" | "3-months" | "1-month" | "3-days" | "nitro" | "vip" | "bread" | "gifter" | "booster" | "painting-owner" | "painting-moderator" | "snowball" | "partner" | "art-dealer-1" | "art-dealer-2" | "art-dealer-3";
@@ -213,6 +200,14 @@ export enum BrushTypes {
     FILL = 4,
 }
 
+/** Side of the pixel queue to add pixels to */
+export enum QueueSide {
+    /** Adds them to front, they will be placed asap */
+    FRONT,
+    /** Adds to the back, they will be placed after all others*/
+    BACK,
+}
+
 /**
  * Contains statistics data for pixelplace.
  */
@@ -273,6 +268,13 @@ export interface IStatistics {
         /** Number of finished lines. */
         finished: number,
     },
+    /** Statistics related to animations. */
+    animations: {
+        /** Number of animations being played */
+        playing: number,
+        /** Number of animations finished */
+        finished: number,
+    },
     /** Statistics related to the session. */
     session: {
         /** Total session time. */
@@ -317,6 +319,10 @@ export function defaultStatistics(): IStatistics {
         },
         text: {
             drawing: 0,
+            finished: 0,
+        },
+        animations: {
+            playing: 0,
             finished: 0,
         },
         lines: {
