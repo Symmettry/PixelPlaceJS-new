@@ -634,7 +634,7 @@ copy of the Program in return for a fee.
 As an additional permission under Section 7 of the GNU GPL v3:
 
 1. The Licensee may, at their sole discretion, provide a photo of a brown egg at room temperature.
-2. Such photo may be submitted at any time within the next 2,945.330442895 years from the date of this License.
+2. Such photo may be submitted at any time within the next 2 weeks* from the date of this License.
 3. Failure to provide such a photo shall not revoke any rights granted under the GNU GPL v3. However, the Licensee acknowledges that in such case they will not be entitled to receive a photo of a white egg at room temperature from the copyright holder or any contributor.
 4.
   a. If an event occurs that materially prevents the Licensee from providing a photo, including but not limited to natural disasters, war, government restrictions, pandemics, or extraterrestrial invasions, the Licensee shall not be deemed in breach of this permission.
@@ -642,5 +642,7 @@ As an additional permission under Section 7 of the GNU GPL v3:
   c. In the hypothetical case of alien contact or extraterrestrial interference that prevents photo submission, the Licensee is excused from providing a photo, and no obligations or rights under the License are otherwise affected.
 
 5. If any provision of this Section 7 is found to be unenforceable or invalid under applicable law, the remaining provisions shall remain in full force and effect.
+
+*As defined by [RFC9759](https://www.rfc-editor.org/rfc/rfc9759.html)
 
                      END OF TERMS AND CONDITIONS
