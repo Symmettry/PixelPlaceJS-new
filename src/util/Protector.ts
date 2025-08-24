@@ -1,6 +1,6 @@
 import { Bot } from "../bot/Bot";
 import { Color } from "./data/Color";
-import { IStatistics } from "./data/Data";
+import { BoardTemplate, IStatistics } from "./data/Data";
 import { PixelPacket } from "./packets/PacketResponses";
 
 /**
@@ -26,10 +26,10 @@ export class Protector {
         else this.unprotect(x, y);
     }
 
-    protect(x: number, y: number, col: Color | null) {
+    protect(x: number, y: number, col: Color | null, replaceProtection: boolean = true) {
         if(!col || !this.pp.isValidPosition(x, y) || this.pp.getPixelAt(x, y) == Color.OCEAN) return;
 
-        if(!Protector.alerted) {
+        if(!Protector.alerted && this.pp.getCanvas().boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
             const region = this.pp.getRegionAt(x, y);
             if(!region.canProtect) {
                 Protector.alerted = true;

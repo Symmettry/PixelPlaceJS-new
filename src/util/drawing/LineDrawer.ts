@@ -1,7 +1,24 @@
 import { Bot } from "../../bot/Bot";
 import { constant } from "../Constant";
+import { PixelFlags } from "../data/Data";
+import { populate } from "../FlagUtil";
 
 const epsilon = 0.001;
+
+export type Line = {
+    /** X start of the line */
+    x0: number;
+    /** Y start of the line */
+    y0: number;
+    /** X end of the line */
+    x1: number;
+    /** Y end of the line */
+    y1: number;
+    /** Color */
+    col: number;
+    /** Thickness, defaults to 1 */
+    thickness?: number;
+} & PixelFlags;
 
 export class LineDrawer {
 
@@ -9,30 +26,26 @@ export class LineDrawer {
     
     private x0: number;
     private y0: number;
-    private x1!: number;
-    private y1!: number;
+    private x1: number;
+    private y1: number;
 
-    private col!: number;
-    private thickness!: number;
+    col: number;
+    private thickness: number;
 
-    private protect!: boolean;
-    private wars!: boolean;
-    private force!: boolean;
+    flags: PixelFlags;
 
-    constructor(bot: Bot, x0: number, y0: number, x1: number, y1: number, col: number, thickness: number, protect: boolean, wars: boolean, force: boolean) {
+    constructor(bot: Bot, line: Line) {
         constant(this, 'bot', bot);
         
-        this.x0 = x0;
-        this.y0 = y0;
-        this.x1 = x1;
-        this.y1 = y1;
+        this.x0 = line.x0;
+        this.y0 = line.y0;
+        this.x1 = line.x1;
+        this.y1 = line.y1;
 
-        constant(this, 'col', col);
-        constant(this, 'thickness', thickness);
+        this.col = line.col;
 
-        constant(this, 'protect', protect);
-        constant(this, 'wars', wars);
-        constant(this, 'force', force);
+        this.thickness = line.thickness ?? 1;
+        this.flags = populate(line);
     }
 
     async begin(): Promise<void> {
@@ -54,9 +67,7 @@ export class LineDrawer {
                     x: Math.round(x),
                     y: Math.round(y),
                     col: this.col,
-                    protect: this.protect, 
-                    wars: this.wars,
-                    force: this.force,
+                    ref: this.flags,
                 });
     
                 const err2 = 2 * err;

@@ -1,10 +1,11 @@
-import { DrawingMode, ImagePixels } from "./ImageDrawer";
+import { ImagePixels } from "./ImageDrawer";
 import fs from 'fs';
 import { parseGIF, decompressFrames } from 'gifuct-js';
 import { Bot } from "../../bot/Bot";
-import { Modes } from "../data/Modes";
-import { BrushTypes, IRGBColor, PixelFlags, PlaceResults, QueueSide } from "../data/Data";
+import { DrawingMode, Modes } from "../data/Modes";
+import { IRGBColor, PixelFlags, PlaceResults } from "../data/Data";
 import { NetUtil } from "../NetUtil";
+import { populate } from "../FlagUtil";
 
 export enum AnimationType {
     GIF,
@@ -69,11 +70,7 @@ export class AnimationDrawer {
     y: AnimationCoord;
     mode: AnimationMode;
     onFrame?: FrameCall<void>;
-    protect: boolean;
-    force: boolean;
-    wars: boolean;
-    brush: BrushTypes;
-    side: QueueSide;
+    flags: PixelFlags;
     repeats: number;
     currentFrame: number = 0;
     stopped: boolean = false;
@@ -95,11 +92,7 @@ export class AnimationDrawer {
         this.y = animation.y;
         this.mode = animation.mode ?? Modes.TO_CENTER;
         this.onFrame = animation.onFrame;
-        this.protect = animation.protect ?? false;
-        this.force = animation.force ?? false;
-        this.wars = animation.wars ?? false;
-        this.brush = animation.brush ?? BrushTypes.NORMAL;
-        this.side = animation.side ?? QueueSide.BACK;
+        this.flags = populate(animation);
         this.repeats = animation.repeat ?? 1;
         this.transparent = animation.transparent ?? null;
         this.wipe = animation.wipe ?? false;
@@ -177,8 +170,7 @@ export class AnimationDrawer {
         if (this.onFrame) this.onFrame(frameIndex);
 
         const img = { x: this.get(this.x), y: this.get(this.y), mode: this.get(this.mode),
-            replace: this.wipe ? this.lastFrame : [], unprotect: true, transparent: this.transparent != null, protect: this.protect, force: this.force,
-            wars: this.wars, brush: this.brush, side: this.side };
+            replace: this.wipe ? this.lastFrame : [], unprotect: true, transparent: this.transparent != null, ref: this.flags };
 
         if (typeof pixels === "string") {
             if (pixels.startsWith("http")) {

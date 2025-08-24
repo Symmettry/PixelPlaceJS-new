@@ -2,6 +2,7 @@ import { Bot } from "../../../bot/Bot";
 import { constant } from "../../Constant";
 import { Color } from "../../data/Color";
 import { BrushTypes, PixelFlags, QueueSide } from "../../data/Data";
+import { populate } from "../../FlagUtil";
 import { Font, FontData, fontData } from "./Font";
 
 export type TextData = {
@@ -103,7 +104,8 @@ export class TextWriter {
 
     constructor(bot: Bot, obj: TextData) {
 
-        const { text, font, x, y, textColor, backgroundColor, fillColor, spaceLength, separatorLength, lineGap, protect, wars, force, brush, side } = obj;
+        const { text, font, x, y, textColor, backgroundColor, fillColor, spaceLength, separatorLength, lineGap, protect, wars, force, brush, side }
+            = populate(obj);
 
         constant(this, 'bot', bot);
 

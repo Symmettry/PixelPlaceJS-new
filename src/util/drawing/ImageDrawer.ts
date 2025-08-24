@@ -1,11 +1,11 @@
 import { Bot } from "../../bot/Bot";
-import { Modes } from "../data/Modes";
+import { DrawingFunction, DrawingMode, drawingStrategies, HypotFunction, Modes } from "../data/Modes";
 import { constant } from "../Constant";
-import { BrushTypes, PixelSetData, PixelFlags, PlaceResults, QueueSide } from "../data/Data";
+import { PixelSetData, PixelFlags, PlaceResults, RawFlags } from "../data/Data";
 import { Color } from "../data/Color";
 import { ImageUtil } from "./ImageUtil";
+import { populate } from "../FlagUtil";
 
-export type DrawingMode = Modes | DrawingFunction;
 export type ImagePixels = (Color | null)[][];
 
 type LocalFile = {
@@ -45,8 +45,6 @@ export type Image = {
 
     /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
     fullProtect?: boolean;
-    /** If it should replace already protected pixels; defaults to true */
-    replaceProtection?: boolean;
 
     /** Takes the set of place results (e.g. from a previous draw) and will merge it in, and replace any pixels that were done by the old call. */
     replace?: PlaceResults[][];
@@ -55,138 +53,6 @@ export type Image = {
 type LocalImage = Image & LocalFile;
 type SetImage = Image & SetPixels;
 type UrlImage = Image & UrlFile;
-
-type DrawHook = (x: number, y: number) => Promise<void>;
-type HypotFunction = (dx: number, dy: number) => number;
-
-/**
- * Represents a function that will take the pixels and call draw() in the order it draws. This is used for images and for sorting queue.
- * @param pixels - The pixel array to draw
- * @param draw - A function that marks the drawing of that x,y at that time
- * @param hypot - Optional, uses performant hypot when drawn that way.
- * @returns A promise which resolves when the image is done drawing.
- */
-export type DrawingFunction = (
-    pixels: PixelSetData,
-    draw: DrawHook,
-    hypot: HypotFunction,
-) => Promise<void>;
-
-export const drawingStrategies: {[key in Modes]: DrawingFunction} = {
-    [Modes.TOP_LEFT_TO_RIGHT]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let y = 0; y < pixels.height; y++) 
-            for (let x = 0; x < pixels.width; x++) 
-                await draw(x, y);
-    },
-    [Modes.TOP_RIGHT_TO_LEFT]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let y = 0; y < pixels.height; y++) 
-            for (let x = pixels.width; x >= 0; x--) 
-                await draw(x, y);
-    },
-    [Modes.BOTTOM_LEFT_TO_RIGHT]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let y = pixels.height; y >= 0; y--) 
-            for (let x = 0; x < pixels.width; x++) 
-                await draw(x, y);
-    },
-    [Modes.BOTTOM_RIGHT_TO_LEFT]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let y = pixels.height; y >= 0; y--) 
-            for (let x = pixels.width; x >= 0; x--) 
-                await draw(x, y);
-    },
-    [Modes.LEFT_TOP_TO_BOTTOM]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let x = 0; x < pixels.width; x++) 
-            for (let y = 0; y < pixels.height; y++) 
-                await draw(x, y);
-    },
-    [Modes.LEFT_BOTTOM_TO_TOP]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let x = 0; x < pixels.width; x++) 
-            for (let y = pixels.height; y >= 0; y--) 
-                await draw(x, y);
-    },
-    [Modes.RIGHT_TOP_TO_BOTTOM]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let x = pixels.width; x >= 0; x--) 
-            for (let y = 0; y < pixels.height; y++) 
-                await draw(x, y);
-    },
-    [Modes.RIGHT_BOTTOM_TO_TOP]: async (pixels: PixelSetData, draw: DrawHook) => {
-        for (let x = pixels.width; x >= 0; x--) 
-            for (let y = pixels.height; y >= 0; y--) 
-                await draw(x, y);
-    },
-    [Modes.FROM_CENTER]: async (pixels: PixelSetData, draw: DrawHook, hypot: HypotFunction) => {
-        const [indices, distances] = circularSort(pixels, hypot);
-        indices.sort((a, b) => distances[a] - distances[b]);
-
-        for (const i of indices) {
-            const x = i % pixels.width;
-            const y = (i / pixels.width) | 0;
-            await draw(x, y);
-        }
-    },
-    [Modes.TO_CENTER]: async (pixels: PixelSetData, draw: DrawHook, hypot: HypotFunction) => {
-        const [indices, distances] = circularSort(pixels, hypot);
-        indices.sort((a, b) => distances[b] - distances[a]);
-
-        for (const i of indices) {
-            const x = i % pixels.width;
-            const y = (i / pixels.width) | 0;
-            await draw(x, y);
-        }
-    },
-
-    [Modes.RAND]: async (pixels: PixelSetData, draw: DrawHook) => {
-        const totalPixels = pixels.width * pixels.height;
-        const coordinates = new Array(totalPixels);
-    
-        // initialize the coordinates array
-        for (let i = 0; i < totalPixels; i++) {
-            coordinates[i] = i;
-        }
-    
-        // fisher-yates shuffle algorithm
-        for (let i = totalPixels - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [coordinates[i], coordinates[j]] = [coordinates[j], coordinates[i]];
-        }
-    
-        // draw the pixels in the shuffled order
-        for (let i = 0; i < totalPixels; i++) {
-            const x = coordinates[i] % pixels.width;
-            const y = Math.floor(coordinates[i] / pixels.width);
-            await draw(x, y);
-        } 
-    }
-
-}
-function circularSort(pixels: PixelSetData, hypot: HypotFunction): [indices: number[], distances: Float32Array] {
-    const centerX = Math.floor(pixels.width / 2);
-    const centerY = Math.floor(pixels.height / 2);
-
-    const w = pixels.width;
-    const h = pixels.height;
-    const total = w * h;
-
-    const distances = new Float32Array(total);
-
-    for (let y = 0; y <= centerY; y++) {
-        for (let x = 0; x <= centerX; x++) {
-            const d = hypot(centerX - x, centerY - y);
-
-            const i1 = y * w + x;
-            const i2 = y * w + (w - 1 - x);
-            const i3 = (h - 1 - y) * w + x;
-            const i4 = (h - 1 - y) * w + (w - 1 - x);
-
-            distances[i1] = d;
-            distances[i2] = d;
-            distances[i3] = d;
-            distances[i4] = d;
-        }
-    }
-
-    const indices = Array.from({ length: total }, (_, i) => i);
-    return [indices, distances];
-}
 
 const SQRT2M1 = Math.sqrt(2) - 1;
 
@@ -209,15 +75,9 @@ export class ImageDrawer {
     private width: number;
     private height: number;
 
-    private protect!: boolean;
     private fullProtect!: boolean;
-    private replaceProtection!: boolean;
 
-    private wars!: boolean;
-    private force!: boolean;
-
-    private brush!: BrushTypes;
-    private side!: QueueSide;
+    private flags: RawFlags;
 
     private replace!: PlaceResults[][];
 
@@ -236,8 +96,9 @@ export class ImageDrawer {
         return (image as any).url != undefined;
     }
     
-    constructor(instance: Bot, image: Image) {
+    constructor(instance: Bot, uimage: Image) {
         constant(this, 'instance', instance);
+        const image = populate(uimage);
 
         if(this.isLocal(image)) this.path = image.path;
         else if (this.isUrl(image)) this.url = image.url;
@@ -253,14 +114,9 @@ export class ImageDrawer {
         constant(this, 'mode', image.mode ?? Modes.TOP_LEFT_TO_RIGHT);
         constant(this, 'byColor', image.byColor ?? false);
 
-        constant(this, 'protect', image.protect ?? false);
-        constant(this, 'fullProtect', (image.fullProtect ?? false) && image.protect);
-        constant(this, 'replaceProtection', (image.replaceProtection ?? true) && image.protect);
+        this.flags = image as RawFlags;
 
-        constant(this, 'wars', image.wars ?? false);
-        constant(this, 'force', image.force ?? false);
-        constant(this, 'brush', image.brush ?? BrushTypes.NORMAL);
-        constant(this, 'side', image.side ?? QueueSide.BACK);
+        constant(this, 'fullProtect', (image.fullProtect ?? false) && image.protect);
 
         constant(this, 'performant', image.performant ?? false);
 
@@ -285,31 +141,16 @@ export class ImageDrawer {
         const nx = this.x + x;
         const ny = this.y + y;
 
-        if(!this.replaceProtection && this.instance.protector.getColor(x, y) != undefined)
-            return Promise.resolve();
-
         if(!this.placeResults[nx]) this.placeResults[nx] = [];
         const placeResult = await this.instance.placePixel({
             x: nx,
             y: ny,
             col: Math.abs(color),
-            wars: this.wars,
-            protect: this.protect,
-            force: this.force,
-            brush: this.brush,
-            side: this.side,
+            ref: this.flags,
         });
 
         if(color < 0) return;
         this.placeResults[nx][ny] = placeResult;
-    }
-
-    private skipPixel(x: number, y: number): boolean {
-        if(!this.protect) return true;
-        if(!this.replaceProtection && this.instance.protector.getColor(x, y) != undefined) {
-            return true;
-        }
-        return false;
     }
 
     async begin(): Promise<PlaceResults[][]> {
@@ -416,8 +257,7 @@ export class ImageDrawer {
         if(this.fullProtect) {
             for (let y = 0; y < data.height; y++) {
                 for (let x = 0; x < data.width; x++) { 
-                    if(this.skipPixel(this.x + x, this.y + y)) continue;
-                    this.instance.protect(this.x + x, this.y + y, Math.abs(data.pixels[x][y]!));
+                    this.instance.protect(this.x + x, this.y + y, Math.abs(data.pixels[x][y]!), this.flags.replaceProtection);
                 }
             }
         }

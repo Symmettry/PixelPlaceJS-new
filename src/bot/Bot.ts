@@ -1,14 +1,14 @@
 import * as Canvas from '../util/canvas/Canvas.js';
-import { Image, ImageDrawer, DrawingMode, drawingStrategies, DrawingFunction } from '../util/drawing/ImageDrawer.js';
+import { Image, ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, Rectangle, PlaceResults, PixelSetData, BrushTypes } from '../util/data/Data.js';
+import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, PlaceResults, PixelSetData, BoardTemplate, PlainPixel, CoordSet } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
 import { TextData, TextWriter } from '../util/drawing/fonts/TextWriter.js';
-import { LineDrawer } from '../util/drawing/LineDrawer.js';
+import { Line, LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeadersFunc, HeaderTypes } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
@@ -17,7 +17,9 @@ import { PacketSendMap } from '../util/packets/PacketSends.js';
 import { NetUtil, PaintingData, UserData } from '../util/NetUtil.js';
 import { ServerClient } from '../browser/client/ServerClient.js';
 import { Animation, AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
-import { Modes } from '../util/data/Modes.js';
+import { GeometryDrawer, Outline, Rectangle } from '../util/drawing/GeometryDrawer.js';
+import { populate } from '../util/FlagUtil.js';
+import { DrawingMode, sortPixels } from '../util/data/Modes.js';
 
 /**
  * The pixelplace bot.
@@ -32,7 +34,7 @@ export class Bot {
     private prevPlaceValue: number = 0;
 
     private sendQueue: Array<IQueuedPixel> = [];
-    private resendQueue: Array<Pixel> = [];
+    private resendQueue: Array<PlainPixel> = [];
     private sendAfterWarDone: Array<Pixel> = [];
 
     autoRestart: boolean;
@@ -143,28 +145,12 @@ export class Bot {
     private lastVerification: EpochTimeStamp = Date.now();
     private queueLoop() {
         if(this.sendQueue.length == 0) {
-            if(this.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 1000) {
-                for(const [nx, ys] of Object.entries(this.protector.protectedPixels)) {
-                    if(nx == null) continue;
-                    const x = parseInt(nx);
-                    for(const [ny, col] of Object.entries(ys)) {
-                        if(ny == null) continue;
-                        const y = parseInt(ny);
-                        if(this.getPixelAt(x, y) != col && !this.connection!.hasPixelTime(x, y)) {
-                            this.stats.pixels.protection.missed++;
-                            this.placePixel({
-                                x, y, col,
-                                protect: true,
-                            });
-                        }
-                    }
-                }
-                this.lastVerification = Date.now();
-
+            if(this.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 100) {
                 this.sustainingLoad = Math.floor(Math.max(0, this.sustainingLoad / 3 - 400));
                 while(this.currentBarrier > 0 && this.sustainingLoad < this.loadIncreases[this.currentBarrier]) {
                     this.currentBarrier--;
                 }
+                this.lastVerification = Date.now();
             }
             
             setTimeout(() => this.queueLoop(), 10);
@@ -348,8 +334,8 @@ export class Bot {
      * @param y The y coordinate of the pixel.
      * @param col The color of the pixel.
      */
-    protect(x: number, y: number, col: Color | null): void {
-        this.protector.protect(x, y, col);
+    protect(x: number, y: number, col: Color | null, replaceProtection: boolean = true): void {
+        this.protector.protect(x, y, col, replaceProtection);
     }
     
     private accurateTimeout(call: () => void, time: number): void {
@@ -382,7 +368,17 @@ export class Bot {
     goThroughPixels(): void {
 
         if(this.sendQueue.length == 0) {
+            this.lastVerification = Date.now();
             this.queueLoop();
+            return;
+        }
+
+        if(Date.now() - this.lastQueueTime > 400 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
+            console.log("~~PIXELPLACE LAGGING~~");
+            setTimeout(() => {
+                this.lastVerification = Date.now();
+                this.queueLoop();
+            }, 2000);
             return;
         }
 
@@ -397,16 +393,8 @@ export class Bot {
             && this.sendQueue.length > 0);
 
         if(queuedPixel == undefined) {
+            this.lastVerification = Date.now();
             this.queueLoop();
-            return;
-        }
-
-        if(Date.now() - this.lastQueueTime > 400 && Date.now() - this.connection!.timeSinceConfirm() > 1000) {
-            console.log("~~PIXELPLACE LAGGING~~");
-            setTimeout(() => {
-                this.sendQueue.unshift(queuedPixel);
-                this.queueLoop();
-            }, 2000);
             return;
         }
 
@@ -476,6 +464,7 @@ export class Bot {
 
     private sendPixel(queuedPixel: IQueuedPixel): void {
         if(!this.connected()) {
+            this.lastVerification = Date.now();
             this.queueLoop();
             setTimeout(() => {
                 this.addToSendQueue(queuedPixel);
@@ -495,14 +484,14 @@ export class Bot {
             return;
         }
 
-        const isNew = this.connection!.timePixel(queuedPixel);
+        this.connection!.timePixel(queuedPixel);
         this.emit(Packets.SENT.PIXEL, [x, y, col == Color.OCEAN ? -100 : col, brush]);
         this.lastPixel = Date.now();
 
         // statistics
         const pixelStats = this.stats.pixels;
 
-        if(isNew) pixelStats.placing.attempted++;
+        pixelStats.placing.attempted++;
 
         pixelStats.placing.last_pos[0] = x;
         pixelStats.placing.last_pos[1] = y;
@@ -545,14 +534,8 @@ export class Bot {
      * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
      * @returns A promise that resolves upon the pixel being sent.
      */
-    async placePixel(pixel: Pixel): Promise<PlaceResults> {
-        pixel.async ??= true;
-        pixel.protect ??= false;
-        pixel.brush ??= BrushTypes.NORMAL;
-        pixel.force ??= false;
-        pixel.wars ??= false;
-        pixel.side ??= QueueSide.BACK;
-
+    async placePixel(upixel: Pixel): Promise<PlaceResults> {
+        const pixel = populate(upixel);
         const {x, y, col, protect, async } = pixel;
 
         if(!this.isValidPosition(x, y)) {
@@ -565,7 +548,7 @@ export class Bot {
             return Promise.resolve(null);
         }
 
-        if(this.boardId == 7) {
+        if(this.getCanvas().boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
             const region = this.getRegionAt(x, y);
             if(!Bot.alertedDisallow && !region.canBot) {
                 Bot.alertedDisallow = true;
@@ -576,10 +559,14 @@ export class Bot {
             }
         }
 
-        this.protector.updateProtection(protect, x, y, col);
+        if(!this.isProtected(x, y) || pixel.replaceProtection) {
+            this.protector.updateProtection(protect!, x, y, col);
+        } else {
+            return Promise.resolve({ pixel, oldColor: this.protector.getColor(x, y)! });
+        }
 
         if(this.resendQueue.length > 0) {
-            const pixel: Pixel | undefined = this.resendQueue.shift();
+            const pixel: PlainPixel | undefined = this.resendQueue.shift();
             if(pixel != null) {
                 const p = this.placePixel(pixel);
                 if(pixel.async) await p;
@@ -603,58 +590,18 @@ export class Bot {
     /**
      * Sorts the current queue with a drawing mode
      * 
-     * You can take advantage of this by adding a bunch of pixels into queue and not await'ing on them, then sort.
+     * You can take advantage of this by adding a bunch of pixels into queue with async: false, then sort.
      */
     sortQueue(mode: DrawingMode) {
-        const queueMap: { [key: number]: { [key: number]: IQueuedPixel } } = {};
-        const pixels: (Color | null)[][] = [];
-
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-        for (const p of this.sendQueue) {
-            const { x, y } = p.data;
-
-            minX = Math.min(minX, x);
-            minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x);
-            maxY = Math.max(maxY, y);
-
-            queueMap[x] ??= {};
-            queueMap[x][y] = p;
+        const pixels = this.sendQueue.map(n => n.data);
+        const map: CoordSet<IQueuedPixel> = {};
+        for(const qp of this.sendQueue) {
+            const {x, y} = qp.data;
+            map[x] ??= {};
+            map[x][y] = qp;
         }
-
-        for (const p of this.sendQueue) {
-            const { x, y, col } = p.data;
-            const nx = x - minX;
-            const ny = y - minY;
-            pixels[nx] ??= [];
-            pixels[nx][ny] = col;
-        }
-
-        const pixelSet: PixelSetData = {
-            width: maxX - minX + 1,
-            height: maxY - minY + 1,
-            pixels
-        };
-
-        this.sendQueue = [];
-
-        const func: DrawingFunction =
-            typeof mode === "number" && drawingStrategies[mode]
-                ? drawingStrategies[mode]
-                : mode as DrawingFunction;
-
-        const hook = async (x: number, y: number): Promise<void> => {
-            const tx = minX + x, ty = minY + y;
-            if(!queueMap[tx] || !queueMap[tx][ty]) return Promise.resolve();
-
-            this.sendQueue.push(queueMap[tx][ty]);
-            return Promise.resolve();
-        };
-
-        func(pixelSet, hook, Math.hypot);
+        this.sendQueue = sortPixels(pixels, map, mode);
     }
-
 
     /**
      * Sends a value through the socket. It's recommended to use emit() over this.
@@ -732,11 +679,11 @@ export class Bot {
      * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      */
-    async drawLine(x1: number, y1: number, x2: number, y2: number, col: number, thickness: number = 1, protect: boolean = false, wars: boolean = false, force: boolean = false) {
+    async drawLine(line: Line) {
         
         this.stats.lines.drawing++;
 
-        await new LineDrawer(this, x1, y1, x2, y2, col, thickness, protect, wars, force).begin();
+        await new LineDrawer(this, line).begin();
 
         this.stats.lines.drawing--;
         this.stats.lines.finished++;
@@ -755,23 +702,12 @@ export class Bot {
      * @param height height of rectangle
      * @param color color or function that maps x,y to color
      */
-    async drawRect(rect: Rectangle): Promise<void> {
-        const getCol: any = typeof rect.color == 'number' ? (() => rect.color) : rect.color;
-        for(let h=0;h<rect.height;h++) {
-            for(let w=0;w<rect.width;w++) {
-                const x = rect.x + w, y = rect.y + h;
-                await this.placePixel({
-                    x, y,
-                    col: getCol(x, y),
-                    protect: rect.protect,
-                    force: rect.force,
-                    wars: rect.wars,
-                    brush: rect.brush,
-                    side: rect.side,
-                    async: rect.async,
-                });
-            }
-        }
+    async drawRect(rect: Rectangle): Promise<PlaceResults[][]> {
+        return GeometryDrawer.drawRect(this, rect);
+    }
+
+    async drawOutline(outline: Outline): Promise<PlaceResults[][]> {
+        return GeometryDrawer.drawOutline(this, outline);
     }
 
     /** Statistics that are modified internally. Use getStatistics() instead, since it updates other things. */

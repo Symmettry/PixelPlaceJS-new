@@ -203,9 +203,15 @@ export class Canvas {
         }
 
         this.serverClient = (data as ClientCanvas).serverClient;
-        const { boardID, canvasData, width, height } = this.serverClient;
+        const { boardID, canvasData, width, height, template } = this.serverClient;
 
         this.boardId = boardID;
+        this.canvasWidth = width;
+        this.canvasHeight = height;
+        this.boardTemplate = template;
+        if(this.boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
+            this.loadRegionData();
+        }
 
         this.loadFromCanvasData(canvasData, width, height);
     }

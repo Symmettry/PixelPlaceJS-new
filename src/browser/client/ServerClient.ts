@@ -7,6 +7,7 @@ import { RequestHandler } from "./RequestHandler";
 import { MenuData, MenuObject } from "../menu/MenuData";
 import { convertObject, menuToWire } from "../menu/MenuParser";
 import { Color } from "../../util/data/Color";
+import { BoardTemplate } from "../../util/data/Data";
 
 export class ServerClient {
 
@@ -23,6 +24,7 @@ export class ServerClient {
     uidManager!: boolean;
     canvasData: Color[] = [];
     username!: string;
+    template!: BoardTemplate;
 
     readyState: number = WebSocket.OPEN;
 
@@ -65,7 +67,7 @@ export class ServerClient {
         });
 
         this.onPacket(ClientPackets.INFO, async (info) => {
-            const { boardID, userID, width, height, premium, username } = JSON.parse(info);
+            const { boardID, userID, width, height, premium, username, template } = JSON.parse(info);
 
             this.boardID = boardID;
             this.userID = userID;
@@ -73,6 +75,7 @@ export class ServerClient {
             this.height = height;
             this.uidManager = premium;
             this.username = username;
+            this.template = template;
 
             this.debug("Emit settings", server.settings);
             this.emit(ServerPackets.SETTINGS, JSON.stringify(server.settings));

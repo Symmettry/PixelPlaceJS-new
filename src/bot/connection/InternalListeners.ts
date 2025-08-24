@@ -17,7 +17,7 @@ export class InternalListeners {
 
     private tDelay: number = 0;
 
-    pixelTime: { [key: string]: [number, IQueuedPixel] } = {};
+    pixelTime: { [key: string]: [number, IQueuedPixel][] } = {};
 
     map!: PacketListeners;
 
@@ -145,11 +145,13 @@ export class InternalListeners {
                 this.bot.lagAmount = Math.max(0, this.bot.lagAmount / 2 - 10);
             }
 
-            for(const [key, [time, queuedPixel]] of Object.entries(this.pixelTime)) {
-                if(now - time < 500) continue;
-                delete this.pixelTime[key];
-                this.bot.addToSendQueue(queuedPixel);
-                this.bot.stats.pixels.placing.failed++;
+            for(const [key, timings] of Object.entries(this.pixelTime)) {
+                for(const [time, queuedPixel] of timings) {
+                    if(now - time < 500) continue;
+                    this.pixelTime[key].splice(this.pixelTime[key].findIndex(n => n[1] == queuedPixel), 1);
+                    this.bot.addToSendQueue(queuedPixel);
+                    this.bot.stats.pixels.placing.failed++;
+                }
             }
 
             if(pixels.length == 0) return;
@@ -175,7 +177,7 @@ export class InternalListeners {
         this.listen(RECEIVED.PIXEL_CONFIRM, ([[x,y]]) => {
 
             const key = `${x},${y}`;
-            if(!this.pixelTime[key]) {
+            if(!this.pixelTime[key] || this.pixelTime[key].length == 0) {
                 // owmince bug :(
                 //console.log("~~WARN~~ pixel time not set this is a bug this is a bug help help help wahh");
                 return;
@@ -183,9 +185,9 @@ export class InternalListeners {
 
             this.bot.stats.pixels.placing.placed++;
 
-            const [t, p] = this.pixelTime[key];
+            const [t, p] = this.pixelTime[key].shift()!;
+
             const delta = Date.now() - t;
-            delete this.pixelTime[key];
             this.connection!.canvas!.pixelData!.set(x, y, p.data.col);
 
             if(confirmTimes.length == CONFIRM_CHECKS) {

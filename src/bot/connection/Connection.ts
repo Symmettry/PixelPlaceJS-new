@@ -328,12 +328,11 @@ export class Connection {
     /**
      * For internal use. Times an x,y packet to acknowledge the confirm
      */
-    timePixel(p: IQueuedPixel): boolean {
+    timePixel(p: IQueuedPixel): void {
         const timings = this.packetHandler.internalListeners.pixelTime;
         const key = `${p.data.x},${p.data.y}`;
-        const existed = timings.hasOwnProperty(key);
-        timings[key] = [Date.now(), p];
-        return !existed;
+        timings[key] ??= [];
+        timings[key].push([Date.now(), p]);
     }
 
     /**
