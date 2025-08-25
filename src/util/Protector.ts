@@ -1,4 +1,5 @@
 import { Bot } from "../bot/Bot";
+import { Canvas } from "./canvas/Canvas";
 import { Color } from "./data/Color";
 import { BoardTemplate, IStatistics } from "./data/Data";
 import { PixelPacket } from "./packets/PacketResponses";
@@ -27,7 +28,7 @@ export class Protector {
     }
 
     protect(x: number, y: number, col: Color | null, replaceProtection: boolean = true) {
-        if(!col || !this.pp.isValidPosition(x, y) || this.pp.getPixelAt(x, y) == Color.OCEAN) return;
+        if(!Canvas.isValidColor(col) || !this.pp.isValidPosition(x, y) || this.pp.getPixelAt(x, y) == Color.OCEAN) return;
 
         if(!Protector.alerted && this.pp.getCanvas().boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
             const region = this.pp.getRegionAt(x, y);
@@ -38,10 +39,11 @@ export class Protector {
         }
 
         const protectColor = this.getColor(x, y);
-        if (protectColor != undefined && protectColor == col) return;
+        if (protectColor != undefined && !replaceProtection) return;
+        if(protectColor == col) return;
 
         if(!this.protectedPixels[x]) this.protectedPixels[x] = {};
-        this.protectedPixels[x][y] = col;
+        this.protectedPixels[x][y] = col!;
 
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
     }
