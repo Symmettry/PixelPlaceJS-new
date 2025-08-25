@@ -1,5 +1,5 @@
 import { Color } from "../data/Color";
-import { ChatChannel } from "../data/Data";
+import { BoardID, ChatChannel } from "../data/Data";
 import { SENT } from "./Packets";
 
 export interface PacketSendMap {
@@ -67,7 +67,7 @@ export type ClientPongPacket = string;
 export type ClientPaintingCommandPacket = {
     cmd: string, // usually "/ban" or "/unban" (contains the / as well)
     target: string, // name of person being targeted by the commaind
-    boardId: number, // board id.
+    boardId: BoardID, // board id.
 };
 
 /** Converts user ids to user names. This requires premium on pixelplace. Value is a user id. */

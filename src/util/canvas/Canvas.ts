@@ -1,7 +1,7 @@
 import ndarray from 'ndarray';
 import fs from 'fs';
 import path from 'path';
-import { BoardTemplate, IRGBColor } from '../data/Data';
+import { BoardID, BoardTemplate, IRGBColor } from '../data/Data';
 import { Color } from '../data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from '../packets/PacketResponses';
@@ -11,7 +11,7 @@ import { ServerClient } from '../../browser/client/ServerClient';
 
 const canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: number, netUtil: NetUtil, headers: HeadersFunc): Canvas {
+export function getCanvas(boardId: BoardID, netUtil: NetUtil, headers: HeadersFunc): Canvas {
     const existing = canvases.get(boardId);
     if (existing) {
         existing.setHeaders(headers);
@@ -26,7 +26,7 @@ export function createFromClient(serverClient: ServerClient): Canvas {
     return new Canvas({type: 1, serverClient });
 }
 
-export function hasCanvas(boardId: number): boolean {
+export function hasCanvas(boardId: BoardID): boolean {
     return canvases.has(boardId);
 }
 
@@ -49,8 +49,8 @@ enum CanvasState {
     FULLY_LOADED,
 }
 
-type RegionName = "Ocean" | "Antarctica" | "Coin Islands" | "Listenbourg" | "Premium Island" | "Russia" | "Greenland" | "South America"
-                | "USA" | "Central America" | "Canada" | "Alaska" | "Australia" | "Africa" | "Europe" | "Turkey" | "Asia";
+type RegionName = "Ocean" | "Antarctica" | "Coin Islands" | "Renkolandia" | "Premium Island" | "Russia" | "Greenland" | "South America"
+                | "USA" | "Central America" | "Canada" | "Alaska" | "Australia" | "Africa" | "Europe" | "Turkey" | "Asia" | "0,0";
 export type RegionData = {
     name: RegionName;
     canProtect: boolean;
@@ -58,11 +58,12 @@ export type RegionData = {
 }
 
 const REGIONS: {[key: number]: RegionData} = {
+  [-1]: {name: "0,0"            , canBot:  true, canProtect:  true},
      0: {name: "Ocean"          , canBot:  true, canProtect:  true},
      1: {name: "Antarctica"     , canBot:  true, canProtect:  true},
      2: {name: "Coin Islands"   , canBot:  true, canProtect:  true},
-     3: {name: "Listenbourg"    , canBot:  true, canProtect:  true},
-     4: {name: "Premium Island" , canBot:  true, canProtect: false},
+     3: {name: "Renkolandia"    , canBot:  true, canProtect:  true},
+     4: {name: "Premium Island" , canBot:  true, canProtect:  true},
      5: {name: "Russia"         , canBot:  true, canProtect: false},
      6: {name: "Greenland"      , canBot:  true, canProtect: false},
      7: {name: "South America"  , canBot:  true, canProtect: false},
@@ -84,7 +85,7 @@ const MAX_CANVAS_SIZE = 3000;
  */
 export class Canvas {
 
-    private boardId: number;
+    private boardId: BoardID;
 
     private canvasState: CanvasState = CanvasState.UNLOADED;
     private canvasPacketData: PixelPacket = [];
@@ -257,6 +258,8 @@ export class Canvas {
                 }
             }
         }
+        /** im a lazy fuck and i cant be bothered to edit the file */
+        this.regionData[0][0] = -1;
     }
 
     getRegionAt(x: number, y: number): RegionData {

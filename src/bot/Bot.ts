@@ -2,7 +2,7 @@ import * as Canvas from '../util/canvas/Canvas.js';
 import { Image, ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, PlaceResults, PixelSetData, BoardTemplate, PlainPixel, CoordSet } from '../util/data/Data.js';
+import { Pixel, IStatistics, defaultStatistics, IRGBColor, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, PlaceResults, BoardTemplate, PlainPixel, CoordSet, BoardID } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant } from '../util/Constant.js';
@@ -29,7 +29,7 @@ export class Bot {
     private static alertedDisallow: boolean = false;
 
     protector!: Protector;
-    boardId!: number;
+    boardId!: BoardID;
 
     private prevPlaceValue: number = 0;
 
@@ -548,6 +548,11 @@ export class Bot {
             return Promise.resolve(null);
         }
 
+        const colAtSpot = this.getPixelAt(x, y);
+        if(colAtSpot == Color.OCEAN) {
+            return Promise.resolve(null);
+        }
+
         if(this.getCanvas().boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
             const region = this.getRegionAt(x, y);
             if(!Bot.alertedDisallow && !region.canBot) {
@@ -573,11 +578,8 @@ export class Bot {
             }
         }
 
-        if(this.sendQueue.length == 0) {
-            const colAtSpot = this.getPixelAt(x, y);
-            if(colAtSpot == col) {
-                return Promise.resolve({ pixel, oldColor: col });
-            }
+        if(this.sendQueue.length == 0 && colAtSpot == col) {
+            return Promise.resolve({ pixel, oldColor: col });
         }
 
         if(async) {

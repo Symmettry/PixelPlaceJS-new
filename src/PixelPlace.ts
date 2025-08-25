@@ -1,12 +1,12 @@
 import { Bot } from "./bot/Bot";
 import { OutgoingHttpHeaders } from "http2";
-import { IBotParams } from "./util/data/Data";
+import { BoardID, IBotParams } from "./util/data/Data";
 import { SocketHook } from "./browser/SocketHook";
 import { BrowserSettings } from "./browser/SocketData";
 
 export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-user" | "outside";
 
-export type HeadersFunc = (type: HeaderTypes, boardId: number) => OutgoingHttpHeaders;
+export type HeadersFunc = (type: HeaderTypes, boardId: BoardID) => OutgoingHttpHeaders;
 
 /**
  * Contains all bots and handles them.

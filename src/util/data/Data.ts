@@ -125,10 +125,12 @@ export interface IBotParams {
     /** The auth data for logging in */
     authData: IAuthData;
     /** The board ID to connect to */
-    boardID: number;
+    boardID: BoardID;
     /** If the auth data should be relogged. */
     relog?: boolean;
 }
+
+export type BoardID = number;
 
 /**
  * Contains r,g,b value

@@ -2,7 +2,7 @@ import * as Canvas from "../../util/canvas/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets } from "../../util/packets/Packets";
-import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel } from "../../util/data/Data";
+import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel, BoardID } from "../../util/data/Data";
 import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
@@ -20,7 +20,7 @@ export class Connection {
 
     bot!: Bot;
 
-    boardId!: number;
+    boardId!: BoardID;
     isWorld: boolean = true;
     canvas!: Canvas.Canvas;
 
@@ -252,7 +252,7 @@ export class Connection {
         this.canvas.resolve(this.loadResolve);
     }
 
-    sendInit(authKey: string | undefined, authToken: string | undefined, authId: string, boardId: number): void {
+    sendInit(authKey: string | undefined, authToken: string | undefined, authId: string, boardId: BoardID): void {
         if(this.shouldRelog) {
             this.newInit(true);
             return;

@@ -7,7 +7,7 @@ import { RequestHandler } from "./RequestHandler";
 import { MenuData, MenuObject } from "../menu/MenuData";
 import { convertObject, menuToWire } from "../menu/MenuParser";
 import { Color } from "../../util/data/Color";
-import { BoardTemplate } from "../../util/data/Data";
+import { BoardID, BoardTemplate } from "../../util/data/Data";
 
 export class ServerClient {
 
@@ -17,7 +17,7 @@ export class ServerClient {
     ws: WebSocket;
     uuid: UUID;
 
-    boardID!: number;
+    boardID!: BoardID;
     userID!: number;
     width!: number;
     height!: number;

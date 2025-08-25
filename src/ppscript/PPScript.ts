@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { Bot, Font, IBotParams, Modes, PixelPlace } from '..';
 import { Color } from '../util/data/Color';
-import { Pixel } from '../util/data/Data';
+import { BoardID, Pixel } from '../util/data/Data';
 import { TextData } from '../util/drawing/fonts/TextWriter';
 import { Image } from '../util/drawing/ImageDrawer';
 
@@ -356,7 +356,7 @@ export class PPScript {
                         authToken: (authToken as string),
                         authId:    (authId as string),
                     },
-                    boardID: boardID as number,
+                    boardID: boardID as BoardID,
                 };
                 break;
             }

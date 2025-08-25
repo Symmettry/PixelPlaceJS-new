@@ -2,7 +2,7 @@ import { IncomingMessage, OutgoingHttpHeaders } from "http";
 import { Bot } from "../bot/Bot";
 import { HeadersFunc } from "../PixelPlace";
 import { Color } from "./data/Color";
-import { AuctionData, BoardTemplate, Icon } from "./data/Data";
+import { AuctionData, BoardID, BoardTemplate, Icon } from "./data/Data";
 import https from 'https';
 
 /** YYYY-MM-DD HH:MM:SS */
@@ -369,6 +369,7 @@ export type PaintingData = {
  */
 export type UserData = {
     pixelite_ores: number;
+    background_id: BoardID;
     gold_mine_level: number;
     gold_dynamite_level: number;
     gold_ores: number;
@@ -403,7 +404,7 @@ export type UserData = {
     premiumIcon: string;
     othersIcons: string[] | null;
     status: 0 | 1 | 2;
-    canvas: number;
+    canvas: BoardID;
     previousUsername: string | null;
     previousUsernameTime: number;
     banReason: string | null;
