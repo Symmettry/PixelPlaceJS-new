@@ -187,19 +187,27 @@ import { PixelPlace, Modes, Packets, Color, PPError } from "pixelplacejs-new";
     // draws image at path "C:/my image.png" (will throw an error if it doesn't exist)
     await bot.drawImage({
         x: 100, y: 100,
-        path:"C:/my image.png",
+        path: "C:/my image.png",
         mode: Modes.FROM_CENTER,
     });
 
     // places a 10x10 area of white (You should remove this; it's just an example)
-    for(var x=0;x<10;x++) {
-        for(var y=0;y<10;y++) {
-            bot.placePixel(1000 + x, 1000 + y, Color.WHITE);
+    for(let x=0;x<10;x++) {
+        for(let y=0;y<10;y++) {
+            bot.placePixel({
+                x: 1000 + x,
+                y: 1000 + y,
+                col: Color.WHITE,
+            });
         }
     }
 
     // draws "Hello World!" at 100,100 (also remove this)
-    bot.buildText("Hello World!", 100, 100).draw();
+    await bot.drawText({
+        x: 100,
+        y: 100,
+        text: "Hello World!",
+    });
 })();
 
 ```
