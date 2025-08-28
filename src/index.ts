@@ -11,5 +11,6 @@ export { PixelSetData as ImageData, IAuthData, IBotParams, BrushTypes, QueueSide
 export { FightType } from "./util/packets/PacketResponses";
 export { ClientPackets, ServerPackets, PixelPipeType } from "./browser/SocketData";
 export { AnimationType } from "./util/drawing/AnimationDrawer";
+export { FilterMode } from "./util/drawing/ImageFilter";
 export * as PacketTypes from "./util/packets/PacketResponses";
 export * as PacketSends from "./util/packets/PacketSends";

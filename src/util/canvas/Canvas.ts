@@ -353,9 +353,7 @@ export class Canvas {
      * @param rgb Rgb data
      * @returns Color id closest to rgb
      */
-    static getClosestColorId(rgb: IRGBColor): Color | null {
-        const { r, g, b } = rgb;
-
+    static getClosestColorId(r: number, g: number, b: number, _?: number): Color | null {
         const strKey = `${r},${g},${b}`;
         if(this.rgbToColor.hasOwnProperty(strKey)) return this.rgbToColor[strKey];
 
@@ -375,7 +373,7 @@ export class Canvas {
     }
 
     private static getColorId(r: number, g: number, b: number): Color {
-        return this.rgbToColor[`${r},${g},${b}`] ?? this.getClosestColorId({r,g,b}) ?? Color.OCEAN;
+        return this.rgbToColor[`${r},${g},${b}`] ?? this.getClosestColorId(r,g,b) ?? Color.OCEAN;
     }
 
     async loadCanvasPicture(): Promise<void> {

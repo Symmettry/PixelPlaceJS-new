@@ -2,13 +2,13 @@ import Jimp from "jimp";
 import { ImagePixels } from "./ImageDrawer";
 import fs from 'fs';
 import { PixelSetData } from "../data/Data";
-import { Canvas } from "../canvas/Canvas";
 import mime = require("mime-types");
 import { NetUtil } from "../NetUtil";
 import { HeadersFunc } from "../../PixelPlace";
+import { FilterFunction } from "./ImageFilter";
 
 export class ImageUtil {
-    static applyJimp(width: number, height: number, data: PixelSetData, err: Error | null, img: Jimp): [width: number, height: number] {
+    static applyJimp(width: number, height: number, filter: FilterFunction, data: PixelSetData, err: Error | null, img: Jimp): [width: number, height: number] {
         if (err) {
             throw err;
         }
@@ -24,26 +24,13 @@ export class ImageUtil {
         data.width = img.bitmap.width;
         data.height = img.bitmap.height;
 
-        width = data.width;
-        height = data.height;
-        
-        for (let x = 0; x < img.bitmap.width; x++) {
-            data.pixels[x] = [];
-            for (let y = 0; y < img.bitmap.height; y++) {
-                const color = img.getPixelColor(x, y);
-                const rgba = Jimp.intToRGBA(color);
-                
-                if (rgba.a === 0) continue;
-                
-                data.pixels[x][y] = Canvas.getClosestColorId(rgba);
-            }
-        }
+        data.pixels = filter(img);
 
-        return [width, height];
+        return [data.width, data.height];
     }
 
-    static async getPixelData(width: number, height: number, headers: HeadersFunc, boardId: number,
-                              path?: string, url?: string, pixels?: ImagePixels): Promise<PixelSetData> {
+    static async getPixelData(width: number, height: number, filter: FilterFunction, headers: HeadersFunc,
+                              boardId: number, path?: string, url?: string, pixels?: ImagePixels): Promise<PixelSetData> {
         const data: PixelSetData = { width, height, pixels: [] };
         if(path) {
             if (!fs.existsSync(path)) {
@@ -56,7 +43,7 @@ export class ImageUtil {
 
             await new Promise<void>((resolve) => {
                 Jimp.read(path, (err, img) => {
-                    const [w,h] = this.applyJimp(width, height, data, err, img);
+                    const [w,h] = this.applyJimp(width, height, filter, data, err, img);
                     data.width = w;
                     data.height = h;
                     resolve();
@@ -79,7 +66,7 @@ export class ImageUtil {
                 throw e;
             }
 
-            const [w,h] = this.applyJimp(width, height, data, null, img);
+            const [w,h] = this.applyJimp(width, height, filter, data, null, img);
             data.width = w;
             data.height = h;
 

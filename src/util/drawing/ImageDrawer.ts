@@ -5,6 +5,7 @@ import { PixelSetData, PixelFlags, PlaceResults, RawFlags } from "../data/Data";
 import { Color } from "../data/Color";
 import { ImageUtil } from "./ImageUtil";
 import { populate } from "../FlagUtil";
+import { FilterFunction, FilterMode } from "./ImageFilter";
 
 export type ImagePixels = (Color | null)[][];
 
@@ -37,7 +38,8 @@ export type Image = {
 
     /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
     mode?: DrawingMode,
-     /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
+    filter?: FilterFunction,
+    /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
     performant?: boolean;
 
     /** If it should draw each color independently; defaults to false */
@@ -68,6 +70,7 @@ export class ImageDrawer {
     private url?: string;
 
     private mode!: Modes | DrawingFunction;
+    private filter!: FilterFunction;
     private byColor!: boolean;
 
     private x!: number;
@@ -110,6 +113,8 @@ export class ImageDrawer {
 
         this.width = image.width ?? -1;
         this.height = image.height ?? -1;
+
+        this.filter = image.filter ?? FilterMode.STANDARD;
 
         constant(this, 'mode', image.mode ?? Modes.TOP_LEFT_TO_RIGHT);
         constant(this, 'byColor', image.byColor ?? false);
@@ -155,7 +160,7 @@ export class ImageDrawer {
 
     async begin(): Promise<PlaceResults[][]> {
 
-        const data: PixelSetData = await ImageUtil.getPixelData(this.width, this.height, this.instance.headers, this.instance.boardId,
+        const data: PixelSetData = await ImageUtil.getPixelData(this.width, this.height, this.filter, this.instance.headers, this.instance.boardId,
                         this.path, this.url, this.pixels);
 
         this.width = data.width;

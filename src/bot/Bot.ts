@@ -274,8 +274,8 @@ export class Bot {
      * @param rgb The rgb values. {r,g,b}
      * @returns The closest color to rgb
      */
-    getClosestColorId(rgb: IRGBColor): Color {
-        return Canvas.Canvas.getClosestColorId(rgb)!;
+    getClosestColorId(r: number, g: number, b: number): Color {
+        return Canvas.Canvas.getClosestColorId(r, g, b)!;
     }
     
     private getPlacementSpeed() {

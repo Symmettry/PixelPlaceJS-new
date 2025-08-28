@@ -208,7 +208,7 @@ export class AnimationDrawer {
                             continue;
                         }
                     }
-                    data[destX][destY] = this.bot.getClosestColorId({ r: pr, g: pg, b: pb });
+                    data[destX][destY] = this.bot.getClosestColorId(pr, pg, pb);
                 }
             }
 

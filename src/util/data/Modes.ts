@@ -136,7 +136,7 @@ export const drawingStrategies: {[key in Modes]: DrawingFunction} = {
             const x = coordinates[i] % pixels.width;
             const y = Math.floor(coordinates[i] / pixels.width);
             await draw(x, y);
-        } 
+        }
     }
 
 }
