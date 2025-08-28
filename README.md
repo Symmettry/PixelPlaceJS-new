@@ -163,7 +163,7 @@ ErrorMessages[ID] // The messages for these errors. This is not an enum. Example
 ### Full Bot
 
 ```js
-import { PixelPlace, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
+import { PixelPlace, Modes, Packets, Color, PPError } from "pixelplacejs-new";
 
 (async () => {
     const params = [
@@ -194,7 +194,7 @@ import { PixelPlace, Modes, Packets, Colors, PPError } from "pixelplacejs-new";
     // places a 10x10 area of white (You should remove this; it's just an example)
     for(var x=0;x<10;x++) {
         for(var y=0;y<10;y++) {
-            bot.placePixel(1000 + x, 1000 + y, Colors.WHITE);
+            bot.placePixel(1000 + x, 1000 + y, Color.WHITE);
         }
     }
 

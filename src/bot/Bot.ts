@@ -76,11 +76,11 @@ export class Bot {
     /** Current load barrier index */
     currentBarrier: number = 0;
     /** Amount of sustained packet load to cause increases */
-    loadBarriers: number[] = [0,500,1000,1500];
+    loadBarriers: number[] = [0,100,150,200,500];
     /** Slowdown amount in ms after sustained load passes barriers */
-    loadIncreases: number[] = [0,1,2,3];
+    loadIncreases: number[] = [0,1,3,4,5];
     /** Will reset load to 0 after passing this; this works fine because detected rate is lower after it's been slowed down for a while. */
-    loadReset: number = 5000;
+    loadReset: number = 1500;
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
