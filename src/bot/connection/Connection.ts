@@ -279,8 +279,8 @@ export class Connection {
                 this.lastReset += 1000;
                 this.pixelsThisSecond = 0;
             }
-            if(++this.pixelsThisSecond > this.bot.failSafe) {
-                console.log(`~~Fail safe triggered: ${this.pixelsThisSecond}/${this.bot.failSafe}~~`);
+            if(++this.pixelsThisSecond > this.bot.loadData.failSafe) {
+                console.log(`~~Fail safe triggered: ${this.pixelsThisSecond}/${this.bot.loadData.failSafe}~~`);
                 process.exit();
             }
         }

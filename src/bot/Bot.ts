@@ -25,11 +25,12 @@ export type LoadData = {
     barriers: number[];
     increases: number[];
     reset: number;
+    failSafe: number;
 }
 export const LoadPresets: Record<string, LoadData> = {
-    DEFAULT: { barriers: [0, 50, 250, 500], increases: [-1, 1, 2, 3], reset: 1500},
-    SAFE: { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000 },
-    FAST: { barriers: [0, 24, 100, 600 ], increases: [-12, -3, 1, 2], reset: 1000 },
+    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 500,  failSafe: 1000/6  },
+    DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, failSafe: 1000/10 },
+    SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, failSafe: 1000/10 },
 }
 
 /**
@@ -69,9 +70,6 @@ export class Bot {
     ratelimited: boolean = false;
     /** Amount of time ratelimited for. */
     ratelimitTime: number = 0;
-
-    /** Adds a fail safe for pixel packets per second, will shut the bot off if it sends more than this in a second */
-    failSafe: number = 1000/8;
 
     /** Max time a pixel will be waiting for. Setting place rate will increase this if it's higher. */
     maxPixelWait: number = 100;
@@ -352,9 +350,9 @@ export class Bot {
     private accurateTimeout(call: () => void, time: number): void {
         if(isNaN(time) || time < 0) {
             console.error(this);
-            throw new Error("Sleeping for an invalid amount of time!! Something is wrong, pls report with your code and the above text");
+            throw new Error("Sleeping for an invalid amount of time " + time + "!! Something is wrong, pls report with your code and the above text");
         }
-        time += Math.floor(Math.random() * 3);
+        if(time == 0) return call();
 
         const start = Date.now();
         function loop() {
@@ -467,7 +465,7 @@ export class Bot {
             }
         }
 
-        this.accurateTimeout(() => this.sendPixel(queuedPixel), Math.min(queuedPixel.speed, this.maxPixelWait));
+        this.accurateTimeout(() => this.sendPixel(queuedPixel), Math.max(0, Math.min(queuedPixel.speed, this.maxPixelWait)));
         return;
     }
 

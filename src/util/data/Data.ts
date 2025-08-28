@@ -252,8 +252,6 @@ export interface IStatistics {
             repaired: number,
             /** Timestamp of the last pixel repair. */
             last_repair: number,
-            /** Amount of pixels missed. idk why this happens */
-            missed: number,
         },
         /** Object mapping color codes to pixel counts. */
         colors: {
@@ -322,7 +320,6 @@ export function defaultStatistics(): IStatistics {
                 protected: 0,
                 repaired: 0,
                 last_repair: -1,
-                missed: 0,
             },
             colors: { },
         },
