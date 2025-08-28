@@ -21,6 +21,17 @@ import { GeometryDrawer, Outline, Rectangle } from '../util/drawing/GeometryDraw
 import { populate } from '../util/FlagUtil.js';
 import { DrawingMode, sortPixels } from '../util/data/Modes.js';
 
+export type LoadData = {
+    barriers: number[];
+    increases: number[];
+    reset: number;
+}
+export const LoadPresets: Record<string, LoadData> = {
+    DEFAULT: { barriers: [0, 50, 250, 500], increases: [-1, 1, 2, 3], reset: 1500},
+    SAFE: { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000 },
+    FAST: { barriers: [0, 24, 100, 600 ], increases: [-12, -3, 1, 2], reset: 1000 },
+}
+
 /**
  * The pixelplace bot.
  */
@@ -60,7 +71,7 @@ export class Bot {
     ratelimitTime: number = 0;
 
     /** Adds a fail safe for pixel packets per second, will shut the bot off if it sends more than this in a second */
-    failSafe: number = 1000/10;
+    failSafe: number = 1000/8;
 
     /** Max time a pixel will be waiting for. Setting place rate will increase this if it's higher. */
     maxPixelWait: number = 100;
@@ -75,12 +86,8 @@ export class Bot {
     
     /** Current load barrier index */
     currentBarrier: number = 0;
-    /** Amount of sustained packet load to cause increases */
-    loadBarriers: number[] = [0,100,150,200,500];
-    /** Slowdown amount in ms after sustained load passes barriers */
-    loadIncreases: number[] = [0,1,3,4,5];
-    /** Will reset load to 0 after passing this; this works fine because detected rate is lower after it's been slowed down for a while. */
-    loadReset: number = 1500;
+    /** Current load data */
+    loadData: LoadData = LoadPresets.DEFAULT;
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
@@ -147,7 +154,7 @@ export class Bot {
         if(this.sendQueue.length == 0) {
             if(this.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 100) {
                 this.sustainingLoad = Math.floor(Math.max(0, this.sustainingLoad / 3 - 400));
-                while(this.currentBarrier > 0 && this.sustainingLoad < this.loadIncreases[this.currentBarrier]) {
+                while(this.currentBarrier > 0 && this.sustainingLoad < this.loadData.increases[this.currentBarrier]) {
                     this.currentBarrier--;
                 }
                 this.lastVerification = Date.now();
@@ -165,6 +172,10 @@ export class Bot {
      */
     queuedPixels(): number {
         return this.getConnection().waitingOn();
+    }
+    
+    setLoadData(data: LoadData) {
+        this.loadData = data;
     }
 
     /**
@@ -421,17 +432,17 @@ export class Bot {
         }
 
         this.sustainingLoad++;
-        if(this.sustainingLoad >= this.loadReset) {
+        if(this.sustainingLoad >= this.loadData.reset) {
             this.sustainingLoad = 0;
         }
-        if(this.sustainingLoad > this.loadBarriers[this.currentBarrier]) {
-            if(this.currentBarrier != this.loadBarriers.length - 1 && this.sustainingLoad > this.loadBarriers[this.currentBarrier + 1]) {
+        if(this.sustainingLoad > this.loadData.barriers[this.currentBarrier]) {
+            if(this.currentBarrier != this.loadData.barriers.length - 1 && this.sustainingLoad > this.loadData.barriers[this.currentBarrier + 1]) {
                 this.currentBarrier++;
             }
         } else if (this.currentBarrier > 0) {
             this.currentBarrier--;
         }
-        queuedPixel.speed += this.loadIncreases[this.currentBarrier];
+        queuedPixel.speed += this.loadData.increases[this.currentBarrier];
 
         queuedPixel.speed += this.lagAmount * this.lagIncreasePerMs;
 
