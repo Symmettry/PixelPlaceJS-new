@@ -7,7 +7,7 @@ import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
-import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
+import { CanvasPacket, Expand, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { HeadersFunc } from "../../PixelPlace";
 import { PacketSendMap } from "../../util/packets/PacketSends";
 import { NetUtil } from "../../util/NetUtil";

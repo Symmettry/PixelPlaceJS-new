@@ -9,7 +9,7 @@ import { constant } from '../util/Constant.js';
 import { Bounds } from '../util/Bounds.js';
 import { TextData, TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { Line, LineDrawer } from '../util/drawing/LineDrawer.js';
-import { PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
+import { Expand, PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeadersFunc, HeaderTypes } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
 import { Color } from '../util/data/Color.js';
@@ -235,7 +235,7 @@ export class Bot {
      * @param func The function to execute upon receiving it.
      * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
-    on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T]) => void, pre: boolean = false): void {
+    on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void, pre: boolean = false): void {
         this.getConnection().on(packet, func, pre);
     }
 

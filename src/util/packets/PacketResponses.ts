@@ -3,6 +3,8 @@ import { ChatChannel, IArea, ItemName } from "../data/Data";
 import { PPError } from "../data/Errors";
 import { RECEIVED } from "./Packets";
 
+export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+
 /**
  * Types for packets.
  */
