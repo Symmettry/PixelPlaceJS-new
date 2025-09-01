@@ -30,7 +30,7 @@ export class Protector {
     protect(x: number, y: number, col: Color | null, replaceProtection: boolean = true) {
         if(!Canvas.isValidColor(col) || !this.pp.isValidPosition(x, y) || this.pp.getPixelAt(x, y) == Color.OCEAN) return;
 
-        if(!Protector.alerted && this.pp.getCanvas().boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
+        if(!Protector.alerted && this.pp.boardId == 7 && this.pp.sysParams.warnRuleBreakage) {
             const region = this.pp.getRegionAt(x, y);
             if(!region.canProtect) {
                 Protector.alerted = true;

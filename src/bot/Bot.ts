@@ -10,7 +10,7 @@ import { Bounds } from '../util/Bounds.js';
 import { TextData, TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { Line, LineDrawer } from '../util/drawing/LineDrawer.js';
 import { Expand, PacketResponseMap, RateChangePacket } from '../util/packets/PacketResponses.js';
-import { HeadersFunc, HeaderTypes } from '../PixelPlace.js';
+import { HeadersFunc, HeaderTypes, SystemParameters } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
 import { Color } from '../util/data/Color.js';
 import { PacketSendMap } from '../util/packets/PacketSends.js';
@@ -20,6 +20,7 @@ import { Animation, AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
 import { GeometryDrawer, Outline, Rectangle } from '../util/drawing/GeometryDrawer.js';
 import { populate } from '../util/FlagUtil.js';
 import { DrawingMode, sortPixels } from '../util/data/Modes.js';
+import { UUID } from 'crypto';
 
 export type LoadData = {
     barriers: number[];
@@ -49,8 +50,7 @@ export class Bot {
     private resendQueue: Array<PlainPixel> = [];
     private sendAfterWarDone: Array<Pixel> = [];
 
-    autoRestart: boolean;
-    handleErrors: boolean;
+    sysParams: SystemParameters;
 
     private uidman!: UIDManager;
 
@@ -101,11 +101,8 @@ export class Bot {
 
     /**
      * Creates a bot instance
-     * @param auth Auth data for pixelplace
-     * @param autoRestart If the bot should restart when it closes. Defaults to true
-     * @param handleErrors If errors should be handled when received -- invalid auth id will be processed regardless of this value. Defaults to true
      */
-    constructor(params: IBotParams | ServerClient, autoRestart: boolean = true, handleErrors: boolean = true) {
+    constructor(params: IBotParams | ServerClient, sysParams: SystemParameters) {
         this.params = params;
 
         if(!this.params.boardID) {
@@ -136,8 +133,11 @@ export class Bot {
         constant(this, 'boardId', params.boardID);
         constant(this, 'protector', new Protector(this));
         
-        this.autoRestart = autoRestart;
-        this.handleErrors = handleErrors;
+        this.sysParams = sysParams;
+        this.sysParams.exitOnClose      ??= false;
+        this.sysParams.autoRestart      ??= true;
+        this.sysParams.handleErrors     ??= true;
+        this.sysParams.warnRuleBreakage ??= true;
 
         this.Load = this.Load.bind(this);
         this.Connect = this.Connect.bind(this);
@@ -562,7 +562,7 @@ export class Bot {
             return Promise.resolve(null);
         }
 
-        if(this.getCanvas().boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
+        if(this.boardId == 7 && this.sysParams.warnRuleBreakage) {
             const region = this.getRegionAt(x, y);
             if(!Bot.alertedDisallow && !region.canBot) {
                 Bot.alertedDisallow = true;
@@ -916,6 +916,17 @@ export class Bot {
         if(!this.premium) throw new Error(`Cannot create when not premium.`);
         if(this.uidman) throw new Error(`Uid manager already exists.`);
         this.uidman = new UIDManager(this);
+    }
+
+    /**
+     * Creates a unique player id based on a user's name.
+     * 
+     * This utilizes the creation date of the account, which is unique for all players, and converts it into a UUID
+     * 
+     * This is deterministic, and the same name will always give the same UUID regardless of session.
+     */
+    async getUniquePlayerID(name: string): Promise<UUID> {
+        return this.netUtil.getUniquePlayerId(name);
     }
 
 }

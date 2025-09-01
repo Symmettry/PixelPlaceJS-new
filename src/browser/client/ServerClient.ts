@@ -89,7 +89,7 @@ export class ServerClient {
             this.debug("Canvas received, making bot");
 
             // browserClient is enabled when canvas is sent
-            this.bot = new Bot(this, false);
+            this.bot = new Bot(this, {});
             this.bot.rate = 12;
             this.server.botList.push([this.bot, this]);
 

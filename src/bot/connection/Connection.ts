@@ -186,7 +186,7 @@ export class Connection {
                 if(error.message.startsWith("connect ECONNREFUSED") && Date.now() - this.econnrefusedTimer > 10000) { // this means it couldn't connect
                     this.econnrefusedTimer = Date.now();
                     this.socket.close(4001);
-                    console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds." : ""}`);
+                    console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.sysParams.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds." : ""}`);
                 }
             });
 
@@ -228,8 +228,10 @@ export class Connection {
         if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SOCKET_CLOSE)) {
             this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]([code, reason]));
         }
-        if(this.bot.autoRestart) {
+        if(this.bot.sysParams.autoRestart) {
             setTimeout(() => this.Start(), 3000);
+        } else if (this.bot.sysParams.exitOnClose) {
+            process.exit();
         }
     }
 

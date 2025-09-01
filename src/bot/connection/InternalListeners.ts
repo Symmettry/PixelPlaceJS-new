@@ -39,7 +39,8 @@ export class InternalListeners {
                 return;
             }
 
-            if(!this.bot.handleErrors) return;
+            if(!this.bot.sysParams.handleErrors) return;
+            
             const errorMessage = ErrorMessages[value as keyof typeof ErrorMessages];
             switch(value) {
                 case PPError.LOGGED_OUT:

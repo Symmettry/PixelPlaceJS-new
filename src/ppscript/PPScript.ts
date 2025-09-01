@@ -321,7 +321,7 @@ export class PPScript {
             n.push(name);
         }
 
-        this.pp = new PixelPlace(p);
+        this.pp = new PixelPlace(p, {});
         n.forEach((n, i) => this.bots[n] = this.pp!.bots[i]);
         return this.pp;
     }

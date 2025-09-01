@@ -4,6 +4,8 @@ import { HeadersFunc } from "../PixelPlace";
 import { Color } from "./data/Color";
 import { AuctionData, BoardID, BoardTemplate, Icon } from "./data/Data";
 import https from 'https';
+import { v5 } from "uuid";
+import { UUID } from "crypto";
 
 /** YYYY-MM-DD HH:MM:SS */
 type CreationDate = `${number}-${number}-${number} ${number}:${number}:${number}`;
@@ -416,6 +418,8 @@ export type UserData = {
     guild_rank_3_title: string;
 };
 
+const NAMESPACE = "pixelplacejs-new";
+
 export class NetUtil {
     private static extCache: {[key: string]: any} = {};
 
@@ -479,6 +483,13 @@ export class NetUtil {
         }
 
         return (await data.json()) as UserData;
+    }
+    
+    async getUniquePlayerId(name: string): Promise<UUID> {
+        const data: UserData | null = await this.getUserData(name);
+        if(data == null) throw `User data is null for user: ${name}`;
+
+        return v5(data.createdAt, NAMESPACE) as UUID;
     }
 
     static async getUrl(url: string, headers: OutgoingHttpHeaders) {

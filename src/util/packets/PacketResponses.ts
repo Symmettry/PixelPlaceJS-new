@@ -95,13 +95,13 @@ export type AreasPacket = IArea[];
  * Packet for new painting being sold.
  */
 export type AuctionNewPaintingPacket = {
-    /** Owner of the painting. */
+    /** Owner of the painting; this is who is selling the painting. */
     owner_username: string,
-    /** Id of the painting. */
+    /** Unique id of the painting */
     frame_id: number,
-    /** Id of the auction. */
+    /** Unique id of the auction. */
     id: number,
-    /** The starting bid number. */
+    /** The starting bid amount (ppcoins) */
     current_bid: number
 };
 
@@ -473,6 +473,23 @@ export enum FightType {
 }
 
 /**
+ * Owi's area display is dog ass
+ * 
+ * It's ok ppjs got it
+ */
+export enum FightLocation {
+    AUSTRALIAN = 0,
+    RUSSIAN = 1,
+    AFRICAN = 2,
+    ANTARCTICAN = 3,
+    CANADIAN = 4,
+    BRAZILIAN = 5,
+    CHINESE = 6,
+    GREENLAND = 7,
+    UNITED_STATES = 8,
+}
+
+/**
  * Represents an area fight start notification.
  */
 export type AreaFightStartPacket = {
@@ -480,8 +497,8 @@ export type AreaFightStartPacket = {
     fightEndAt: EpochTimeStamp,
     /** The type of fight. */
     fightType: FightType,
-    /** The fight id. */
-    id: number,
+    /** Location id. */
+    id: FightLocation,
     /** The timestamp of the next fight. */
     nextFightAt: EpochTimeStamp
 };
@@ -496,19 +513,19 @@ export type AreaFightEndPacket = {
     defended: boolean,
     /** The fight type. */
     fightType: FightType,
-    /** The fight id. */
-    id: number,
-    /** The timestamp of the next fight. */
-    nextFight: EpochTimeStamp,
+    /** Location id. */
+    id: FightLocation,
+    /** Seconds to next fight. */
+    nextFight: number,
     /** The type of the next fight. */
     nextFightType: FightType,
-    /** The number of ores. */
+    /** The number of ores gained. */
     ores: number,
     /** The owner of the area. */
     ownedBy: string,
     /** The guild of the area owner. */
     ownedByGuild: string,
-    /** The points earned. */
+    /** The amount of battle points earned. */
     points: number,
     /** The previous owner of the area. */
     previousOwner: string,

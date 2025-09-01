@@ -8,6 +8,17 @@ export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" |
 
 export type HeadersFunc = (type: HeaderTypes, boardId: BoardID) => OutgoingHttpHeaders;
 
+export type SystemParameters = {
+    /** Will attempt to restart the bot when it closes; defaults to true */
+    autoRestart?: boolean;
+    /** Closes the bot when it disconnects; defaults to false. This won't do anything if autoRestart is true. */
+    exitOnClose?: boolean;
+    /** Automatically handles most errors (auth data will relog regardless); defaults to true*/
+    handleErrors?: boolean;
+    /** Warns for things on /7 such as botting/repairing in disallowed areas. Also handles prime island. Defaults to true. */
+    warnRuleBreakage?: boolean;
+}
+
 /**
  * Contains all bots and handles them.
  */
@@ -18,11 +29,10 @@ class PixelPlace {
     /**
      * Creates a new pixelplace instance and makes bots with all auth data
      * @param params A list of bot parameters.
-     * @param autoRestart If the bots should automatically restart when closed.
-     * @param handleErrors If the bots should handle errors when received. Invalid auth id is always processed regardless of this value.
+     * @param sysParams System parameters.
      */
-    constructor(params: IBotParams[] = [], autoRestart: boolean = true, handleErrors: boolean = true) {
-        this.bots = params.map(p => new Bot(p, autoRestart, handleErrors));
+    constructor(botParams: IBotParams[] = [], sysParams: SystemParameters) {
+        this.bots = botParams.map(p => new Bot(p, sysParams));
     }
 
     /**
