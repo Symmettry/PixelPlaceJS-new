@@ -31,7 +31,7 @@ class PixelPlace {
      * @param params A list of bot parameters.
      * @param sysParams System parameters.
      */
-    constructor(botParams: IBotParams[] = [], sysParams: SystemParameters) {
+    constructor(botParams: IBotParams[], sysParams: SystemParameters = {}) {
         this.bots = botParams.map(p => new Bot(p, sysParams));
     }
 
