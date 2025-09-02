@@ -168,8 +168,8 @@ export class Bot {
     /**
      * @returns amount of pixels in queue
      */
-    queuedPixels(): number {
-        return this.getConnection().waitingOn();
+    async queuedPixels(): Promise<number> {
+        return (await this.getConnection()).waitingOn();
     }
     
     setLoadData(data: LoadData) {
@@ -214,9 +214,13 @@ export class Bot {
         return this.connection != null && this.connection.connected;
     }
 
-    getConnection(): Connection {
+    async getConnection(): Promise<Connection> {
         if(!this.connected()) {
-            throw new Error("Not connected yet!")
+            if(!this.sysParams.autoRestart) {
+                throw new Error("Not connected yet!")
+            }
+            await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+            return await this.getConnection();
         }
         return this.connection!;
     }
@@ -225,8 +229,8 @@ export class Bot {
      * Canvas
      * @returns The canvas the bot is on.
      */
-    getCanvas(): Canvas.Canvas {
-        return this.getConnection().canvas;
+    async getCanvas(): Promise<Canvas.Canvas> {
+        return (await this.getConnection()).canvas;
     }
 
     /**
@@ -236,7 +240,7 @@ export class Bot {
      * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
     on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void, pre: boolean = false): void {
-        this.getConnection().on(packet, func, pre);
+        this.getConnection().then(conn => conn.on(packet, func, pre));
     }
 
     /**
@@ -274,8 +278,8 @@ export class Bot {
      * @param y The y coordinate of the pixel.
      * @returns The color of the pixel at x,y.
      */
-    getPixelAt(x: number, y: number): Color | undefined {
-        return this.getCanvas()?.pixelData?.get(x, y);
+    async getPixelAt(x: number, y: number): Promise<Color | undefined> {
+        return (await this.getCanvas())?.pixelData?.get(x, y);
     }
 
     /**
@@ -374,7 +378,7 @@ export class Bot {
     /**
      * Internal use only
      */
-    goThroughPixels(): void {
+    async goThroughPixels(): Promise<void> {
 
         if(this.sendQueue.length == 0) {
             this.lastVerification = Date.now();
@@ -396,7 +400,7 @@ export class Bot {
         do {
             if(queuedPixel != undefined && queuedPixel.resolve) queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: colAtSpot! });
             queuedPixel = this.sendQueue.shift();
-            colAtSpot = queuedPixel ? this.getPixelAt(queuedPixel.data.x, queuedPixel.data.y) : undefined;
+            colAtSpot = queuedPixel ? await this.getPixelAt(queuedPixel.data.x, queuedPixel.data.y) : undefined;
         } while ((colAtSpot == undefined || colAtSpot == Color.OCEAN || queuedPixel == undefined
             || (!queuedPixel.data.force && colAtSpot == queuedPixel.data.col))
             && this.sendQueue.length > 0);
@@ -409,7 +413,7 @@ export class Bot {
 
         const {x, y, protect, wars } = queuedPixel.data;
 
-        const skippedWar = !wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y);
+        const skippedWar = !wars && await this.isWarOccurring() && this.isPixelInWarZone(await this.getCurrentWarZone(), x, y);
         if(skippedWar) {
             if(protect) {
                 let updated = false;
@@ -471,7 +475,7 @@ export class Bot {
 
     lastPixel: number = Date.now();
 
-    private sendPixel(queuedPixel: IQueuedPixel): void {
+    private async sendPixel(queuedPixel: IQueuedPixel): Promise<void> {
         if(!this.connected()) {
             this.lastVerification = Date.now();
             this.queueLoop();
@@ -483,9 +487,9 @@ export class Bot {
 
         const {x, y, col, brush = 1, wars = false, force = false, protect = false} = queuedPixel.data;
 
-        const colAtSpot = this.getPixelAt(x, y);
+        const colAtSpot = await this.getPixelAt(x, y);
         const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
-                            || (!wars && this.isWarOccurring() && this.isPixelInWarZone(this.getCurrentWarZone(), x, y));
+                            || (!wars && await this.isWarOccurring() && this.isPixelInWarZone(await this.getCurrentWarZone(), x, y));
 
         this.resolvePixel(colAtSpot!, queuedPixel);
 
@@ -528,8 +532,8 @@ export class Bot {
     /**
      * @returns if an x,y is on the canvas
      */
-    isValidPosition(x: number, y: number): boolean {
-        return this.getCanvas()?.isValidPosition(x, y);
+    async isValidPosition(x: number, y: number): Promise<boolean> {
+        return (await this.getCanvas())?.isValidPosition(x, y);
     }
 
     /**
@@ -557,13 +561,13 @@ export class Bot {
             return Promise.resolve(null);
         }
 
-        const colAtSpot = this.getPixelAt(x, y);
+        const colAtSpot = await this.getPixelAt(x, y);
         if(colAtSpot == Color.OCEAN) {
             return Promise.resolve(null);
         }
 
         if(this.boardId == 7 && this.sysParams.warnRuleBreakage) {
-            const region = this.getRegionAt(x, y);
+            const region = await this.getRegionAt(x, y);
             if(!Bot.alertedDisallow && !region.canBot) {
                 Bot.alertedDisallow = true;
                 console.warn(`~~WARN~~ You are botting in a disallowed area: ${region.name} @ (${x},${y})\nThis warning will not repeat again.`);
@@ -595,7 +599,7 @@ export class Bot {
             return new Promise<PlaceResults>((resolve) => this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve}) );
         }
         this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve: null})
-        return Promise.resolve({ pixel, oldColor: this.getPixelAt(x, y) } as PlaceResults);
+        return Promise.resolve({ pixel, oldColor: await this.getPixelAt(x, y) } as PlaceResults);
     }
 
     /**
@@ -619,7 +623,7 @@ export class Bot {
      * @param value The value to send.
      */
     send(value: string | unknown[] | Buffer | Uint8Array): void {
-        this.getConnection().send(value);
+        this.getConnection().then(conn => conn.send(value));
     }
 
     /**
@@ -628,7 +632,7 @@ export class Bot {
      * @param value Value. If not set, no value will be sent through other than the packet name.
      */
     emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]): void {
-        this.getConnection().emit(type, value);
+        this.getConnection().then(conn => conn.emit(type, value));
     }
     
     /**
@@ -740,8 +744,8 @@ export class Bot {
     /**
      * @returns If the chat is loaded or not. (true/false)
      */
-    isChatLoaded(): boolean {
-        return this.getConnection().isChatLoaded();
+    async isChatLoaded(): Promise<boolean> {
+        return (await this.getConnection()).isChatLoaded();
     }
 
     /**
@@ -761,16 +765,16 @@ export class Bot {
     /**
      * @returns All war locations and stats on them.
      */
-    getAreas(): {[key: string]: IArea} {
-        return this.getConnection().getAreas();
+    async getAreas(): Promise<{[key: string]: IArea}> {
+        return (await this.getConnection()).getAreas();
     }
 
     /**
      * @param name The name of the area. E.g. "United States"
      * @returns An IArea instance containing info on the area.
      */
-    getArea(name: string): IArea | null {
-        return this.getAreas()[name];
+    async getArea(name: string): Promise<IArea | null> {
+        return (await this.getAreas())[name];
     }
 
     /**
@@ -778,15 +782,15 @@ export class Bot {
      * @param id The id of an area
      * @returns An IArea instance containing info on the area.
      */
-    getAreaById(id: number): IArea {
-        return this.getConnection().getAreaById(id);
+    async getAreaById(id: number): Promise<IArea> {
+        return (await this.getConnection()).getAreaById(id);
     }
 
     /**
      * @returns If a war is occurring (true/false)
      */
-    isWarOccurring(): boolean {
-        return this.getConnection().isWarOccurring();
+    async isWarOccurring(): Promise<boolean> {
+        return (await this.getConnection()).isWarOccurring();
     }
 
     /**
@@ -795,13 +799,13 @@ export class Bot {
      * @param y Y position of pixel
      * @returns If a pixel is in a war zone (true/false)
      */
-    isPixelInAnyWarZone(x: number, y: number): boolean {
+    async isPixelInAnyWarZone(x: number, y: number): Promise<boolean> {
         const areas = this.getAreas();
-        Object.keys(areas).forEach(key => {
-            if(this.isPixelInWarZone(key, x, y)) {
+        for(const key of Object.keys(areas)) {
+            if(await this.isPixelInWarZone(key, x, y)) {
                 return true;
             } // else ignore
-        })
+        }
         return false;
     }
 
@@ -813,9 +817,9 @@ export class Bot {
      * @param y Y position of pixel
      * @returns If a pixel is within a specific war zone.
      */
-    isPixelInWarZone(name: string, x: number, y: number): boolean {
+    async isPixelInWarZone(name: string, x: number, y: number): Promise<boolean> {
         if(this.boardId != 7) return false;
-        const area = this.getAreas()[name];
+        const area = (await this.getAreas())[name];
         if(area == null || !area.xStart) return false;
         return Bounds.isInBounds(area.xStart, area.yStart, area.xEnd, area.yEnd, x, y);
     }
@@ -823,8 +827,8 @@ export class Bot {
     /**
      * @returns The current war zone. Or "NONE" if a war is not found.
      */
-    getCurrentWarZone(): string {
-        return this.getConnection().getCurrentWarZone();
+    async getCurrentWarZone(): Promise<string> {
+        return (await this.getConnection()).getCurrentWarZone();
     }
 
     /**
@@ -905,8 +909,8 @@ export class Bot {
      * 
      * Region data has the name, botting status, and repairing status.
      */
-    getRegionAt(x: number, y: number): Canvas.RegionData {
-        return this.getCanvas()?.getRegionAt(x, y);
+    async getRegionAt(x: number, y: number): Promise<Canvas.RegionData> {
+        return (await this.getCanvas())?.getRegionAt(x, y);
     }
 
     /**
@@ -927,6 +931,17 @@ export class Bot {
      */
     async getUniquePlayerID(name: string): Promise<UUID> {
         return this.netUtil.getUniquePlayerId(name);
+    }
+
+    /**
+     * Gets the url to a canvas image png;
+     * 
+     * This will automatically convert canvas 0 to blank.png as done in pixelplace normally.
+     * 
+     * This will also add Date.now() for caching
+     */
+    getCanvasUrl(canvasId: number): string {
+        return canvasId == 0 ? `https://pixelplace.io/img/blank.png` : `https://pixelplace.io/canvas/${canvasId}.png?t=${Math.floor(Date.now() / 1000)}`
     }
 
 }

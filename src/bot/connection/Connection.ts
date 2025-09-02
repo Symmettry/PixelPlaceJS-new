@@ -7,7 +7,7 @@ import { constant } from '../../util/Constant.js';
 import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
-import { CanvasPacket, Expand, PacketResponseMap } from "../../util/packets/PacketResponses";
+import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { HeadersFunc } from "../../PixelPlace";
 import { PacketSendMap } from "../../util/packets/PacketSends";
 import { NetUtil } from "../../util/NetUtil";
@@ -154,7 +154,9 @@ export class Connection {
     }
 
     async Connect() {
-        if(this.socket && this.socket.readyState == 1) throw "Bot already connected.";
+        const restarting = this.socket != null;
+        if(restarting && this.socket.readyState == 1) throw "Bot already connected.";
+
         return new Promise<void>(async (resolve) => {
 
             if(Canvas.hasCanvas(this.boardId)) {
@@ -162,13 +164,13 @@ export class Connection {
             }
 
             if(this.serverClient) {
-                this.canvas = Canvas.createFromClient(this.serverClient);
+                this.stats.session.beginTime = Date.now();
+                if(!restarting) this.canvas = Canvas.createFromClient(this.serverClient);
                 this.socket = this.serverClient;
                 this.onopen(resolve);
-                this.stats.session.beginTime = Date.now();
             } else {
                 // create the canvas
-                this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers);
+                if(!restarting) this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers);
                 // connect to PixelPlace
                 this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
                     headers: this.headers("socket", this.boardId),
@@ -179,7 +181,9 @@ export class Connection {
                 this.socketClosed(code, reason);
             });
 
-            this.socket.on('open', () => this.onopen(resolve));
+            this.socket.on('open', () => {
+                this.onopen(resolve);
+            });
 
             this.socket.on('error', (error: Error) => {
                 this.socketError(error);
@@ -189,6 +193,8 @@ export class Connection {
                     console.error(`Pixelplace was unable to connect! Try checking if pixelplace is online and disabling vpns then verifying that you can connect to pixelplace normally.${this.bot.sysParams.autoRestart ? " Auto restart is enabled; this will repeat every 10 seconds." : ""}`);
                 }
             });
+
+            if(restarting) return;
 
             const [userId, premium, username] = await this.canvas.fetchCanvasData();
             if(userId == 0) {
@@ -205,8 +211,6 @@ export class Connection {
         });
     }
 
-    private pingInt: number = 0;
-
     async Load() {
         if(!this.socket) throw "Bot has not connected yet.";
 
@@ -221,15 +225,13 @@ export class Connection {
     }
 
     private socketClosed(code: number, reason: Buffer) {
-        clearInterval(this.pingInt);
-
         this.connected = false;
         this.chatLoaded = false;
         if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SOCKET_CLOSE)) {
             this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]([code, reason]));
         }
         if(this.bot.sysParams.autoRestart) {
-            setTimeout(() => this.Start(), 3000);
+            setImmediate(() => this.Start());
         } else if (this.bot.sysParams.exitOnClose) {
             process.exit();
         }
