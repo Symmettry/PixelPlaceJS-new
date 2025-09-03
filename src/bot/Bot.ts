@@ -5,7 +5,7 @@ import { Packets } from "../util/packets/Packets.js";
 import { IStatistics, defaultStatistics, IBotParams, IDebuggerOptions, BoardID } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
-import { constant, delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from '../util/Helper.js';
+import { delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from 'ts-delegate';
 import { TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
 import { RateChangePacket } from '../util/packets/PacketResponses.js';
@@ -16,6 +16,7 @@ import { ServerClient } from '../browser/client/ServerClient.js';
 import { AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
 import { GeometryDrawer } from '../util/drawing/GeometryDrawer.js';
 import { PixelQueue } from './PixelQueue.js';
+import { constant } from '../util/Constant.js';
 
 export type LoadData = {
     barriers: number[];
@@ -35,7 +36,6 @@ export const LoadPresets: Record<string, LoadData> = {
  * 
  * Contains helper functions etc.
  */
-// @ts-expect-error delegation priorities
 export class Bot implements
     Delegate<[Protector, UIDManager, Connection, Canvas.Canvas, NetUtil, PixelQueue]>,
     DelegateStatic<[typeof GeometryDrawer, typeof LineDrawer, typeof TextWriter, typeof ImageDrawer,
@@ -95,7 +95,7 @@ export class Bot implements
     private connection: Connection | null = null;
 
     // Net util
-    private netUtil: NetUtil;
+    netUtil: NetUtil;
 
     // UID Manager 
     uidMan!: UIDManager;

@@ -1,8 +1,8 @@
 import { Bot } from "../bot/Bot";
 import { Canvas } from "./canvas/Canvas";
 import { Color } from "./data/Color";
-import { BoardTemplate, IStatistics } from "./data/Data";
-import { DelegateMethod } from "./Helper";
+import { IStatistics } from "./data/Data";
+import { DelegateMethod } from "ts-delegate";
 import { PixelPacket } from "./packets/PacketResponses";
 
 /**

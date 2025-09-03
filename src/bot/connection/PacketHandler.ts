@@ -1,5 +1,5 @@
 import { ServerClient } from "../../browser/client/ServerClient";
-import { constant } from "../../util/Helper";
+import { constant } from "../../util/Constant";
 import { IAuthData, IBotParams } from "../../util/data/Data";
 import { MessageTuple, PacketResponseMap, PixelConfirmPacket, PixelPacket } from "../../util/packets/PacketResponses";
 import { Packets, RECEIVED } from "../../util/packets/Packets";

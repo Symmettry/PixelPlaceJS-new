@@ -6,7 +6,7 @@ import { AuctionData, BoardID, BoardTemplate, Icon } from "./data/Data";
 import https from 'https';
 import { v5 } from "uuid";
 import { UUID } from "crypto";
-import { DelegateMethod } from "./Helper";
+import { DelegateMethod } from "ts-delegate";
 
 /** YYYY-MM-DD HH:MM:SS */
 type CreationDate = `${number}-${number}-${number} ${number}:${number}:${number}`;
@@ -522,7 +522,7 @@ export class NetUtil {
      * 
      * This will also add Date.now() for caching
      */
-    @DelegateMethod(false)
+    @DelegateMethod()
     static getCanvasUrl(canvasId: number): string {
         return canvasId == 0 ? `https://pixelplace.io/img/blank.png` : `https://pixelplace.io/canvas/${canvasId}.png?t=${Math.floor(Date.now() / 1000)}`
     }

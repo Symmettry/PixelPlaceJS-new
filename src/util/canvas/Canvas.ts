@@ -8,7 +8,7 @@ import { PixelPacket } from '../packets/PacketResponses';
 import { HeadersFunc } from '../../PixelPlace';
 import { NetUtil } from '../NetUtil';
 import { ServerClient } from '../../browser/client/ServerClient';
-import { DelegateMethod } from '../Helper';
+import { DelegateMethod } from 'ts-delegate';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -365,7 +365,7 @@ export class Canvas {
      * @param a alpha can be included for spread, but it does nothing
      * @returns The closest color to rgb
      */
-    @DelegateMethod(false)
+    @DelegateMethod()
     static getClosestColorId(r: number, g: number, b: number, _?: number): Color | null {
         const strKey = `${r},${g},${b}`;
         if(this.rgbToColor.hasOwnProperty(strKey)) return this.rgbToColor[strKey];
@@ -474,7 +474,7 @@ export class Canvas {
      * @param col A color id.
      * @returns If it's a valid color or not.
      */
-    @DelegateMethod(false)
+    @DelegateMethod()
     static isValidColor(col: unknown): boolean {
         // non-numbers like null will be ignored fully.
         return typeof col == 'number' && (this.validColorIds.includes(col) || col == Color.OCEAN);
@@ -510,7 +510,7 @@ export class Canvas {
     /**
      * Gets a random color
      */
-    @DelegateMethod(false)
+    @DelegateMethod()
     static getRandomColor(): Color {
         const v: Color[] = Object.values(this.rgbToColor);
         return v[Math.floor(Math.random() * v.length)];

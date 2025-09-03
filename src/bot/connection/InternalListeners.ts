@@ -1,5 +1,5 @@
 import { ServerClient } from "../../browser/client/ServerClient";
-import { constant } from "../../util/Helper";
+import { constant } from "../../util/Constant";
 import { Color } from "../../util/data/Color";
 import { IArea, IQueuedPixel } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";

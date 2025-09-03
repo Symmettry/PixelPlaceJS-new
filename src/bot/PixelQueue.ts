@@ -1,9 +1,8 @@
-import { Canvas } from "../util/canvas/Canvas";
 import { Color } from "../util/data/Color";
 import { CoordSet, IQueuedPixel, Pixel, PlaceResults, PlainPixel, QueueSide } from "../util/data/Data";
 import { DrawingMode, sortPixels } from "../util/data/Modes";
 import { populate } from "../util/FlagUtil";
-import { DelegateMethod } from "../util/Helper";
+import { DelegateMethod } from "ts-delegate";
 import { Packets } from "../util/packets/Packets";
 import { Bot } from "./Bot";
 

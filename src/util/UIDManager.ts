@@ -1,5 +1,5 @@
 import { Bot } from "../bot/Bot";
-import { DelegateMethod } from "./Helper";
+import { DelegateMethod } from "ts-delegate";
 import { PixelPacket, UsernamePacket } from "./packets/PacketResponses";
 import { Packets } from "./packets/Packets";
 
