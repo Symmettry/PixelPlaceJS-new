@@ -1,7 +1,6 @@
 import Jimp from "jimp";
 import { Color } from "../data/Color";
 import { Canvas } from "../canvas/Canvas";
-import { IRGBColor } from "../data/Data";
 
 export type FilterFunction = (img: Jimp) => (Color | null)[][];
 

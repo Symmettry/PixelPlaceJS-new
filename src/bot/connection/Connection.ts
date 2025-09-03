@@ -13,6 +13,7 @@ import { PacketSendMap } from "../../util/packets/PacketSends";
 import { NetUtil } from "../../util/NetUtil";
 import { ServerClient } from "../../browser/client/ServerClient";
 import UIDManager from "../../util/UIDManager";
+import { Bounds } from "../../util/Bounds";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -166,12 +167,12 @@ export class Connection {
 
             if(this.serverClient) {
                 this.stats.session.beginTime = Date.now();
-                if(!restarting) this.canvas = Canvas.createFromClient(this.serverClient);
+                if(!restarting) delegate(this.bot, [this.canvas = Canvas.createFromClient(this.serverClient)]);
                 this.socket = this.serverClient;
                 this.onopen(resolve);
             } else {
                 // create the canvas
-                if(!restarting) this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers);
+                if(!restarting) delegate(this.bot, [this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers)]);
                 // connect to PixelPlace
                 this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
                     headers: this.headers("socket", this.boardId),
@@ -208,7 +209,7 @@ export class Connection {
 
             if(premium) {
                 this.bot.uidMan = new UIDManager(this.bot);
-                delegate(this.bot, this.bot.uidMan);
+                delegate(this.bot, [this.bot.uidMan]);
             }
         });
     }
@@ -331,22 +332,63 @@ export class Connection {
         this.send(`42["${type}",${JSON.stringify(value)}]`)
     }
 
+    /**
+     * @param name The name of the area. E.g. "United States"
+     * @returns An IArea instance containing info on the area.
+     */
+    getArea(name: string): IArea | null {
+        return this.areas[name];
+    }
+
+    /**
+     * @returns All war locations and stats on them.
+     */
     getAreas(): {[key: string]: IArea} {
         return this.areas;
     }
     
+    /**
+     * This is used if you want to get the area from a raw packet since the packets give id's rather than names.
+     * @param id The id of an area
+     * @returns An IArea instance containing info on the area.
+     */
     getAreaById(id: number): IArea {
         return this.areas[Object.keys(this.areas)[id]] || {};
     }
 
+    /**
+     * @returns If a war is occurring (true/false)
+     */
     isWarOccurring(): boolean {
         return this.warOccurring;
     }
 
+    /**
+     * This does not account for the current war zone or if a war is occuring.
+     * @param x X position of pixel
+     * @param y Y position of pixel
+     * @returns If a pixel is in a war zone (true/false)
+     */
+    isPixelInAnyWarZone(x: number, y: number): boolean {
+        const areas = this.getAreas();
+        for(const key of Object.keys(areas)) {
+            if(this.isPixelInWarZone(key, x, y)) {
+                return true;
+            } // else ignore
+        }
+        return false;
+    }
+
+    /**
+     * @returns If the chat is loaded or not. (true/false)
+     */
     isChatLoaded(): boolean {
         return this.chatLoaded;
     }
 
+    /**
+     * @returns The current war zone. Or "NONE" if a war is not found.
+     */
     getCurrentWarZone(): string {
         return this.currentWarZone;
     }
@@ -362,9 +404,9 @@ export class Connection {
     }
 
     /**
-     * Returns the number of pixels being waited for confirmation
+     * @returns amount of pixels in the sent queue; this is how many are waiting on confirmation
      */
-    waitingOn(): number {
+    queuedPixels(): number {
         return Object.keys(this.packetHandler.internalListeners.pixelTime).length;
     }
 
@@ -401,6 +443,21 @@ export class Connection {
      */
     isConnected() {
         return this.socket.readyState == WebSocket.OPEN && this.connected;
+    }
+
+    /**
+     * This does not account for if a war is occurring.
+     * You can check if a pixel is in the current war with isPixelInWarZone(bot.getCurrentWarZone(), x, y)
+     * @param name Name of the war zone
+     * @param x X position of pixel
+     * @param y Y position of pixel
+     * @returns If a pixel is within a specific war zone.
+     */
+    isPixelInWarZone(name: string, x: number, y: number): boolean {
+        if(this.boardId != 7) return false;
+        const area = this.getAreas()[name];
+        if(area == null || !area.xStart) return false;
+        return Bounds.isInBounds(area.xStart, area.yStart, area.xEnd, area.yEnd, x, y);
     }
 
 }

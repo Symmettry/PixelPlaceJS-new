@@ -1,12 +1,12 @@
 import ndarray from 'ndarray';
 import fs from 'fs';
 import path from 'path';
-import { BoardID, BoardTemplate, IRGBColor } from '../data/Data';
+import { BoardID, BoardTemplate } from '../data/Data';
 import { Color } from '../data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from '../packets/PacketResponses';
 import { HeadersFunc } from '../../PixelPlace';
-import { NetUtil, PaintingData } from '../NetUtil';
+import { NetUtil } from '../NetUtil';
 import { ServerClient } from '../../browser/client/ServerClient';
 
 const canvases: Map<number, Canvas> = new Map();
@@ -262,6 +262,13 @@ export class Canvas {
         this.regionData[0][0] = -1;
     }
 
+    /**
+     * Gets the regional data for a pixel
+     * 
+     * This only works on canvas 7.
+     * 
+     * Region data has the name, botting status, and repairing status.
+     */
     getRegionAt(x: number, y: number): RegionData {
         if(this.boardTemplate != BoardTemplate.PIXEL_WORLD_WAR || this.regionData == null)
             throw new Error(`Region data is only readable on world war canvases.`);
@@ -349,9 +356,12 @@ export class Canvas {
     }
 
     /**
-     * Gets the color id closest to the rgb value
-     * @param rgb Rgb data
-     * @returns Color id closest to rgb
+     * Gets the closest color to an r,g,b value
+     * @param r red value
+     * @param g green value
+     * @param b blue value
+     * @param a alpha can be included for spread, but it does nothing
+     * @returns The closest color to rgb
      */
     static getClosestColorId(r: number, g: number, b: number, _?: number): Color | null {
         const strKey = `${r},${g},${b}`;
@@ -501,8 +511,21 @@ export class Canvas {
         return v[Math.floor(Math.random() * v.length)];
     }
 
+    /**
+     * @returns if an x,y is on the canvas
+     */
     isValidPosition(x: number, y: number) {
         return x >= 0 && y >= 0 && x < this.canvasWidth && y < this.canvasHeight;
+    }
+
+    /**
+     * Gets the color of the pixel at x,y coordinates.
+     * @param x The x coordinate of the pixel.
+     * @param y The y coordinate of the pixel.
+     * @returns The color of the pixel at x,y.
+     */
+    getPixelAt(x: number, y: number): Color | undefined {
+        return this.pixelData?.get(x, y);
     }
 
 }

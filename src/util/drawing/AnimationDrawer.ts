@@ -65,6 +65,22 @@ export type AnimationFrame = [
 ];
 
 export class AnimationDrawer {
+
+    /**
+     * Plays an animation. If repeats is -1, it'll play forever and will skip the await. You can then use AnimationDrawer#stop
+     */
+    static async playAnimation(bot: Bot, animation: Animation): Promise<AnimationDrawer> {
+        bot.stats.animations.playing++;
+
+        const drawer = new AnimationDrawer(bot, animation);
+        await drawer.draw();
+
+        bot.stats.animations.playing--;
+        bot.stats.animations.finished++;
+
+        return drawer;
+    }
+    
     bot: Bot;
     x: AnimationCoord;
     y: AnimationCoord;

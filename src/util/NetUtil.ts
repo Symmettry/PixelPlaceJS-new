@@ -485,6 +485,13 @@ export class NetUtil {
         return (await data.json()) as UserData;
     }
     
+    /**
+     * Creates a unique player id based on a user's name.
+     * 
+     * This utilizes the creation date of the account, which is unique for all players, and converts it into a UUID
+     * 
+     * This is deterministic, and the same name will always give the same UUID regardless of session.
+     */
     async getUniquePlayerId(name: string): Promise<UUID> {
         const data: UserData | null = await this.getUserData(name);
         if(data == null) throw `User data is null for user: ${name}`;
@@ -502,6 +509,17 @@ export class NetUtil {
                 response.on('error', (error: Error) => { reject(error); });
             });
         });
+    }
+
+    /**
+     * Gets the url to a canvas image png;
+     * 
+     * This will automatically convert canvas 0 to blank.png as done in pixelplace normally.
+     * 
+     * This will also add Date.now() for caching
+     */
+    static getCanvasUrl(canvasId: number): string {
+        return canvasId == 0 ? `https://pixelplace.io/img/blank.png` : `https://pixelplace.io/canvas/${canvasId}.png?t=${Math.floor(Date.now() / 1000)}`
     }
 
 }
