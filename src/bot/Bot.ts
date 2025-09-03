@@ -5,7 +5,7 @@ import { Packets } from "../util/packets/Packets.js";
 import { Pixel, IStatistics, defaultStatistics, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, PlaceResults, PlainPixel, CoordSet, BoardID } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
-import { constant, delegate, Delegate, DelegateStatic, delegateStatic } from '../util/Helper.js';
+import { constant, delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from '../util/Helper.js';
 import { TextData, TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { Line, LineDrawer } from '../util/drawing/LineDrawer.js';
 import { PacketResponseMap, PixelPacket, RateChangePacket } from '../util/packets/PacketResponses.js';
@@ -283,72 +283,73 @@ export class Bot implements
     // Delegations //
 
     // ---------------- Connection ----------------
-    declare isConnected: () => boolean;
+    declare isConnected: Connection['isConnected'];
 
-    declare emit: <T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]) => Promise<void>;
-    declare send: (value: string | unknown[] | Buffer | Uint8Array) => Promise<void>;
+    declare emit: Connection['emit'];
+    declare send: Connection['send'];
 
-    declare on: <T extends keyof PacketResponseMap>(key: T, func: (args: PacketResponseMap[T]) => void, pre?: boolean) => void;
+    declare on: Connection['on'];
 
-    declare getCurrentWarZone: () => string;
-    declare isPixelInWarZone: (name: string, x: number, y: number) => boolean;
-    declare isPixelInAnyWarZone: (x: number, y: number) => boolean;
-    declare isWarOccurring: () => boolean;
+    declare getCurrentWarZone: Connection['getCurrentWarZone'];
+    declare isPixelInWarZone: Connection['isPixelInWarZone'];
+    declare isPixelInAnyWarZone: Connection['isPixelInAnyWarZone'];
+    declare isWarOccurring: Connection['isWarOccurring'];
 
-    declare getArea: (name: string) => IArea | null;
-    declare getAreaById: (id: number) => IArea;
-    declare getAreas: () => { [key: string]: IArea; };
-    
-    declare isChatLoaded: () => boolean;
+    declare getArea: Connection['getArea'];
+    declare getAreaById: Connection['getAreaById'];
+    declare getAreas: Connection['getAreas'];
 
-    declare queuedPixels: () => number;
+    declare isChatLoaded: Connection['isChatLoaded'];
+
+    declare queuedPixels: Connection['queuedPixels'];
 
     // ---------------- Canvas ----------------
-    declare getPixelAt: (x: number, y: number) => Color | undefined;
-    declare getRegionAt: (x: number, y: number) => Canvas.RegionData;
-    declare isValidPosition: (x: number, y: number) => boolean;
-    declare isValidColor: (col: number) => boolean;
-    declare getRandomColor: () => Color;
-    declare getClosestColorId: (r: number, g: number, b: number, _?: number) => Color | null;
+    declare getPixelAt: Canvas.Canvas['getPixelAt'];
+    declare getRegionAt: Canvas.Canvas['getRegionAt'];
+    declare isValidPosition: Canvas.Canvas['isValidPosition'];
+    declare isValidColor: typeof Canvas.Canvas.isValidColor;
+    declare getRandomColor: typeof Canvas.Canvas.getRandomColor;
+    declare getClosestColorId: typeof Canvas.Canvas.getClosestColorId;
 
     // ---------------- Protector ----------------
-    declare updateProtection: (protect: boolean, x: number, y: number, col: Color) => void;
-    declare detectPixels: (pixels: PixelPacket) => void;
-    declare protect: (x: number, y: number, col: Color | null, replaceProtection?: boolean) => void;
-    declare unprotect: (x: number, y: number) => void;
-    declare getProtectedColor: (x: number, y: number) => number | undefined;
-    declare isProtected: (x: number, y: number) => boolean;
+    declare updateProtection: Protector['updateProtection'];
+    declare detectPixels: Protector['detectPixels'];
+    declare protect: Protector['protect'];
+    declare unprotect: Protector['unprotect'];
+    declare getProtectedColor: Protector['getProtectedColor'];
+    declare isProtected: Protector['isProtected'];
 
     // ---------------- Net util ----------------
-    declare getUniquePlayerId: (name: string) => Promise<UUID>;
-    declare getUserData: (name: string, reload?: boolean) => Promise<UserData | null>;
-    declare getPaintingData: (canvasId: number, reload?: boolean, connected?: boolean) => Promise<PaintingData | null>;
-    declare getCanvasUrl: (canvasId: number) => string;
+    declare getUniquePlayerId: NetUtil['getUniquePlayerId'];
+    declare getUserData: NetUtil['getUserData'];
+    declare getPaintingData: NetUtil['getPaintingData'];
+    declare getCanvasUrl: typeof NetUtil.getCanvasUrl;
 
     // ---------------- UID Manager ----------------
-    declare getUsername: (uid: string | number) => Promise<string>;
+    declare getUsername: UIDManager['getUsername'];
 
     // ---------------- Geometry Drawer ----------------
-    declare drawRect: (rect: Rectangle) => Promise<PlaceResults[][]>;
-    declare drawOutline: (outline: Outline) => Promise<PlaceResults[][]>;
+    declare drawRect: OmitFirst<typeof GeometryDrawer.drawRect>;
+    declare drawOutline: OmitFirst<typeof GeometryDrawer.drawOutline>;
 
     // ---------------- Line Drawer ----------------
-    declare drawLine: (line: Line) => Promise<void>;
+    declare drawLine: OmitFirst<typeof LineDrawer.drawLine>;
 
     // ---------------- Text Writer ----------------
-    declare drawText: (text: TextData) => Promise<[number, number]>;
+    declare drawText: OmitFirst<typeof TextWriter.drawText>;
 
     // ---------------- Image Drawer ----------------
-    declare drawImage: (image: Image) => Promise<PlaceResults[][]>;
+    declare drawImage: OmitFirst<typeof ImageDrawer.drawImage>;
 
     // ---------------- Animation Drawer ----------------
-    declare playAnimation: (animation: Animation) => Promise<AnimationDrawer>;
+    declare playAnimation: OmitFirst<typeof AnimationDrawer.playAnimation>;
 
     // ---------------- Pixel Queue ----------------
-    declare sortQueue: (mode: DrawingMode) => void;
-    declare readQueue: () => readonly IQueuedPixel[];
-    declare placePixel: (upixel: Pixel) => Promise<PlaceResults>;
-    declare setPlacementSpeed: (arg: ((prevValue?: number | undefined) => number) | number, autoFix?: boolean, suppress?: boolean) => void;
-    declare sendWarPackets: () => void;
-    declare addToSendQueue: (p: IQueuedPixel) => void;
+    declare sortQueue: PixelQueue['sortQueue'];
+    declare readQueue: PixelQueue['readQueue'];
+    declare placePixel: PixelQueue['placePixel'];
+    declare setPlacementSpeed: PixelQueue['setPlacementSpeed'];
+    declare sendWarPackets: PixelQueue['sendWarPackets'];
+    declare addToSendQueue: PixelQueue['addToSendQueue'];
+
 }

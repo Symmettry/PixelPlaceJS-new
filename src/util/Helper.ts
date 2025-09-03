@@ -5,17 +5,28 @@ export function constant(instance: any, key: string, value: any) {
 
 // typescript for the mentally deranged (me)
 export type Delegate<T extends any[]> = T extends [infer First, ...infer Rest] ? { [K in keyof First]: First[K]; } & Delegate<Rest> : {};
+type IsExactly<T, U> = (<G>() => G extends T ? 1 : 2) extends (<G>() => G extends U ? 1 : 2) ? true : false;
+
+export type OmitFirst<F> =
+  F extends (arg: any, ...rest: infer R) => infer Ret
+    ? (...args: R) => Ret
+    : F;
+
+type OmitFirstIfSelf<F, Self> =
+  F extends (arg: infer First, ...rest: any[]) => any
+    ? IsExactly<First, Self> extends true
+      ? OmitFirst<F>
+      : F
+    : F;
+
+type DelegateFromCtor<C, Self> = {
+  [K in keyof C as C[K] extends (...args: any[]) => any ? K : never]: OmitFirstIfSelf<C[K], Self>
+};
+
 export type DelegateStatic<T extends readonly any[], Self> =
   T extends [infer First, ...infer Rest]
     ? First extends abstract new (...args: any) => any
-      ? {
-          [K in keyof First as First[K] extends (...args: any[]) => any ? K : never]:
-            First[K] extends (arg: infer A, ...rest: infer R) => infer Ret
-              ? (<G>() => G extends A ? 1 : 2) extends (<G>() => G extends Self ? 1 : 2)
-                ? (...args: R) => Ret
-                : First[K]
-              : First[K]
-        } & DelegateStatic<Rest, Self>
+      ? DelegateFromCtor<First, Self> & DelegateStatic<Rest, Self>
       : DelegateStatic<Rest, Self>
     : {};
 
