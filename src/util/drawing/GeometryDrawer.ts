@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { Bot } from "../../bot/Bot";
 import { Color } from "../data/Color";
 import { CoordSet, Pixel, PixelFlags, PlaceResults } from "../data/Data";
@@ -77,6 +76,14 @@ export class GeometryDrawer {
         return results;
     }
 
+    /**
+     * Draws a rectangle
+     * @param x X position of rectangle
+     * @param y Y position of rectangle
+     * @param width width of rectangle
+     * @param height height of rectangle
+     * @param color color or function that maps x,y to color
+     */
     static async drawRect(bot: Bot, urect: Rectangle): Promise<PlaceResults[][]> {
         const rect = populate(urect);
 
@@ -131,6 +138,15 @@ export class GeometryDrawer {
         }
     }
 
+    /**
+     * Draws an outline
+     * @param x X position of outline
+     * @param y Y position of outline
+     * @param width width of outline
+     * @param height height of outline
+     * @param color color or function that maps x,y to color
+     * @param borderWidth pixel width of the border
+     */
     static async drawOutline(bot: Bot, uoutline: Outline): Promise<PlaceResults[][]> {
         const outline = populate(uoutline);
 
@@ -141,5 +157,5 @@ export class GeometryDrawer {
 
         return await this.placeSorted(bot, outline, pixels);
     }
-
+    
 }

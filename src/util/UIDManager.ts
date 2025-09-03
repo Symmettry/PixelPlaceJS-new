@@ -1,5 +1,5 @@
 import { Bot } from "../bot/Bot";
-import { PixelPacket, PixelPacketData, UsernamePacket } from "./packets/PacketResponses";
+import { PixelPacket, UsernamePacket } from "./packets/PacketResponses";
 import { Packets } from "./packets/Packets";
 
 export default class UIDManager {
@@ -22,6 +22,11 @@ export default class UIDManager {
         this.uidMap.set(packet.id, packet.name);
     }
 
+    /**
+     * Gets an account username from the uid. Requires the uid manager enabled.
+     * @param uid The uid of the account.
+     * @returns The username from the uid.
+     */
     async getUsername(uid: string | number): Promise<string> {
         if(!this.pp.premium) {
             console.error(`~~ERROR~~ getUsername() called but the account is not premium!`);

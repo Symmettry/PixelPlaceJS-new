@@ -5,7 +5,13 @@ import { IRGBColor } from "../data/Data";
 
 export type FilterFunction = (img: Jimp) => (Color | null)[][];
 
-export const FilterMode: Record<string, FilterFunction> = {
+type FilterType = "STANDARD" | "FLOYD_STEINBERG";
+export const FilterMode: Record<FilterType, FilterFunction> = {
+    /**
+     * Standard filter mode, this is used automatically
+     * 
+     * Takes each pixel and finds the closest color in the palette
+     */
     STANDARD: (img: Jimp) => {
         const pixels: (Color | null)[][] = [];
         for (let x = 0; x < img.bitmap.width; x++) {
@@ -21,6 +27,11 @@ export const FilterMode: Record<string, FilterFunction> = {
         }
         return pixels;
     },
+    /**
+     * Uses the floyd steinberg filter method
+     * 
+     * Error from pixels are spread onto neighbors (dithering) to make the image appear better
+     */
     FLOYD_STEINBERG: (img: Jimp) => {
         const cols: [number, number, number, number][][] = [];
         for (let x = 0; x < img.bitmap.width; x++) {
@@ -81,4 +92,4 @@ export const FilterMode: Record<string, FilterFunction> = {
 
         return pixels;
     }
-}
+};

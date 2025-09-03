@@ -1,5 +1,5 @@
 import { Bot } from "../../bot/Bot";
-import { constant } from "../Constant";
+import { constant } from "../Helper";
 import { PixelFlags } from "../data/Data";
 import { populate } from "../FlagUtil";
 
@@ -21,6 +21,29 @@ export type Line = {
 } & PixelFlags;
 
 export class LineDrawer {
+
+    /**
+     * Draws a line between two positions (experimental).
+     * @param x1 The initial x position.
+     * @param y1 The initial y position.
+     * @param x2 The ending x position.
+     * @param y2 The ending y position.
+     * @param col The color to draw with.
+     * @param thickness How thick the line is (due to this being an experimental function, it can bug at weird angles.)
+     * @param protect If the pixels should be replaced when another player modifies them.
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
+     * @param force If the pixel packet should still be sent if it doesn't change the color.
+     */
+    static async drawLine(bot: Bot, line: Line) {
+        
+        bot.stats.lines.drawing++;
+
+        await new LineDrawer(bot, line).begin();
+
+        bot.stats.lines.drawing--;
+        bot.stats.lines.finished++;
+
+    }
 
     private bot!: Bot;
     

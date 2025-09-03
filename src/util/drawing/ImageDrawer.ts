@@ -1,6 +1,6 @@
 import { Bot } from "../../bot/Bot";
 import { DrawingFunction, DrawingMode, drawingStrategies, HypotFunction, Modes } from "../data/Modes";
-import { constant } from "../Constant";
+import { constant } from "../Helper";
 import { PixelSetData, PixelFlags, PlaceResults, RawFlags } from "../data/Data";
 import { Color } from "../data/Color";
 import { ImageUtil } from "./ImageUtil";
@@ -62,6 +62,29 @@ const SQRT2M1 = Math.sqrt(2) - 1;
  * Utility function for drawing images.
  */
 export class ImageDrawer {
+
+    /**
+     * Draws an image.
+     * @param x The x coordinate of the left.
+     * @param y The y coordinate of the top.
+     * @param path The path of the image.
+     * @param mode The mode to draw. Can also be DrawingFunction.
+     * @param protect If the pixels should be replaced when another player modifies them.
+     * @param transparent If the image is transparent. Will skip any 0 alpha pixels.
+     * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
+     * @param force If the pixel packet should still be sent if it doesn't change the color.
+     * @returns A promise that resolves once the image is done drawing, contains place results for all placed pixels.
+     */
+    static async drawImage(bot: Bot, image: Image): Promise<PlaceResults[][]> {
+        bot.stats.images.drawing++;
+
+        const res = await new ImageDrawer(bot, image).begin();
+
+        bot.stats.images.drawing--;
+        bot.stats.images.finished++;
+
+        return res;
+    }
 
     private instance!: Bot;
 

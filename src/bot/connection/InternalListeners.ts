@@ -1,5 +1,5 @@
 import { ServerClient } from "../../browser/client/ServerClient";
-import { constant } from "../../util/Constant";
+import { constant } from "../../util/Helper";
 import { Color } from "../../util/data/Color";
 import { IArea, IQueuedPixel } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
@@ -159,8 +159,7 @@ export class InternalListeners {
 
             if(this.bot.premium) {
                 // pass the pixel update to the uid manager
-                const uidMan = this.bot.getUidManager()
-                if(uidMan != null) uidMan.onPixels(pixels);
+                this.bot.uidMan.onPixels(pixels);
             }
 
             if(missileDelay && pixels.find(n => n[4] === 0)) {
@@ -170,7 +169,7 @@ export class InternalListeners {
                 await new Promise<void>((resolve) => setTimeout(resolve, 3000));
             }
 
-            if(this.bot.protector) this.bot.protector.detectPixels(pixels);
+            this.bot.detectPixels(pixels);
         });
 
         const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;
@@ -224,9 +223,7 @@ export class InternalListeners {
 
         this.listen(RECEIVED.USERNAME, (name: UsernamePacket) => {
             // pass the username data to the uid manager
-            if(this.bot.getUidManager()) {
-                this.bot.getUidManager().onUsername(name);
-            }
+            this.bot.uidMan.onUsername(name);
         });
 
         this.listen(RECEIVED.USERNAME, () => {

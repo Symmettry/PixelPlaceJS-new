@@ -1,5 +1,5 @@
 import { Bot } from "../../../bot/Bot";
-import { constant } from "../../Constant";
+import { constant } from "../../Helper";
 import { Color } from "../../data/Color";
 import { BrushTypes, PixelFlags, QueueSide } from "../../data/Data";
 import { populate } from "../../FlagUtil";
@@ -38,6 +38,15 @@ type SpotData = [
 ][];
 
 export class TextWriter {
+    
+    /**
+     * Draws text.
+     * @param text Data for the text
+     * @returns The ending position of the text.
+     */
+    static async drawText(bot: Bot, text: TextData): Promise<[number, number]> {
+        return await new TextWriter(bot, text).begin();
+    }
 
     /**
      * Gets a pixel length of text based on the text, space length, and separator length.

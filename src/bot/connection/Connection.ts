@@ -3,15 +3,16 @@ import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets } from "../../util/packets/Packets";
 import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel, BoardID } from "../../util/data/Data";
-import { constant } from '../../util/Constant.js';
+import { constant, delegate } from '../../util/Helper.js';
 import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
-import { CanvasPacket, PacketResponseMap } from "../../util/packets/PacketResponses";
+import { CanvasPacket, Expand, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { HeadersFunc } from "../../PixelPlace";
 import { PacketSendMap } from "../../util/packets/PacketSends";
 import { NetUtil } from "../../util/NetUtil";
 import { ServerClient } from "../../browser/client/ServerClient";
+import UIDManager from "../../util/UIDManager";
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -206,7 +207,8 @@ export class Connection {
             this.bot.premium = premium;
 
             if(premium) {
-                this.bot.createUIDMan();
+                this.bot.uidMan = new UIDManager(this.bot);
+                delegate(this.bot, this.bot.uidMan);
             }
         });
     }
@@ -268,15 +270,28 @@ export class Connection {
         this.emit(Packets.SENT.INIT, { authKey, authToken, authId, boardId });
     }
 
-    on<T extends keyof PacketResponseMap>(key: T, func: (args: PacketResponseMap[T]) => void, pre: boolean) {
-        if(!this.packetHandler.listeners.has(key)) this.packetHandler.listeners.set(key, []);
-        this.packetHandler.listeners.get(key)?.push([func, pre]);
+    /**
+     * Enables a listener for a packet. When the packet is received, the function will be called.
+     * @param packet The packet to listen for.
+     * @param func The function to execute upon receiving it.
+     * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
+     */
+    on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void, pre?: boolean): void {
+        if(!this.packetHandler.listeners.has(packet)) this.packetHandler.listeners.set(packet, []);
+        this.packetHandler.listeners.get(packet)?.push([func, pre ?? false]);
     }
 
     private pixelsThisSecond: number = 0;
     private lastReset: number = Date.now();
 
-    send(value: Buffer | Uint8Array | string | unknown[]) {
+    /**
+     * Sends a value through the socket. It's recommended to use emit() over this.
+     * @param value The value to send.
+     * @returns A promise that will complete once the bot is actively connected; this is usually instant, it only waits if the bot crashes
+     */
+    async send(value: string | unknown[] | Buffer | Uint8Array): Promise<void> {
+        await this.verify();
+
         // full fail safe
         if(value.toString().startsWith('42["p",[')) {
             if(Date.now() - this.lastReset > 1000) {
@@ -301,7 +316,14 @@ export class Connection {
         }
     }
 
-    emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]) {
+   /**
+     * Emits a packet type and value through the socket.
+     * @param type Packet type.
+     * @param value Value. If not set, no value will be sent through other than the packet name.
+     * @returns A promise that will complete once the bot is actively connected; this is usually instant, it only waits if the bot crashes
+     */
+    async emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]): Promise<void> {
+        await this.verify();
         if(value == null) {
             this.send(`42["${type}"]`);
             return;
@@ -359,6 +381,26 @@ export class Connection {
 
     timeSinceConfirm(): number {
         return this.packetHandler.internalListeners.lastPixelPacket;
+    }
+
+    /**
+     * Starts a promise that will complete once the socket is connected
+     */
+    async verify(timeoutMS: number = 5000): Promise<void> {
+        const start = Date.now();
+        while (this.socket.readyState !== WebSocket.OPEN) {
+            if (Date.now() - start > timeoutMS) {
+                throw new Error("WebSocket connection timeout");
+            }
+            await new Promise(resolve => setTimeout(resolve, 250));
+        }
+    }
+
+    /**
+     * @returns If the connection is open
+     */
+    isConnected() {
+        return this.socket.readyState == WebSocket.OPEN && this.connected;
     }
 
 }
