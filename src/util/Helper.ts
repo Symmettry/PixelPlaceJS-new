@@ -30,11 +30,11 @@ export type DelegateStatic<T extends readonly any[], Self> =
       : DelegateStatic<Rest, Self>
     : {};
 
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function delegate(self: any, delegateCandidates: any[]) {
     for(const candidate of delegateCandidates) {
         for (const key in Object.getPrototypeOf(candidate)) {
+            if(!candidate[key].isDelegated) continue;
             self[key] = candidate[key].bind(candidate);
         }
     }
@@ -45,12 +45,16 @@ export function delegateStatic(self: any, delegateCandidates: any[]) {
     for(const candidate of delegateCandidates) {
         for (const key in candidate) {
             const val = candidate[key];
-            if (typeof val != "function") continue;
+            if (typeof val != "function" || !val.isDelegated) continue;
 
-            self[key] = (...args: any[]) => val.apply(candidate, args.length + 1 == val.length
-                ? [self, ...args]
-                : args
-            );
+            self[key] = (...args: any[]) => val.apply(candidate, val.omitFirst ? [self, ...args] : args);
         }
     }
+}
+
+export function DelegateMethod(omitFirst: boolean = true): MethodDecorator {
+    return (_: Object, __: string | symbol, descriptor: PropertyDescriptor) => {
+        (descriptor.value as any).isDelegated = true;
+        (descriptor.value as any).omitFirst = omitFirst;
+    };
 }

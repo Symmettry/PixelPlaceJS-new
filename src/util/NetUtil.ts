@@ -6,6 +6,7 @@ import { AuctionData, BoardID, BoardTemplate, Icon } from "./data/Data";
 import https from 'https';
 import { v5 } from "uuid";
 import { UUID } from "crypto";
+import { DelegateMethod } from "./Helper";
 
 /** YYYY-MM-DD HH:MM:SS */
 type CreationDate = `${number}-${number}-${number} ${number}:${number}:${number}`;
@@ -449,6 +450,7 @@ export class NetUtil {
      * @param reload If it should reload or return the cached value when called again. Defaults to false.
      * @param connected Connected or not. Not too useful. Defaults to true.
      */
+    @DelegateMethod()
     async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData | null> {
         if(this.paintingCache[canvasId] && !reload) return this.paintingCache[canvasId];
 
@@ -469,6 +471,7 @@ export class NetUtil {
      * @param name Name of the user
      * @param reload If it should reload or return the cached value when called again. Defaults to false
      */
+    @DelegateMethod()
     async getUserData(name: string, reload: boolean=false): Promise<UserData | null> {
         name = name.toLowerCase();
         if(this.userCache[name] && !reload) return this.userCache[name];
@@ -492,6 +495,7 @@ export class NetUtil {
      * 
      * This is deterministic, and the same name will always give the same UUID regardless of session.
      */
+    @DelegateMethod()
     async getUniquePlayerId(name: string): Promise<UUID> {
         const data: UserData | null = await this.getUserData(name);
         if(data == null) throw `User data is null for user: ${name}`;
@@ -518,6 +522,7 @@ export class NetUtil {
      * 
      * This will also add Date.now() for caching
      */
+    @DelegateMethod(false)
     static getCanvasUrl(canvasId: number): string {
         return canvasId == 0 ? `https://pixelplace.io/img/blank.png` : `https://pixelplace.io/canvas/${canvasId}.png?t=${Math.floor(Date.now() / 1000)}`
     }

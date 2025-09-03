@@ -1,5 +1,5 @@
 import { Bot } from "../../../bot/Bot";
-import { constant } from "../../Helper";
+import { constant, DelegateMethod } from "../../Helper";
 import { Color } from "../../data/Color";
 import { BrushTypes, PixelFlags, QueueSide } from "../../data/Data";
 import { populate } from "../../FlagUtil";
@@ -44,6 +44,7 @@ export class TextWriter {
      * @param text Data for the text
      * @returns The ending position of the text.
      */
+    @DelegateMethod()
     static async drawText(bot: Bot, text: TextData): Promise<[number, number]> {
         return await new TextWriter(bot, text).begin();
     }

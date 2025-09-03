@@ -3,6 +3,7 @@ import { Color } from "../data/Color";
 import { CoordSet, Pixel, PixelFlags, PlaceResults } from "../data/Data";
 import { DrawingMode, Modes, sortPixels } from "../data/Modes";
 import { populate } from "../FlagUtil";
+import { DelegateMethod } from "../Helper";
 
 export type ColorReceiver = Color | ((x: number, y: number) => Color);
 export type Rectangle = {
@@ -84,6 +85,7 @@ export class GeometryDrawer {
      * @param height height of rectangle
      * @param color color or function that maps x,y to color
      */
+    @DelegateMethod()
     static async drawRect(bot: Bot, urect: Rectangle): Promise<PlaceResults[][]> {
         const rect = populate(urect);
 
@@ -147,6 +149,7 @@ export class GeometryDrawer {
      * @param color color or function that maps x,y to color
      * @param borderWidth pixel width of the border
      */
+    @DelegateMethod()
     static async drawOutline(bot: Bot, uoutline: Outline): Promise<PlaceResults[][]> {
         const outline = populate(uoutline);
 

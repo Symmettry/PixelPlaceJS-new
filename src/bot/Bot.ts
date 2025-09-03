@@ -1,25 +1,21 @@
 import * as Canvas from '../util/canvas/Canvas.js';
-import { Image, ImageDrawer } from '../util/drawing/ImageDrawer.js';
+import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { Pixel, IStatistics, defaultStatistics, IQueuedPixel, IArea, IBotParams, IDebuggerOptions, QueueSide, PlaceResults, PlainPixel, CoordSet, BoardID } from '../util/data/Data.js';
+import { IStatistics, defaultStatistics, IBotParams, IDebuggerOptions, BoardID } from '../util/data/Data.js';
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { constant, delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from '../util/Helper.js';
-import { TextData, TextWriter } from '../util/drawing/fonts/TextWriter.js';
-import { Line, LineDrawer } from '../util/drawing/LineDrawer.js';
-import { PacketResponseMap, PixelPacket, RateChangePacket } from '../util/packets/PacketResponses.js';
+import { TextWriter } from '../util/drawing/fonts/TextWriter.js';
+import { LineDrawer } from '../util/drawing/LineDrawer.js';
+import { RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeadersFunc, HeaderTypes, SystemParameters } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
-import { Color } from '../util/data/Color.js';
-import { PacketSendMap } from '../util/packets/PacketSends.js';
-import { NetUtil, PaintingData, UserData } from '../util/NetUtil';
+import { NetUtil } from '../util/NetUtil';
 import { ServerClient } from '../browser/client/ServerClient.js';
-import { Animation, AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
-import { GeometryDrawer, Outline, Rectangle } from '../util/drawing/GeometryDrawer.js';
-import { UUID } from 'crypto';
+import { AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
+import { GeometryDrawer } from '../util/drawing/GeometryDrawer.js';
 import { PixelQueue } from './PixelQueue.js';
-import { DrawingMode } from '../util/data/Modes.js';
 
 export type LoadData = {
     barriers: number[];

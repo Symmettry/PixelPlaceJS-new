@@ -3,7 +3,7 @@ import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets } from "../../util/packets/Packets";
 import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel, BoardID } from "../../util/data/Data";
-import { constant, delegate } from '../../util/Helper.js';
+import { constant, delegate, DelegateMethod } from '../../util/Helper.js';
 import fs from 'fs';
 import path from 'path';
 import { PacketHandler } from './PacketHandler.js';
@@ -277,6 +277,7 @@ export class Connection {
      * @param func The function to execute upon receiving it.
      * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
+    @DelegateMethod()
     on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void, pre?: boolean): void {
         if(!this.packetHandler.listeners.has(packet)) this.packetHandler.listeners.set(packet, []);
         this.packetHandler.listeners.get(packet)?.push([func, pre ?? false]);
@@ -290,6 +291,7 @@ export class Connection {
      * @param value The value to send.
      * @returns A promise that will complete once the bot is actively connected; this is usually instant, it only waits if the bot crashes
      */
+    @DelegateMethod()
     async send(value: string | unknown[] | Buffer | Uint8Array): Promise<void> {
         await this.verify();
 
@@ -323,6 +325,7 @@ export class Connection {
      * @param value Value. If not set, no value will be sent through other than the packet name.
      * @returns A promise that will complete once the bot is actively connected; this is usually instant, it only waits if the bot crashes
      */
+    @DelegateMethod()
     async emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]): Promise<void> {
         await this.verify();
         if(value == null) {
@@ -336,6 +339,7 @@ export class Connection {
      * @param name The name of the area. E.g. "United States"
      * @returns An IArea instance containing info on the area.
      */
+    @DelegateMethod()
     getArea(name: string): IArea | null {
         return this.areas[name];
     }
@@ -343,6 +347,7 @@ export class Connection {
     /**
      * @returns All war locations and stats on them.
      */
+    @DelegateMethod()
     getAreas(): {[key: string]: IArea} {
         return this.areas;
     }
@@ -352,6 +357,7 @@ export class Connection {
      * @param id The id of an area
      * @returns An IArea instance containing info on the area.
      */
+    @DelegateMethod()
     getAreaById(id: number): IArea {
         return this.areas[Object.keys(this.areas)[id]] || {};
     }
@@ -359,6 +365,7 @@ export class Connection {
     /**
      * @returns If a war is occurring (true/false)
      */
+    @DelegateMethod()
     isWarOccurring(): boolean {
         return this.warOccurring;
     }
@@ -369,6 +376,7 @@ export class Connection {
      * @param y Y position of pixel
      * @returns If a pixel is in a war zone (true/false)
      */
+    @DelegateMethod()
     isPixelInAnyWarZone(x: number, y: number): boolean {
         const areas = this.getAreas();
         for(const key of Object.keys(areas)) {
@@ -382,6 +390,7 @@ export class Connection {
     /**
      * @returns If the chat is loaded or not. (true/false)
      */
+    @DelegateMethod()
     isChatLoaded(): boolean {
         return this.chatLoaded;
     }
@@ -389,6 +398,7 @@ export class Connection {
     /**
      * @returns The current war zone. Or "NONE" if a war is not found.
      */
+    @DelegateMethod()
     getCurrentWarZone(): string {
         return this.currentWarZone;
     }
@@ -406,6 +416,7 @@ export class Connection {
     /**
      * @returns amount of pixels in the sent queue; this is how many are waiting on confirmation
      */
+    @DelegateMethod()
     queuedPixels(): number {
         return Object.keys(this.packetHandler.internalListeners.pixelTime).length;
     }
@@ -441,6 +452,7 @@ export class Connection {
     /**
      * @returns If the connection is open
      */
+    @DelegateMethod()
     isConnected() {
         return this.socket.readyState == WebSocket.OPEN && this.connected;
     }
@@ -453,6 +465,7 @@ export class Connection {
      * @param y Y position of pixel
      * @returns If a pixel is within a specific war zone.
      */
+    @DelegateMethod()
     isPixelInWarZone(name: string, x: number, y: number): boolean {
         if(this.boardId != 7) return false;
         const area = this.getAreas()[name];

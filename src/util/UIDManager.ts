@@ -1,4 +1,5 @@
 import { Bot } from "../bot/Bot";
+import { DelegateMethod } from "./Helper";
 import { PixelPacket, UsernamePacket } from "./packets/PacketResponses";
 import { Packets } from "./packets/Packets";
 
@@ -27,6 +28,7 @@ export default class UIDManager {
      * @param uid The uid of the account.
      * @returns The username from the uid.
      */
+    @DelegateMethod()
     async getUsername(uid: string | number): Promise<string> {
         if(!this.pp.premium) {
             console.error(`~~ERROR~~ getUsername() called but the account is not premium!`);

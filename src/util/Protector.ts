@@ -2,6 +2,7 @@ import { Bot } from "../bot/Bot";
 import { Canvas } from "./canvas/Canvas";
 import { Color } from "./data/Color";
 import { BoardTemplate, IStatistics } from "./data/Data";
+import { DelegateMethod } from "./Helper";
 import { PixelPacket } from "./packets/PacketResponses";
 
 /**
@@ -22,6 +23,7 @@ export class Protector {
         this.stats = pp.stats;
     }
 
+    @DelegateMethod()
     updateProtection(protect: boolean, x: number, y: number, col: Color) {
         if(protect) this.protect(x, y, col);
         else this.unprotect(x, y);
@@ -34,6 +36,7 @@ export class Protector {
      * @param col The color of the pixel.
      * @param replaceProtection If it should replace pre-existing protection; defaults to false
      */
+    @DelegateMethod()
     protect(x: number, y: number, col: Color | null, replaceProtection: boolean = true) {
         if(!Canvas.isValidColor(col) || !this.pp.isValidPosition(x, y) || this.pp.getPixelAt(x, y) == Color.OCEAN) return;
 
@@ -59,6 +62,7 @@ export class Protector {
      * @param x X of the pixel
      * @param y Y of the pixel
      */
+    @DelegateMethod()
     unprotect(x: number, y: number): void {
         if(!this.pp.isValidPosition(x, y)) return;
 
@@ -72,6 +76,7 @@ export class Protector {
     /**
      * Gets the color being protected at a position, or undefined if not protected
      */
+    @DelegateMethod()
     getProtectedColor(x: number, y: number): number | undefined {
         if(!this.pp.isValidPosition(x, y)) return;
         return this.protectedPixels[x] && this.protectedPixels[x][y];
@@ -80,6 +85,7 @@ export class Protector {
     /**
      * Internal use only
      */
+    @DelegateMethod()
     detectPixels(pixels: PixelPacket): void {
         for(const [x, y, col] of pixels) {
             const protectColor = this.getProtectedColor(x, y);
@@ -96,6 +102,7 @@ export class Protector {
     /**
      * @returns If the spot is protected or not
      */
+    @DelegateMethod()
     isProtected(x: number, y: number): boolean {
         return this.getProtectedColor(x, y) != undefined;
     }

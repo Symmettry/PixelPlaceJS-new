@@ -1,6 +1,6 @@
 import { Bot } from "../../bot/Bot";
 import { DrawingFunction, DrawingMode, drawingStrategies, HypotFunction, Modes } from "../data/Modes";
-import { constant } from "../Helper";
+import { constant, DelegateMethod } from "../Helper";
 import { PixelSetData, PixelFlags, PlaceResults, RawFlags } from "../data/Data";
 import { Color } from "../data/Color";
 import { ImageUtil } from "./ImageUtil";
@@ -75,6 +75,7 @@ export class ImageDrawer {
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      * @returns A promise that resolves once the image is done drawing, contains place results for all placed pixels.
      */
+    @DelegateMethod()
     static async drawImage(bot: Bot, image: Image): Promise<PlaceResults[][]> {
         bot.stats.images.drawing++;
 

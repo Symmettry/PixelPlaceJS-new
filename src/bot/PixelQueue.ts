@@ -3,6 +3,7 @@ import { Color } from "../util/data/Color";
 import { CoordSet, IQueuedPixel, Pixel, PlaceResults, PlainPixel, QueueSide } from "../util/data/Data";
 import { DrawingMode, sortPixels } from "../util/data/Modes";
 import { populate } from "../util/FlagUtil";
+import { DelegateMethod } from "../util/Helper";
 import { Packets } from "../util/packets/Packets";
 import { Bot } from "./Bot";
 
@@ -51,6 +52,7 @@ export class PixelQueue {
     /**
      * This is used internally. Calling this probably won't do anything but I don't recommend it.
      */
+    @DelegateMethod()
     sendWarPackets() {
         this.sendAfterWarDone.forEach(pixel => {
             this.resendQueue.push(pixel);
@@ -66,6 +68,7 @@ export class PixelQueue {
      * @param autoFix If the rate should automatically be updated to be rate_change value -- won't do anything if you use a function
      * @param suppress Suppress warnings if the number is below bot.rate
      */
+    @DelegateMethod()
     setPlacementSpeed(arg: ((prevValue?: number | undefined) => number) | number, autoFix: boolean=true, suppress: boolean=false): void {
         this.bot.suppress = suppress;
         if(typeof arg == 'number') {
@@ -265,6 +268,7 @@ export class PixelQueue {
     /**
      * Internal use only
      */
+    @DelegateMethod()
     addToSendQueue(p: IQueuedPixel): void {
         if(!p.data.side || p.data.side == QueueSide.BACK) this.sendQueue.push(p);
         else this.sendQueue.unshift(p);
@@ -281,6 +285,7 @@ export class PixelQueue {
      * @param force Whether the pixel packet should still be sent even if it won't change the color. Defaults to false.
      * @returns A promise that resolves upon the pixel being sent.
      */
+    @DelegateMethod()
     async placePixel(upixel: Pixel): Promise<PlaceResults> {
         const pixel = populate(upixel);
         const {x, y, col, protect, async } = pixel;
@@ -341,6 +346,7 @@ export class PixelQueue {
      * 
      * You can take advantage of this by adding a bunch of pixels into queue with async: false, then sort.
      */
+    @DelegateMethod()
     sortQueue(mode: DrawingMode) {
         const pixels = this.sendQueue.map(n => n.data);
         const map: CoordSet<IQueuedPixel> = {};
@@ -352,6 +358,7 @@ export class PixelQueue {
         this.sendQueue = sortPixels(pixels, map, mode);
     }
 
+    @DelegateMethod()
     readQueue(): readonly IQueuedPixel[] {
         return this.sendQueue as readonly IQueuedPixel[];
     }

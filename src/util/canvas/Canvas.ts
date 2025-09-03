@@ -8,6 +8,7 @@ import { PixelPacket } from '../packets/PacketResponses';
 import { HeadersFunc } from '../../PixelPlace';
 import { NetUtil } from '../NetUtil';
 import { ServerClient } from '../../browser/client/ServerClient';
+import { DelegateMethod } from '../Helper';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -269,6 +270,7 @@ export class Canvas {
      * 
      * Region data has the name, botting status, and repairing status.
      */
+    @DelegateMethod()
     getRegionAt(x: number, y: number): RegionData {
         if(this.boardTemplate != BoardTemplate.PIXEL_WORLD_WAR || this.regionData == null)
             throw new Error(`Region data is only readable on world war canvases.`);
@@ -363,6 +365,7 @@ export class Canvas {
      * @param a alpha can be included for spread, but it does nothing
      * @returns The closest color to rgb
      */
+    @DelegateMethod(false)
     static getClosestColorId(r: number, g: number, b: number, _?: number): Color | null {
         const strKey = `${r},${g},${b}`;
         if(this.rgbToColor.hasOwnProperty(strKey)) return this.rgbToColor[strKey];
@@ -471,6 +474,7 @@ export class Canvas {
      * @param col A color id.
      * @returns If it's a valid color or not.
      */
+    @DelegateMethod(false)
     static isValidColor(col: unknown): boolean {
         // non-numbers like null will be ignored fully.
         return typeof col == 'number' && (this.validColorIds.includes(col) || col == Color.OCEAN);
@@ -506,6 +510,7 @@ export class Canvas {
     /**
      * Gets a random color
      */
+    @DelegateMethod(false)
     static getRandomColor(): Color {
         const v: Color[] = Object.values(this.rgbToColor);
         return v[Math.floor(Math.random() * v.length)];
@@ -514,6 +519,7 @@ export class Canvas {
     /**
      * @returns if an x,y is on the canvas
      */
+    @DelegateMethod()
     isValidPosition(x: number, y: number) {
         return x >= 0 && y >= 0 && x < this.canvasWidth && y < this.canvasHeight;
     }
@@ -524,6 +530,7 @@ export class Canvas {
      * @param y The y coordinate of the pixel.
      * @returns The color of the pixel at x,y.
      */
+    @DelegateMethod()
     getPixelAt(x: number, y: number): Color | undefined {
         return this.pixelData?.get(x, y);
     }

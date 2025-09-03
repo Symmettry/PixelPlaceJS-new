@@ -6,6 +6,7 @@ import { DrawingMode, Modes } from "../data/Modes";
 import { IRGBColor, PixelFlags, PlaceResults } from "../data/Data";
 import { NetUtil } from "../NetUtil";
 import { populate } from "../FlagUtil";
+import { DelegateMethod } from "../Helper";
 
 export enum AnimationType {
     GIF,
@@ -69,6 +70,7 @@ export class AnimationDrawer {
     /**
      * Plays an animation. If repeats is -1, it'll play forever and will skip the await. You can then use AnimationDrawer#stop
      */
+    @DelegateMethod()
     static async playAnimation(bot: Bot, animation: Animation): Promise<AnimationDrawer> {
         bot.stats.animations.playing++;
 

@@ -1,5 +1,5 @@
 import { Bot } from "../../bot/Bot";
-import { constant } from "../Helper";
+import { constant, DelegateMethod } from "../Helper";
 import { PixelFlags } from "../data/Data";
 import { populate } from "../FlagUtil";
 
@@ -34,6 +34,7 @@ export class LineDrawer {
      * @param wars If the pixels should place inside of war zones during wars (will get you banned if mods see it).
      * @param force If the pixel packet should still be sent if it doesn't change the color.
      */
+    @DelegateMethod()
     static async drawLine(bot: Bot, line: Line) {
         
         bot.stats.lines.drawing++;
