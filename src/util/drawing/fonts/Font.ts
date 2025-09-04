@@ -1,5 +1,9 @@
 export interface FontData {
+    /** Height of the font */
     height: number;
+    /** This will ignore case of the input letters and character record. Defaults to false in custom fonts. Is true on PPJS fonts. */
+    ignoreCase?: boolean;
+    /** Map of characters to an array of numbers, this is 1 or 0 and it is a 1d array. it will be split every `height` values */
     characters: Record<string, number[]>;
 }
 
@@ -16,6 +20,7 @@ function parseLetters(string: string): FontData {
     }
     return {
         height: parseInt(height),
+        ignoreCase: true,
         characters: arr,
     };
 }

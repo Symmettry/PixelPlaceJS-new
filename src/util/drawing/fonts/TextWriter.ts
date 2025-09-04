@@ -120,9 +120,17 @@ export class TextWriter {
 
         constant(this, 'bot', bot);
 
+        const fd = font instanceof Object && font.characters && font.height ? font : typeof font == 'number' ? fontData[font] : fontData[Font.SMALL_FONT];
+
+        fd.ignoreCase ??= false;
+        if(fd.ignoreCase) {
+            Object.keys(fd.characters).forEach(k => fd.characters[k.toLowerCase()] = fd.characters[k]);
+        }
+
         // tab = 4 spaces
         // ignore carriage return
-        constant(this, 'text', text.replace(/\t/g, "    ").replace(/\r/g, ""));
+        const t = text.replace(/\t/g, "    ").replace(/\r/g, "");
+        constant(this, 'text', fd.ignoreCase ? t.toLowerCase() : t);
 
         this.lines = this.text.split("\n");
 
@@ -140,7 +148,7 @@ export class TextWriter {
         constant(this, 'separatorLength', separatorLength ?? 1);
         constant(this, 'lineGap', lineGap ?? 1);
 
-        constant(this, "data", font instanceof Object && font.characters && font.height ? font : typeof font == 'number' ? fontData[font] : fontData[Font.SMALL_FONT]);
+        constant(this, "data", fd);
 
         constant(this, 'protect', protect ?? false);
         constant(this, 'wars', wars ?? false);
@@ -176,7 +184,7 @@ export class TextWriter {
             return [-this.separatorLength, this.generateNewlinePixels()]; // move back by separator to negate effects
         }
 
-        const positions = this.data.characters[point.toLowerCase()];
+        const positions = this.data.characters[point];
         if(positions == null) {
             console.log(`~~WARN~~ The used font does not support the letter '${point}'! It will be skipped.`);
             return [0, []];
