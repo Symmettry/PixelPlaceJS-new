@@ -148,3 +148,4 @@ scripts/**
 release/**
 userscript/**
 tests/**
+typedoc.json

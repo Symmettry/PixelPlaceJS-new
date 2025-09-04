@@ -1,0 +1,9 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "PixelPlaceJS-new",
+  "exclude": [],
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": true
+}
