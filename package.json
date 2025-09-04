@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc && cp src/util/canvas/mapdata.bin dist/util/canvas/mapdata.bin",
+    "build": ". scripts/build.sh",
     "docs": "rm -rf /docs && typedoc --out docs src"
   },
   "repository": {

@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "PPJS Extension",
+  "version": "1.0",
+  "description": "PixelPlaceJS extension side",
+  "permissions": [
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://pixelplace.io/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://pixelplace.io/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "PPJS Menu"
+  }
+}
