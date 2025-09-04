@@ -8,7 +8,7 @@ import { PixelPacket } from '../packets/PacketResponses';
 import { HeadersFunc } from '../../PixelPlace';
 import { NetUtil } from '../NetUtil';
 import { ServerClient } from '../../browser/client/ServerClient';
-import { DelegateMethod } from 'ts-delegate';
+import { DelegateField, DelegateMethod } from 'ts-delegate';
 
 const canvases: Map<number, Canvas> = new Map();
 
@@ -177,8 +177,12 @@ export class Canvas {
 
     pixelData!: ndarray.NdArray<Uint16Array>;
 
-    canvasWidth!: number;
-    canvasHeight!: number;
+    /** Width of the current canvas */
+    @DelegateField(true, false)
+    canvasWidth: number = 0;
+    /** Height of the current canvas */
+    @DelegateField(true, false)
+    canvasHeight: number = 0;
 
     headers!: HeadersFunc;
     netUtil!: NetUtil;

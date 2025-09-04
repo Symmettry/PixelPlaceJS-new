@@ -259,7 +259,7 @@ export class Bot implements
     addDebugger(settings: IDebuggerOptions = {}): void {
         this.debugger = true;
         this.debuggerOptions = settings;
-        if(this.isConnected()) {
+        if(this.isConnected && this.isConnected()) {
             this.addDebuggerInternal();
         }
     }
@@ -300,6 +300,8 @@ export class Bot implements
     declare queuedPixels: Connection['queuedPixels'];
 
     // ---------------- Canvas ----------------
+    declare canvasWidth: Canvas.Canvas['canvasWidth'];
+    declare canvasHeight: Canvas.Canvas['canvasHeight'];
     declare getPixelAt: Canvas.Canvas['getPixelAt'];
     declare getRegionAt: Canvas.Canvas['getRegionAt'];
     declare isValidPosition: Canvas.Canvas['isValidPosition'];

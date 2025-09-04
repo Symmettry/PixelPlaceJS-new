@@ -1,6 +1,6 @@
 {
   "name": "pixelplacejs-new",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "PixelPlace JS v2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,7 +22,7 @@
     "jimp": "^0.22.12",
     "mime-types": "^2.1.35",
     "ndarray": "^1.0.19",
-    "ts-delegate": "^1.0.2",
+    "ts-delegate": "^1.1.4",
     "uuid": "^11.1.0",
     "ws": "^8.14.2"
   },
