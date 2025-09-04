@@ -305,6 +305,8 @@ export class Bot implements
     declare getPixelAt: Canvas.Canvas['getPixelAt'];
     declare getRegionAt: Canvas.Canvas['getRegionAt'];
     declare isValidPosition: Canvas.Canvas['isValidPosition'];
+    declare getCanvasData: Canvas.Canvas['getCanvasData'];
+    declare getColorIds: Canvas.Canvas['getColorIds'];
     declare isValidColor: typeof Canvas.Canvas.isValidColor;
     declare getRandomColor: typeof Canvas.Canvas.getRandomColor;
     declare getClosestColorId: typeof Canvas.Canvas.getClosestColorId;

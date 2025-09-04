@@ -539,4 +539,17 @@ export class Canvas {
         return this.pixelData?.get(x, y);
     }
 
+    /**
+     * Returns the canvas data
+     */
+    @DelegateMethod()
+    getCanvasData() {
+        return this.pixelData;
+    }
+
+    @DelegateMethod()
+    getColorIds() {
+        return Object.keys(Canvas.colorToRgb);
+    }
+
 }

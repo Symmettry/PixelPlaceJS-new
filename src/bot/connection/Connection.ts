@@ -150,7 +150,7 @@ export class Connection {
         setInterval(() => {
             const now = Math.floor(new Date().getTime() / 1e3);
             if(time <= now) {
-                this.socket.send(`42["${Packets.SENT.HB}", " "]`);
+                this.send(`42["${Packets.SENT.HB}", " "]`);
                 time = now + (Math.floor(Math.random() * 20) + 73);
             }
         }, 5e3);

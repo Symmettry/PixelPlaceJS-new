@@ -218,7 +218,7 @@ export class PixelQueue {
 
     lastPixel: number = Date.now();
 
-    private sendPixel(queuedPixel: IQueuedPixel): void {
+    private async sendPixel(queuedPixel: IQueuedPixel): Promise<void> {
         if(!this.bot.isConnected()) {
             this.bot.getConnection().verify().then(() => {
                 this.lastVerification = Date.now();
@@ -241,7 +241,7 @@ export class PixelQueue {
         }
 
         this.bot.getConnection().timePixel(queuedPixel);
-        this.bot.emit(Packets.SENT.PIXEL, [x, y, col == Color.OCEAN ? -100 : col, brush]);
+        await this.bot.emit(Packets.SENT.PIXEL, [x, y, col == Color.OCEAN ? -100 : col, brush]);
         this.lastPixel = Date.now();
 
         // statistics

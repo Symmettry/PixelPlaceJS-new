@@ -22,6 +22,8 @@ export class SocketHook {
     constructor(port: number, settings: BrowserSettings) {
         this.port = port;
         this.settings = settings;
+
+        
     }
 
     debug(...data: any) {
