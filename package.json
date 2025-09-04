@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc && cp src/util/canvas/mapdata.bin dist/util/canvas/mapdata.bin",
-    "docs": "typedoc --out docs src"
+    "docs": "rm -rf /docs && typedoc --out docs src"
   },
   "repository": {
     "type": "git",
