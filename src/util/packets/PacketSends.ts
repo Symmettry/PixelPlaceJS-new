@@ -46,7 +46,6 @@ export type ClientInitPacket = {
 
 /** Sent to place pixels. */
 export type ClientPixelPacket = [
-
     /** X position of the pixel. */
     x: number,
     /** Y position of the pixel. */
@@ -57,7 +56,6 @@ export type ClientPixelPacket = [
 
     /** Brush number of the pixel. Default is 1. */
     brush: number,
-
 ];
 
 /** Keepalive for the server, for ratelimit and stuff. Value is the pong data. */

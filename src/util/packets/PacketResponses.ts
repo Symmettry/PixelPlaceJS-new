@@ -1,6 +1,7 @@
 import { Color } from "../data/Color";
 import { ChatChannel, IArea, ItemName } from "../data/Data";
 import { PPError } from "../data/Errors";
+import { ShopItems } from "../NetUtil";
 import { RECEIVED } from "./Packets";
 
 export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
@@ -255,8 +256,8 @@ export type ItemGiftNotificationPacket = {
     from: string,
     /** The recipient's username. */
     to: string,
-    /** The item id. */
-    item: ItemName,
+    /** The item id. Use bot.getItemData(id) */
+    item: keyof ShopItems,
 };
 
 /**
@@ -654,7 +655,13 @@ export type ChatMessagePacket = {
     /** The number of snowballs on the user. */
     snowballed: number,
     /** The timestamp when the message was created. */
-    createdAt: string
+    createdAt: string,
+    /** Soom amount. I mean zoom (scale). Only appears if /here command is used */
+    posS?: number;
+    /** X position of /here command */
+    posX?: number;
+    /** Y position of /here command */
+    posY?: number;
 };
 
 /**

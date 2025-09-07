@@ -8,7 +8,7 @@ import { Connection } from './connection/Connection.js';
 import { delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from 'ts-delegate';
 import { TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
-import { RateChangePacket } from '../util/packets/PacketResponses.js';
+import { ChatMessagePacket, RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeadersFunc, HeaderTypes, SystemParameters } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
 import { NetUtil } from '../util/NetUtil';
@@ -17,19 +17,22 @@ import { AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
 import { GeometryDrawer } from '../util/drawing/GeometryDrawer.js';
 import { PixelQueue } from './PixelQueue.js';
 import { constant } from '../util/Constant.js';
+import { InternalListeners } from './connection/InternalListeners.js';
 
 export type LoadData = {
-    barriers: number[];
-    increases: number[];
-    reset: number;
-    failSafe: number;
+    readonly barriers: readonly number[];
+    readonly increases: readonly number[];
+    readonly reset: number;
+    readonly failSafe: number;
 }
 
-export const LoadPresets: Record<string, LoadData> = {
-    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 500,  failSafe: 1000/6  },
+const _LoadPresets = {
+    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 600,  failSafe: 1000/6  },
     DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, failSafe: 1000/10 },
     SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, failSafe: 1000/10 },
-}
+} as const;
+type _Keys = keyof typeof _LoadPresets;
+export const LoadPresets: Record<_Keys, LoadData> = _LoadPresets;
 
 /**
  * Pixelplace bot instance.
@@ -37,7 +40,7 @@ export const LoadPresets: Record<string, LoadData> = {
  * Contains helper functions etc.
  */
 export class Bot implements
-    Delegate<[Protector, UIDManager, Connection, Canvas.Canvas, NetUtil, PixelQueue]>,
+    Delegate<[Protector, UIDManager, Connection, Canvas.Canvas, NetUtil, PixelQueue, InternalListeners]>,
     DelegateStatic<[typeof GeometryDrawer, typeof LineDrawer, typeof TextWriter, typeof ImageDrawer,
                     typeof Canvas.Canvas, typeof NetUtil, typeof AnimationDrawer], Bot>
 {
@@ -149,8 +152,6 @@ export class Bot implements
             }
             return headers;
         });
-
-        this.pixelQueue.queueLoop();
     }
 
     setLoadData(data: LoadData) {
@@ -307,6 +308,8 @@ export class Bot implements
     declare isValidPosition: Canvas.Canvas['isValidPosition'];
     declare getCanvasData: Canvas.Canvas['getCanvasData'];
     declare getColorIds: Canvas.Canvas['getColorIds'];
+    declare createImage: Canvas.Canvas['createImage'];
+    declare getItemData: Canvas.Canvas['getItemData'];
     declare isValidColor: typeof Canvas.Canvas.isValidColor;
     declare getRandomColor: typeof Canvas.Canvas.getRandomColor;
     declare getClosestColorId: typeof Canvas.Canvas.getClosestColorId;
@@ -351,5 +354,9 @@ export class Bot implements
     declare setPlacementSpeed: PixelQueue['setPlacementSpeed'];
     declare sendWarPackets: PixelQueue['sendWarPackets'];
     declare addToSendQueue: PixelQueue['addToSendQueue'];
+    declare finishQueue: PixelQueue['finishQueue'];
+
+    // ---------------- Internal Listeners ----------------
+    declare isNewChat: InternalListeners['isNewChat'];
 
 }

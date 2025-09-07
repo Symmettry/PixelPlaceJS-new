@@ -1,9 +1,10 @@
+import { DelegateMethod } from "ts-delegate";
 import { ServerClient } from "../../browser/client/ServerClient";
 import { constant } from "../../util/Constant";
 import { Color } from "../../util/data/Color";
 import { IArea, IQueuedPixel } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
-import { AreaFightEndPacket, AreaFightStartPacket, AreaFightZoneChangePacket, AreasPacket, CanvasPacket, PacketResponseMap, PixelPacket, RateChangePacket, ServerTimePacket, UsernamePacket } from "../../util/packets/PacketResponses";
+import { AreaFightEndPacket, AreaFightStartPacket, AreaFightZoneChangePacket, AreasPacket, CanvasPacket, ChatMessagePacket, PacketResponseMap, PixelPacket, RateChangePacket, ServerTimePacket, UsernamePacket } from "../../util/packets/PacketResponses";
 import { RECEIVED, SENT } from "../../util/packets/Packets";
 import { getPalive, getTDelay } from "../../util/ping/PAlive";
 import { Bot } from "../Bot";
@@ -35,7 +36,7 @@ export class InternalListeners {
         this.listen(RECEIVED.ERROR, (value: PPError) => {
             // process before checking handle errors
             if(this.bot.params instanceof ServerClient && value == PPError.INVALID_AUTH) {
-                this.connection.newInit(true);
+                this.connection.newInit();
                 return;
             }
 
@@ -287,6 +288,29 @@ export class InternalListeners {
             this.bot.sendWarPackets(); // so that it fills in the gap lmao.
         });
 
+        this.listen(RECEIVED.CHAT_MESSAGE, (msg: ChatMessagePacket) => {
+            const key = this.createChatKey(msg);
+            this.chatHistory[key] ??= 0;
+            this.chatHistory[key]++;
+        });
+
+    }
+
+    chatHistory: Record<string, number> = {};
+
+    @DelegateMethod()
+    isNewChat(msg: ChatMessagePacket) {
+        const key = this.createChatKey(msg);
+        // the when
+        // null < 1 = true YAY!!
+        // but
+        // undefined < 1 = false
+        // FUCK
+        return !this.chatHistory[key] || this.chatHistory[key] <= 1;
+    }
+
+    createChatKey(msg: ChatMessagePacket): string {
+        return `${msg.createdAt}|${msg.username}|${msg.message}`;
     }
 
     private listen<T extends keyof PacketResponseMap>(key: T, func: (args: PacketResponseMap[T]) => void) {

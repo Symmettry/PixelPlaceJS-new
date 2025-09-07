@@ -6,7 +6,7 @@ import { Color } from '../data/Color';
 import Jimp = require('jimp');
 import { PixelPacket } from '../packets/PacketResponses';
 import { HeadersFunc } from '../../PixelPlace';
-import { NetUtil } from '../NetUtil';
+import { NetUtil, PaintingData, ShopItems } from '../NetUtil';
 import { ServerClient } from '../../browser/client/ServerClient';
 import { DelegateField, DelegateMethod } from 'ts-delegate';
 
@@ -80,6 +80,51 @@ const REGIONS: {[key: number]: RegionData} = {
 }
 
 const MAX_CANVAS_SIZE = 3000;
+
+type SSAmount = {
+    /** Multiplies the image by this much */
+    amount: number;
+};
+type SSPer = {
+    /** Scales X this much */
+    scaleX?: number;
+    /** Scales Y this much */
+    scaleY?: number;
+} & ({scaleX: number} | {scaleY: number});
+type SSDimensions = {
+    /** New width of the image */
+    width: number;
+    /** New height of the image */
+    height: number;
+};
+
+type ScaleSettings = SSAmount | SSPer | SSDimensions;
+
+type ImageSettings = {
+    /** If the image should be transparent for the ocean pixels */
+    transparent?: boolean;
+    /** Path to write it to; otherwise just returns the Jimp if not defined */
+    path?: string;
+    /** Scales the image */
+    scale?: ScaleSettings,
+    /** Position to take the image on; if not set does the whole image. Can use width/height or endX/endY */
+    position?: {
+        /** Starting position X */
+        startX: number;
+        /** Starting position Y */
+        startY: number;
+    } & ({
+        /** Width of image */
+        width: number;
+        /** Height of image */
+        height: number;
+    } | {
+        /** Ending x position */
+        endX: number;
+        /** Ending y position */
+        endY: number;
+    })
+}
 
 /** 
  * Pixelplace canvas data.
@@ -192,6 +237,7 @@ export class Canvas {
     regionData: number[][] | null = null;
 
     boardTemplate!: BoardTemplate;
+    fullPaintingData!: PaintingData;
 
     constructor(data: ReqCanvas | ClientCanvas) {
         if(data.type == 0) {
@@ -340,6 +386,8 @@ export class Canvas {
                     reject();
                     return;
                 }
+
+                this.fullPaintingData = data;
 
                 this.canvasWidth = data.painting.width;
                 this.canvasHeight = data.painting.height;
@@ -495,20 +543,64 @@ export class Canvas {
     private OCEAN_RGBINT: number = Jimp.rgbaToInt(204,204,204,255);
     private TRANSPARENT_RGBINT: number = Jimp.rgbaToInt(0,0,0,0);
 
-    async createImage(path?: string, transparent?: boolean): Promise<Jimp> {
-        const image = new Jimp(this.canvasWidth, this.canvasHeight);
+    private applyScale(image: Jimp, scale: ImageSettings['scale'] | null) {
+        if(scale == null) return;
 
+        // Trust me, this is sigma
+        if((((s) => "amount" in s) as ((s: any) => s is SSAmount))(scale)) {
+            image.scale(scale.amount);
+        } else if((((s) => "width" in s) as ((s: any) => s is SSDimensions))(scale)) {
+            image.resize(scale.width, scale.height);
+        } else {
+            image.resize(image.bitmap.width * (scale.scaleX ?? 1), image.bitmap.height * (scale.scaleY ?? 1));
+        }
+    }
+
+    /**
+     * Creates an image (only async when writing to a path)
+     * @param imageSettings Image settings; path, transparent, position
+     * @returns The Jimp of the image
+     */
+    @DelegateMethod()
+    async createImage(imageSettings: ImageSettings = {}): Promise<Jimp> {
+        const { path = null, transparent = false, position = null, scale = null } = imageSettings;
+        let sx, sy, width, height;
+        if(!position) {
+            sx = sy = 0;
+            width = this.canvasWidth;
+            height = this.canvasHeight;
+        } else {
+            sx = position.startX;
+            sy = position.startY;
+            // @ts-expect-error the ?? is fine for this
+            width = position.width ?? (position.endX - position.startX)
+            // @ts-expect-error the ?? is fine for this
+            height = position.height ?? (position.endY - position.startY)
+        }
+        sx = Math.max(sx, 0);
+        sy = Math.max(sy, 0);
+        width = Math.min(width, this.canvasWidth - sx);
+        height = Math.min(height, this.canvasHeight - sy);
+
+        const image = new Jimp(width, height);
         const oceanCol = transparent ? this.TRANSPARENT_RGBINT : this.OCEAN_RGBINT;
-        for (let y = 0; y < this.canvasHeight; y++) {
-            for (let x = 0; x < this.canvasWidth; x++) {
-                const value = this.pixelData.get(x, y);
-                image.setPixelColor(value == Color.OCEAN ? oceanCol : Canvas.colorToRgbInt[value], x, y);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const value = this.pixelData.get(sx + x, sy + y);
+                image.setPixelColor((value == Color.OCEAN || value == null) ? oceanCol : Canvas.colorToRgbInt[value], x, y);
             }
         }
+
+        this.applyScale(image, scale);
 
         if(path) await image.writeAsync(path);
 
         return image;
+    }
+
+    @DelegateMethod()
+    getItemData(id: keyof ShopItems) {
+        return this.fullPaintingData.shop.items[id] ?? null;
     }
 
     /**

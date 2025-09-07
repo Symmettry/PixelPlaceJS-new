@@ -14,9 +14,13 @@ export class PixelQueue {
 
     private prevPlaceValue: number = 0;
 
+    private finishQueueResolves: (() => void)[] = [];
+
     private sendQueue: Array<IQueuedPixel> = [];
     private resendQueue: Array<PlainPixel> = [];
     private sendAfterWarDone: Array<Pixel> = [];
+
+    private startedQueue: boolean = false;
 
     constructor(bot: Bot) {
         this.bot = bot;
@@ -25,20 +29,26 @@ export class PixelQueue {
     private lastQueueTime: EpochTimeStamp = Date.now();
     private lastVerification: EpochTimeStamp = Date.now();
     queueLoop() {
-        if(this.sendQueue.length == 0) {
-            if(this.bot.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 100) {
-                this.bot.sustainingLoad = Math.floor(Math.max(0, this.bot.sustainingLoad / 3 - 400));
-                while(this.bot.currentBarrier > 0 && this.bot.sustainingLoad < this.bot.loadData.increases[this.bot.currentBarrier]) {
-                    this.bot.currentBarrier--;
-                }
-                this.lastVerification = Date.now();
-            }
-            
-            setTimeout(() => this.queueLoop(), 10);
+        if(this.sendQueue.length > 0) {
+            this.lastQueueTime = Date.now();
+            this.goThroughPixels();
             return;
         }
-        this.lastQueueTime = Date.now();
-        this.goThroughPixels();
+
+        if(this.bot.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 100) {
+            this.bot.sustainingLoad = Math.floor(Math.max(0, this.bot.sustainingLoad / 3 - 400));
+            while(this.bot.currentBarrier > 0 && this.bot.sustainingLoad < this.bot.loadData.increases[this.bot.currentBarrier]) {
+                this.bot.currentBarrier--;
+            }
+            this.lastVerification = Date.now();
+        }
+
+        if(this.finishQueueResolves.length > 0) {
+            this.finishQueueResolves.forEach(n => n());
+            this.finishQueueResolves = [];
+        }
+        
+        setTimeout(() => this.queueLoop(), 10);
     }
 
     private getPlacementSpeed() {
@@ -154,6 +164,9 @@ export class PixelQueue {
         return queuedPixel.speed;
     }
 
+    lastLag: number = 0;
+    lagCount: number = 1;
+
     goThroughPixels(): void {
 
         if(this.sendQueue.length == 0) {
@@ -164,10 +177,13 @@ export class PixelQueue {
 
         if(Date.now() - this.lastQueueTime > 400 && Date.now() - this.bot.getConnection().timeSinceConfirm() > 1000) {
             console.log("~~PIXELPLACE LAGGING~~");
+            if(Date.now() - this.lastLag < this.lagCount * 2000 + 2000) this.lagCount++;
+            else this.lagCount = Math.max(0, this.lagCount - 1);
             setTimeout(() => {
                 this.lastVerification = Date.now();
                 this.queueLoop();
-            }, 2000);
+            }, this.lagCount * 2000);
+            this.lastLag = Date.now();
             return;
         }
 
@@ -271,6 +287,13 @@ export class PixelQueue {
     addToSendQueue(p: IQueuedPixel): void {
         if(!p.data.side || p.data.side == QueueSide.BACK) this.sendQueue.push(p);
         else this.sendQueue.unshift(p);
+
+        // only start the queue loop if the bot's actually gonna be placing pixels
+        // otherwise if it's not a pixel placing bot we can let it take less CPU
+        if(!this.startedQueue) {
+            this.startedQueue = true;
+            this.queueLoop();
+        }
     }
 
     /**
@@ -358,8 +381,13 @@ export class PixelQueue {
     }
 
     @DelegateMethod()
-    readQueue(): readonly IQueuedPixel[] {
-        return this.sendQueue as readonly IQueuedPixel[];
+    readQueue(): IQueuedPixel[] {
+        return this.sendQueue;
+    }
+
+    @DelegateMethod()
+    finishQueue(): Promise<void> {
+        return new Promise<void>(resolve => this.finishQueueResolves.push(resolve));
     }
 
 }

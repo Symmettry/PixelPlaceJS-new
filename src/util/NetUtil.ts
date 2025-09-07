@@ -11,6 +11,149 @@ import { DelegateMethod } from "ts-delegate";
 /** YYYY-MM-DD HH:MM:SS */
 type CreationDate = `${number}-${number}-${number} ${number}:${number}:${number}`;
 
+export type ShopItems = {
+    1: {
+        name: "Pixel Missile";
+        description: "Fire this missile on a painting to spread your selected color";
+        radius: 35;
+        price: 90;
+        stock: 1000;
+        color: "#1EFF00";
+        type: 1;
+        display: 1
+    };
+    2: {
+        name: "Pixel Bomb";
+        description: "Drop this bomb on a painting to spread your selected color";
+        radius: 75;
+        price: 145;
+        stock: 1000;
+        color: "#0070FF";
+        type: 1;
+        display: 1
+    };
+    3: {
+        name: "Atomic Bomb";
+        description: "Drop this Atomic bomb on a painting to spread your selected color";
+        radius: 125;
+        price: 340;
+        stock: 1000;
+        color: "#a335ee";
+        type: 1;
+        display: 1
+    };
+    7: {
+        name: "Guild Bomb";
+        description: "Drop your guild emblem on a painting! You don't need to be the guild leader to use it. Click on your guild profile to edit emblem";
+        cd: 0;
+        radius: 32;
+        price: 190;
+        stock: 1000;
+        color: "#0070FF";
+        type: 1;
+        display: 0
+    };
+    6: {
+        name: "Rainbow Username";
+        description: "Rainbow animation on your username in the chat and on your profile (duration: 1 week)";
+        cd: 0;
+        radius: 0;
+        price: 160;
+        stock: 1000;
+        color: "#1EFF00";
+        type: 3;
+        display: 1
+    };
+    4: {
+        name: "1 month - Premium";
+        description: "Get a 1 month premium membership for you or a friend";
+        cd: 0;
+        radius: 0;
+        price: 1350;
+        stock: 1000;
+        color: "#ff8000";
+        type: 2;
+        display: 1
+    };
+    5: {
+        name: "1 year - Premium";
+        description: "Get a 1 year premium membership for you or a friend";
+        cd: 0;
+        radius: 0;
+        price: 15000;
+        stock: 1000;
+        color: "#E6CC80";
+        type: 2;
+        display: 1
+    };
+    8: {
+        name: "Avatar Bomb";
+        description: "Drop your profile avatar on a painting! Click on your profile to edit your avatar";
+        cd: 0;
+        radius: 32;
+        price: 190;
+        stock: 1000;
+        color: "#0070FF";
+        type: 1;
+        display: 0
+    };
+    9: {
+        name: "Name Change";
+        description: "Maybe you have become a little too famous, or maybe you just thought of something better. Either way, you can change your username! (Your previous username will still be displayed on your profile for the next 7 days)";
+        cd: 0;
+        radius: 0;
+        price: 540;
+        stock: 1000;
+        color: "#1EFF00";
+        type: 4;
+        display: 1
+    };
+    10: {
+        name: "XMAS Username";
+        description: "For a limited time, you can buy this XMAS animation for your username in the chat and on your profile (duration after use: 1 week) + 20 snowballs";
+        cd: 0;
+        radius: 0;
+        price: 150;
+        stock: 1000;
+        color: "#1EFF00";
+        type: 3;
+        display: 1
+    };
+    11: {
+        name: "3 days - Premium";
+        description: "Get a 3 days premium membership for you or a friend";
+        cd: 0;
+        radius: 0;
+        price: 255;
+        stock: 1000;
+        color: "#8a69f5";
+        type: 2;
+        display: 1
+    };
+    12: {
+        name: "HALLOWEEN Username";
+        description: "For a limited time, you can buy this HALLOWEEN animation for your username in the chat and an alternate fire animation on your profile (duration after use: 1 week). Note: Username in chat will use your selected color. Limited supply, Price increase by 66 at every restock";
+        cd: 0;
+        radius: 0;
+        price: 198;
+        stock: 1000;
+        color: "#ff9a00";
+        type: 3;
+        display: 0
+    };
+    13: {
+        name: "Treasure Chest";
+        description: "Get a variety of ores and gemstones to be used for frame crafting. In each chest you also have a chance to get items from the shop, even seasonal ones!";
+        cd: 0;
+        radius: 0;
+        price: 1;
+        stock: 1000;
+        color: "#ffbe00";
+        type: 5;
+        display: 1
+    }
+};
+
 /**
  * Painting data. There's a lot. I didn't bother JSDoc'ing some.
  */
@@ -222,148 +365,7 @@ export type PaintingData = {
     /** Shop data */
     shop: {
         itemsOrder: [ 1, 2, 3, 6, 9, 11, 4, 5, 10, 12, 13 ];
-        items: {
-            1: {
-                name: "Pixel Missile";
-                description: "Fire this missile on a painting to spread your selected color";
-                radius: 35;
-                price: 90;
-                stock: 1000;
-                color: "#1EFF00";
-                type: 1;
-                display: 1
-            };
-            2: {
-                name: "Pixel Bomb";
-                description: "Drop this bomb on a painting to spread your selected color";
-                radius: 75;
-                price: 145;
-                stock: 1000;
-                color: "#0070FF";
-                type: 1;
-                display: 1
-            };
-            3: {
-                name: "Atomic Bomb";
-                description: "Drop this Atomic bomb on a painting to spread your selected color";
-                radius: 125;
-                price: 340;
-                stock: 1000;
-                color: "#a335ee";
-                type: 1;
-                display: 1
-            };
-            7: {
-                name: "Guild Bomb";
-                description: "Drop your guild emblem on a painting! You don't need to be the guild leader to use it. Click on your guild profile to edit emblem";
-                cd: 0;
-                radius: 32;
-                price: 190;
-                stock: 1000;
-                color: "#0070FF";
-                type: 1;
-                display: 0
-            };
-            6: {
-                name: "Rainbow Username";
-                description: "Rainbow animation on your username in the chat and on your profile (duration: 1 week)";
-                cd: 0;
-                radius: 0;
-                price: 160;
-                stock: 1000;
-                color: "#1EFF00";
-                type: 3;
-                display: 1
-            };
-            4: {
-                name: "1 month - Premium";
-                description: "Get a 1 month premium membership for you or a friend";
-                cd: 0;
-                radius: 0;
-                price: 1350;
-                stock: 1000;
-                color: "#ff8000";
-                type: 2;
-                display: 1
-            };
-            5: {
-                name: "1 year - Premium";
-                description: "Get a 1 year premium membership for you or a friend";
-                cd: 0;
-                radius: 0;
-                price: 15000;
-                stock: 1000;
-                color: "#E6CC80";
-                type: 2;
-                display: 1
-            };
-            8: {
-                name: "Avatar Bomb";
-                description: "Drop your profile avatar on a painting! Click on your profile to edit your avatar";
-                cd: 0;
-                radius: 32;
-                price: 190;
-                stock: 1000;
-                color: "#0070FF";
-                type: 1;
-                display: 0
-            };
-            9: {
-                name: "Name Change";
-                description: "Maybe you have become a little too famous, or maybe you just thought of something better. Either way, you can change your username! (Your previous username will still be displayed on your profile for the next 7 days)";
-                cd: 0;
-                radius: 0;
-                price: 540;
-                stock: 1000;
-                color: "#1EFF00";
-                type: 4;
-                display: 1
-            };
-            10: {
-                name: "XMAS Username";
-                description: "For a limited time, you can buy this XMAS animation for your username in the chat and on your profile (duration after use: 1 week) + 20 snowballs";
-                cd: 0;
-                radius: 0;
-                price: 150;
-                stock: 1000;
-                color: "#1EFF00";
-                type: 3;
-                display: 1
-            };
-            11: {
-                name: "3 days - Premium";
-                description: "Get a 3 days premium membership for you or a friend";
-                cd: 0;
-                radius: 0;
-                price: 255;
-                stock: 1000;
-                color: "#8a69f5";
-                type: 2;
-                display: 1
-            };
-            12: {
-                name: "HALLOWEEN Username";
-                description: "For a limited time, you can buy this HALLOWEEN animation for your username in the chat and an alternate fire animation on your profile (duration after use: 1 week). Note: Username in chat will use your selected color. Limited supply, Price increase by 66 at every restock";
-                cd: 0;
-                radius: 0;
-                price: 198;
-                stock: 1000;
-                color: "#ff9a00";
-                type: 3;
-                display: 0
-            };
-            13: {
-                name: "Treasure Chest";
-                description: "Get a variety of ores and gemstones to be used for frame crafting. In each chest you also have a chance to get items from the shop, even seasonal ones!";
-                cd: 0;
-                radius: 0;
-                price: 1;
-                stock: 1000;
-                color: "#ffbe00";
-                type: 5;
-                display: 1
-            }
-        }
+        items: ShopItems;
     }
 }
 
@@ -382,11 +384,15 @@ export type UserData = {
     emerald_stones: number;
     sapphire_stones: number;
     ruby_stones: number;
-    /** 0 for no golden. 1 for golden. */
+    /** 0: false, 1: true */
     golden: 0 | 1;
     gold_bars: number;
     battlePoints: number;
+    /** Rank uses guild_rank_#_title */
     guild_rank: 0 | 1 | 2 | 3;
+    guild_rank_1_title: string;
+    guild_rank_2_title: string;
+    guild_rank_3_title: string;
     username: string;
     settings: string;
     followers: number;
@@ -399,13 +405,18 @@ export type UserData = {
     lastAction: number;
     pixels: number;
     pixelPerSeconds: string;
+    /** 0: false, 1: true */
     admin: 0 | 1;
+    /** 0: false, 1: true */
     mod: 0 | 1;
+    /** 0: false, 1: true */
     chatmod: 0 | 1;
     guild: string;
+    /** 0: false, 1: true */
     vip: 0 | 1;
     premiumIcon: string;
-    othersIcons: string[] | null;
+    /** This is a string split by comma. Don't ask me why. I DONT FUCKING KNOW. */
+    othersIcons: string | null;
     status: 0 | 1 | 2;
     canvas: BoardID;
     previousUsername: string | null;
@@ -414,9 +425,6 @@ export type UserData = {
     /** This is [] if nothing.. but an object of... array indexes... to social... what the fuck is this shit */
     social: [] | {[key: string] : string};
     framed: AuctionData[];
-    guild_rank_1_title: string;
-    guild_rank_2_title: string;
-    guild_rank_3_title: string;
 };
 
 const NAMESPACE = "pixelplacejs-new";
@@ -436,12 +444,18 @@ export class NetUtil {
         this.bot = bot;
     }
 
-    private async notOkay(data: Response): Promise<null> {
+    private async notOkay(data: Response | null): Promise<null> {
+        if(data == null) {
+            console.error(`Error occured when getting auth data!`);
+            return null;
+        }
         const text = await data.text();
         if(text.includes("Just a moment...")) {
-            throw new Error("Cloudflare authentication is invalid! pp#setCFClearance('cookie')");
+            console.error("Cloudflare authentication is invalid! pp#setCFClearance('cookie')");
+            return null;
         }
-        throw new Error("Invalid user data received!!\n" + text);
+        console.error("Invalid user data received!!\n" + text);
+        return null;
     }
 
     /**
@@ -454,13 +468,18 @@ export class NetUtil {
     async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData | null> {
         if(this.paintingCache[canvasId] && !reload) return this.paintingCache[canvasId];
 
-        const data = await fetch("https://pixelplace.io/api/get-painting.php?id=" + canvasId + "&connected=" + (connected ? 1 : 0), {
-            "headers": this.headers("get-painting", this.bot.boardId) as HeadersInit,
-            "body": null,
-            "method": "GET",
-        });
-        if(!data.ok) {
-            return this.notOkay(data);
+        let data: Response;
+        try {
+            data = await fetch("https://pixelplace.io/api/get-painting.php?id=" + canvasId + "&connected=" + (connected ? 1 : 0), {
+                "headers": this.headers("get-painting", this.bot.boardId) as HeadersInit,
+                "body": null,
+                "method": "GET",
+            })
+            if(!data.ok) {
+                return this.notOkay(data);
+            }
+        } catch (err) {
+            return this.notOkay(null);
         }
 
         return (await data.json()) as PaintingData;
@@ -476,13 +495,18 @@ export class NetUtil {
         name = name.toLowerCase();
         if(this.userCache[name] && !reload) return this.userCache[name];
 
-        const data = await fetch("https://pixelplace.io/api/get-user.php?username=" + name, {
-            "headers": this.headers("get-user", this.bot.boardId) as HeadersInit,
-            "body": null,
-            "method": "GET",
-        });
-        if(!data.ok) {
-            return this.notOkay(data);
+        let data: Response;
+        try {
+            data = await fetch("https://pixelplace.io/api/get-user.php?username=" + name, {
+                "headers": this.headers("get-user", this.bot.boardId) as HeadersInit,
+                "body": null,
+                "method": "GET",
+            });
+            if(!data.ok) {
+                return this.notOkay(data);
+            }
+        } catch (err) {
+            return this.notOkay(null);
         }
 
         return (await data.json()) as UserData;

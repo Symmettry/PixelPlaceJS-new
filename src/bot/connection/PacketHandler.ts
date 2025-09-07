@@ -64,8 +64,8 @@ export class PacketHandler {
                 this.connection.send("40");
                 break;
             case "40": // socket.io finish
-                if(this.authKey == "" && this.authToken == "" && this.authId == "") {
-                    await this.connection.newInit(false); // will generate a default auth value
+                if(!this.authKey || !this.authId || !this.authToken) {
+                    this.connection.emit(Packets.SENT.INIT, {authId: "", boardId: this.connection.boardId});
                 } else {
                     this.connection.sendInit(this.authKey, this.authToken, this.authId, this.connection.boardId);
                 }

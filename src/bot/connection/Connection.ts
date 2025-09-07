@@ -80,6 +80,8 @@ export class Connection {
         constant(this, 'netUtil', netUtil);
         constant(this, 'packetHandler', new PacketHandler(this, params));
 
+        delegate(bot, [this.packetHandler.internalListeners]);
+
         this.relog = this.relog.bind(this);
         this.Load = this.Load.bind(this);
     }
@@ -121,20 +123,24 @@ export class Connection {
     /**
      * Used internally. It gets new auth data.
      */
-    async newInit(loggedIn: boolean) {
+    async newInit() {
         this.shouldRelog = false;
         const authData = await this.relog();
         if(!authData || Object.keys(authData).length == 0 || !authData.authId) {
             process.exit();
         }
         this.sendInit(
-            loggedIn ? authData.authKey ?? undefined : undefined, loggedIn ? authData.authToken ?? undefined : undefined,authData.authId,
+            authData.authKey ?? undefined, authData.authToken ?? undefined,authData.authId,
             this.boardId
         );
     }
 
     public generateAuthCookie(): string {
-        return `authId=${this.authId};authKey=${this.authKey};authToken=${this.authToken};`;
+        let cookie = "";
+        if(this.authId) cookie += `authId=${this.authId};`;
+        if(this.authToken) cookie += `authToken=${this.authToken};`;
+        if(this.authKey) cookie += `authKey=${this.authKey};`;
+        return cookie;
     }
 
     async Start() {
@@ -200,7 +206,7 @@ export class Connection {
             if(restarting) return;
 
             const [userId, premium, username] = await this.canvas.fetchCanvasData();
-            if(userId == 0) {
+            if(userId == 0 && this.authKey != undefined) {
                 console.log(`~~WARN~~ This bot is not logged in!`,
                     `${this.bot.params instanceof ServerClient ? `(Userscript bot)` : `(Auth key of '${this.authKey.substring(0, 5)}')`}`);
             }
@@ -262,7 +268,7 @@ export class Connection {
 
     sendInit(authKey: string | undefined, authToken: string | undefined, authId: string, boardId: BoardID): void {
         if(this.shouldRelog) {
-            this.newInit(true);
+            this.newInit();
             return;
         }
         if(authKey == null && authToken == null) {
