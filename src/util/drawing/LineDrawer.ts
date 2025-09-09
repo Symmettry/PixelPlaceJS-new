@@ -1,5 +1,5 @@
 import { Bot } from "../../bot/Bot";
-import { constant } from "../Constant";
+import { constant } from "../Helper";
 import { DelegateMethod } from "ts-delegate";
 import { PixelFlags } from "../data/Data";
 import { populate } from "../FlagUtil";

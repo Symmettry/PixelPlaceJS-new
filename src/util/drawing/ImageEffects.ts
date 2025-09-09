@@ -1,23 +1,26 @@
 import Jimp from "jimp";
-import { Color } from "../data/Color";
 import { Canvas } from "../canvas/Canvas";
+import { ImagePixels } from "./ImageDrawer";
 
-export type FilterFunction = (img: Jimp) => (Color | null)[][];
+export type FilterFunction = (img: Jimp, effect: EffectFunction) => ImagePixels;
 
 type FilterType = "STANDARD" | "FLOYD_STEINBERG";
+/**
+ * Filter modes for quantization & dithering of images
+ */
 export const FilterMode: Record<FilterType, FilterFunction> = {
     /**
      * Standard filter mode, this is used automatically
      * 
      * Takes each pixel and finds the closest color in the palette
      */
-    STANDARD: (img: Jimp) => {
-        const pixels: (Color | null)[][] = [];
+    STANDARD: (img: Jimp, effect: EffectFunction) => {
+        const pixels: ImagePixels = [];
         for (let x = 0; x < img.bitmap.width; x++) {
             pixels[x] = [];
             for (let y = 0; y < img.bitmap.height; y++) {
                 const color = img.getPixelColor(x, y);
-                const {r,g,b,a} = Jimp.intToRGBA(color);
+                const {r,g,b,a} = effect(Jimp.intToRGBA(color));
                 
                 if (a === 0) continue;
                 
@@ -31,18 +34,18 @@ export const FilterMode: Record<FilterType, FilterFunction> = {
      * 
      * Error from pixels are spread onto neighbors (dithering) to make the image appear better
      */
-    FLOYD_STEINBERG: (img: Jimp) => {
+    FLOYD_STEINBERG: (img: Jimp, effect: EffectFunction) => {
         const cols: [number, number, number, number][][] = [];
         for (let x = 0; x < img.bitmap.width; x++) {
             cols[x] = [];
             for (let y = 0; y < img.bitmap.height; y++) {
-                const {r,g,b,a} = Jimp.intToRGBA(img.getPixelColor(x, y));
+                const {r,g,b,a} = effect(Jimp.intToRGBA(img.getPixelColor(x, y)));
                 if(a == 0) continue;
 
                 cols[x][y] = [Jimp.rgbaToInt(r,g,b,a), r,g,b];
             }
         }
-        const pixels: (Color | null)[][] = [];
+        const pixels: ImagePixels = [];
         const w = img.bitmap.width;
         const h = img.bitmap.height;
         for (let x = 0; x < w; x++) {
@@ -90,5 +93,30 @@ export const FilterMode: Record<FilterType, FilterFunction> = {
         }
 
         return pixels;
+    },
+} as const;
+
+type RGBA = {r: number, g: number, b: number, a: number};
+export type EffectFunction = (rgba: RGBA) => RGBA;
+
+type EffectType = "NONE" | "GREYSCALE" | "INVERT";
+/**
+ * Effects to images; this directly mutates the pixel data
+ */
+export const EffectMode: Record<EffectType, EffectFunction> = {
+
+    "NONE": (rgba) => rgba,
+    /**
+     * 
+     */
+    "GREYSCALE": ({r, g, b, a}) => {
+        const gray = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+        return {r: gray, g: gray, b: gray, a};
+    },
+    /**
+     * Inverts the colors of the image
+     */
+    "INVERT": ({r, g, b, a}) => {
+        return {r: 255 - r, g: 255 - g, b: 255 - b, a};
     }
-};
+}

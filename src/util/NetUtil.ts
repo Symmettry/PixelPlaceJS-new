@@ -2,157 +2,187 @@ import { IncomingMessage, OutgoingHttpHeaders } from "http";
 import { Bot } from "../bot/Bot";
 import { HeadersFunc } from "../PixelPlace";
 import { Color } from "./data/Color";
-import { AuctionData, BoardID, BoardTemplate, Icon } from "./data/Data";
+import { AuctionData, BoardID, BoardTemplate } from "./data/Data";
 import https from 'https';
 import { v5 } from "uuid";
 import { UUID } from "crypto";
 import { DelegateMethod } from "ts-delegate";
+import { CoinIslandID } from "./packets/PacketResponses";
 
 /** YYYY-MM-DD HH:MM:SS */
 type CreationDate = `${number}-${number}-${number} ${number}:${number}:${number}`;
 
-export type ShopItems = {
+const _ShopItems = {
     1: {
-        name: "Pixel Missile";
-        description: "Fire this missile on a painting to spread your selected color";
-        radius: 35;
-        price: 90;
-        stock: 1000;
-        color: "#1EFF00";
-        type: 1;
+        name: "Pixel Missile",
+        description: "Fire this missile on a painting to spread your selected color",
+        radius: 35,
+        price: 90,
+        stock: 1000,
+        color: "#1EFF00",
+        type: 1,
         display: 1
-    };
+    },
     2: {
-        name: "Pixel Bomb";
-        description: "Drop this bomb on a painting to spread your selected color";
-        radius: 75;
-        price: 145;
-        stock: 1000;
-        color: "#0070FF";
-        type: 1;
+        name: "Pixel Bomb",
+        description: "Drop this bomb on a painting to spread your selected color",
+        radius: 75,
+        price: 145,
+        stock: 1000,
+        color: "#0070FF",
+        type: 1,
         display: 1
-    };
+    },
     3: {
-        name: "Atomic Bomb";
-        description: "Drop this Atomic bomb on a painting to spread your selected color";
-        radius: 125;
-        price: 340;
-        stock: 1000;
-        color: "#a335ee";
-        type: 1;
+        name: "Atomic Bomb",
+        description: "Drop this Atomic bomb on a painting to spread your selected color",
+        radius: 125,
+        price: 340,
+        stock: 1000,
+        color: "#a335ee",
+        type: 1,
         display: 1
-    };
+    },
     7: {
-        name: "Guild Bomb";
-        description: "Drop your guild emblem on a painting! You don't need to be the guild leader to use it. Click on your guild profile to edit emblem";
-        cd: 0;
-        radius: 32;
-        price: 190;
-        stock: 1000;
-        color: "#0070FF";
-        type: 1;
+        name: "Guild Bomb",
+        description: "Drop your guild emblem on a painting! You don't need to be the guild leader to use it. Click on your guild profile to edit emblem",
+        cd: 0,
+        radius: 32,
+        price: 190,
+        stock: 1000,
+        color: "#0070FF",
+        type: 1,
         display: 0
-    };
+    },
     6: {
-        name: "Rainbow Username";
-        description: "Rainbow animation on your username in the chat and on your profile (duration: 1 week)";
-        cd: 0;
-        radius: 0;
-        price: 160;
-        stock: 1000;
-        color: "#1EFF00";
-        type: 3;
+        name: "Rainbow Username",
+        description: "Rainbow animation on your username in the chat and on your profile (duration: 1 week)",
+        cd: 0,
+        radius: 0,
+        price: 160,
+        stock: 1000,
+        color: "#1EFF00",
+        type: 3,
         display: 1
-    };
+    },
     4: {
-        name: "1 month - Premium";
-        description: "Get a 1 month premium membership for you or a friend";
-        cd: 0;
-        radius: 0;
-        price: 1350;
-        stock: 1000;
-        color: "#ff8000";
-        type: 2;
+        name: "1 month - Premium",
+        description: "Get a 1 month premium membership for you or a friend",
+        cd: 0,
+        radius: 0,
+        price: 1350,
+        stock: 1000,
+        color: "#ff8000",
+        type: 2,
         display: 1
-    };
+    },
     5: {
-        name: "1 year - Premium";
-        description: "Get a 1 year premium membership for you or a friend";
-        cd: 0;
-        radius: 0;
-        price: 15000;
-        stock: 1000;
-        color: "#E6CC80";
-        type: 2;
+        name: "1 year - Premium",
+        description: "Get a 1 year premium membership for you or a friend",
+        cd: 0,
+        radius: 0,
+        price: 15000,
+        stock: 1000,
+        color: "#E6CC80",
+        type: 2,
         display: 1
-    };
+    },
     8: {
-        name: "Avatar Bomb";
-        description: "Drop your profile avatar on a painting! Click on your profile to edit your avatar";
-        cd: 0;
-        radius: 32;
-        price: 190;
-        stock: 1000;
-        color: "#0070FF";
-        type: 1;
+        name: "Avatar Bomb",
+        description: "Drop your profile avatar on a painting! Click on your profile to edit your avatar",
+        cd: 0,
+        radius: 32,
+        price: 190,
+        stock: 1000,
+        color: "#0070FF",
+        type: 1,
         display: 0
-    };
+    },
     9: {
-        name: "Name Change";
-        description: "Maybe you have become a little too famous, or maybe you just thought of something better. Either way, you can change your username! (Your previous username will still be displayed on your profile for the next 7 days)";
-        cd: 0;
-        radius: 0;
-        price: 540;
-        stock: 1000;
-        color: "#1EFF00";
-        type: 4;
+        name: "Name Change",
+        description: "Maybe you have become a little too famous, or maybe you just thought of something better. Either way, you can change your username! (Your previous username will still be displayed on your profile for the next 7 days)",
+        cd: 0,
+        radius: 0,
+        price: 540,
+        stock: 1000,
+        color: "#1EFF00",
+        type: 4,
         display: 1
-    };
+    },
     10: {
-        name: "XMAS Username";
-        description: "For a limited time, you can buy this XMAS animation for your username in the chat and on your profile (duration after use: 1 week) + 20 snowballs";
-        cd: 0;
-        radius: 0;
-        price: 150;
-        stock: 1000;
-        color: "#1EFF00";
-        type: 3;
+        name: "XMAS Username",
+        description: "For a limited time, you can buy this XMAS animation for your username in the chat and on your profile (duration after use: 1 week) + 20 snowballs",
+        cd: 0,
+        radius: 0,
+        price: 150,
+        stock: 1000,
+        color: "#1EFF00",
+        type: 3,
         display: 1
-    };
+    },
     11: {
-        name: "3 days - Premium";
-        description: "Get a 3 days premium membership for you or a friend";
-        cd: 0;
-        radius: 0;
-        price: 255;
-        stock: 1000;
-        color: "#8a69f5";
-        type: 2;
+        name: "3 days - Premium",
+        description: "Get a 3 days premium membership for you or a friend",
+        cd: 0,
+        radius: 0,
+        price: 255,
+        stock: 1000,
+        color: "#8a69f5",
+        type: 2,
         display: 1
-    };
+    },
     12: {
-        name: "HALLOWEEN Username";
-        description: "For a limited time, you can buy this HALLOWEEN animation for your username in the chat and an alternate fire animation on your profile (duration after use: 1 week). Note: Username in chat will use your selected color. Limited supply, Price increase by 66 at every restock";
-        cd: 0;
-        radius: 0;
-        price: 198;
-        stock: 1000;
-        color: "#ff9a00";
-        type: 3;
+        name: "HALLOWEEN Username",
+        description: "For a limited time, you can buy this HALLOWEEN animation for your username in the chat and an alternate fire animation on your profile (duration after use: 1 week). Note: Username in chat will use your selected color. Limited supply, Price increase by 66 at every restock",
+        cd: 0,
+        radius: 0,
+        price: 198,
+        stock: 1000,
+        color: "#ff9a00",
+        type: 3,
         display: 0
-    };
+    },
     13: {
-        name: "Treasure Chest";
-        description: "Get a variety of ores and gemstones to be used for frame crafting. In each chest you also have a chance to get items from the shop, even seasonal ones!";
-        cd: 0;
-        radius: 0;
-        price: 1;
-        stock: 1000;
-        color: "#ffbe00";
-        type: 5;
+        name: "Treasure Chest",
+        description: "Get a variety of ores and gemstones to be used for frame crafting. In each chest you also have a chance to get items from the shop, even seasonal ones!",
+        cd: 0,
+        radius: 0,
+        price: 1,
+        stock: 1000,
+        color: "#ffbe00",
+        type: 5,
         display: 1
     }
-};
+} as const;
+
+type ItemData = {
+    /** Name of the item */
+    name: ItemName;
+    /** Description of the item */
+    description: string;
+    /** This doesn't exist on bombs. But it exists on other items!!! ... it's just 0 though.. why.. */
+    cd?: number;
+    /** Radius of bombs. For some reason also exists on non-bombs. The radius is just 0 on those. */
+    radius: number;
+    /** Price in pp coins or gold bars */
+    price: number;
+    /** Stock remaining (or 1000 if unlimited) */
+    stock: number;
+    /** Color in hex starting with # */
+    color: string;
+    /** no idea */
+    type: number;
+    /** 1 is true 0 is false. don't ask */
+    display: 1 | 0;
+}
+
+type Raw_ShopItems = typeof _ShopItems;
+export type ItemIds = keyof Raw_ShopItems;
+export type ItemName = Raw_ShopItems[ItemIds]['name'];
+export type ShopItems = Record<ItemIds, ItemData>;
+
+export type Icon = "admin" | "moderator" | "chat-moderator" | "former-global-moderator" | "1-year" | "3-months" | "1-month" | "3-days" | "nitro" | "vip" | "bread" | "gifter" | "booster" | "painting-owner" | "painting-moderator" | "snowball" | "partner" | "art-dealer-1" | "art-dealer-2" | "art-dealer-3";
+export type ChatChannel = "global" | "whispers" | "guild" | "nonenglish" | "painting";
 
 /**
  * Painting data. There's a lot. I didn't bother JSDoc'ing some.
@@ -427,6 +457,57 @@ export type UserData = {
     framed: AuctionData[];
 };
 
+export type CoinIslandData = {
+    /** Current price to buy coin island */
+    price: number;
+    /** Discount amount */
+    discount: number;
+    /** Information about past owners */
+    pastOwners: {
+        /** Past owner username */
+        username: string;
+        /** Time they started owning */
+        started_at: number;
+        /** Time their ownership ended */
+        ended_at: number;
+        /** Price they bought it for */
+        price: number;
+        /** How long they had it */
+        duration: number;
+        /** How many coins they claimed */
+        claimed_coins: number;
+        /** How many coins the didn't claim / were stolen */
+        unclaimed_coins: number;
+    }[];
+    /** Information about the current owner */
+    currentOwner: {
+        /** Current owner username */
+        username: string;
+        /** Time they started owning it */
+        started_at: number;
+        /** Last time they claimed the coins in the island */
+        last_claim_time: number;
+        /** Price they bought it for */
+        price: number;
+        /** Amount of coins they make per hour */
+        coinsPerHour: number;
+        /** Amount of coins ready to claim */
+        coinsToClaim: number;
+        /** I think goals for upgrading coins/hour? */
+        goalsList: { [key: number]: number };
+        /** Yeah probably the goal for coins/hour */
+        currentGoalIdReached: number;
+        /** Next goal ID for the goals for coins/hour */
+        nextGoalId: number;
+        /** idk */
+        nextBonusTimeLeft: number;
+        /** what */
+        isOwner: number;
+        /** huh */
+        protection: number;
+    };
+}
+
 const NAMESPACE = "pixelplacejs-new";
 
 export class NetUtil {
@@ -498,7 +579,7 @@ export class NetUtil {
         let data: Response;
         try {
             data = await fetch("https://pixelplace.io/api/get-user.php?username=" + name, {
-                "headers": this.headers("get-user", this.bot.boardId) as HeadersInit,
+                "headers": this.headers("get-data", this.bot.boardId) as HeadersInit,
                 "body": null,
                 "method": "GET",
             });
@@ -525,6 +606,29 @@ export class NetUtil {
         if(data == null) throw `User data is null for user: ${name}`;
 
         return v5(data.createdAt, NAMESPACE) as UUID;
+    }
+
+    /**
+     * Gets coin island data
+     * @param island Coin island id; this is -1 because Code. 0,1,2,3
+     */
+    @DelegateMethod()
+    async getCoinIsland(island: CoinIslandID): Promise<CoinIslandData | null> {
+        let data: Response;
+        try {
+            data = await fetch("https://pixelplace.io/api/get-coin-island.php?island=" + island, {
+                "headers": this.headers("get-data", this.bot.boardId) as HeadersInit,
+                "body": null,
+                "method": "GET",
+            });
+            if(!data.ok) {
+                return this.notOkay(data);
+            }
+        } catch (err) {
+            return this.notOkay(null);
+        }
+
+        return (await data.json()) as CoinIslandData;
     }
 
     static async getUrl(url: string, headers: OutgoingHttpHeaders) {

@@ -8,7 +8,7 @@ import { Connection } from './connection/Connection.js';
 import { delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from 'ts-delegate';
 import { TextWriter } from '../util/drawing/fonts/TextWriter.js';
 import { LineDrawer } from '../util/drawing/LineDrawer.js';
-import { ChatMessagePacket, RateChangePacket } from '../util/packets/PacketResponses.js';
+import { RateChangePacket } from '../util/packets/PacketResponses.js';
 import { HeadersFunc, HeaderTypes, SystemParameters } from '../PixelPlace.js';
 import { OutgoingHttpHeaders } from 'http';
 import { NetUtil } from '../util/NetUtil';
@@ -16,23 +16,9 @@ import { ServerClient } from '../browser/client/ServerClient.js';
 import { AnimationDrawer } from '../util/drawing/AnimationDrawer.js';
 import { GeometryDrawer } from '../util/drawing/GeometryDrawer.js';
 import { PixelQueue } from './PixelQueue.js';
-import { constant } from '../util/Constant.js';
+import { constant } from '../util/Helper.js';
 import { InternalListeners } from './connection/InternalListeners.js';
-
-export type LoadData = {
-    readonly barriers: readonly number[];
-    readonly increases: readonly number[];
-    readonly reset: number;
-    readonly failSafe: number;
-}
-
-const _LoadPresets = {
-    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 600,  failSafe: 1000/6  },
-    DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, failSafe: 1000/10 },
-    SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, failSafe: 1000/10 },
-} as const;
-type _Keys = keyof typeof _LoadPresets;
-export const LoadPresets: Record<_Keys, LoadData> = _LoadPresets;
+import { FontData } from '../util/drawing/fonts/Font.js';
 
 /**
  * Pixelplace bot instance.
@@ -76,8 +62,6 @@ export class Bot implements
     
     /** Current load barrier index */
     currentBarrier: number = 0;
-    /** Current load data */
-    loadData: LoadData = LoadPresets.DEFAULT;
 
     /** Shouldn't be edited by the user. This is the rate change packet. */
     rate: RateChangePacket = -1;
@@ -138,7 +122,7 @@ export class Bot implements
             const headers: OutgoingHttpHeaders = {};
             switch(type) {
                 case 'get-painting':
-                case 'get-user':
+                case 'get-data':
                 case 'relog':
                     headers.accept = 'application/json, text/javascript, */*; q=0.01'
                     break;
@@ -152,10 +136,6 @@ export class Bot implements
             }
             return headers;
         });
-    }
-
-    setLoadData(data: LoadData) {
-        this.loadData = data;
     }
 
     /**
@@ -300,9 +280,11 @@ export class Bot implements
 
     declare queuedPixels: Connection['queuedPixels'];
 
+    declare bombPixels: Connection['bombPixels'];
+
     // ---------------- Canvas ----------------
-    declare canvasWidth: Canvas.Canvas['canvasWidth'];
-    declare canvasHeight: Canvas.Canvas['canvasHeight'];
+    declare readonly canvasWidth: Canvas.Canvas['canvasWidth'];
+    declare readonly canvasHeight: Canvas.Canvas['canvasHeight'];
     declare getPixelAt: Canvas.Canvas['getPixelAt'];
     declare getRegionAt: Canvas.Canvas['getRegionAt'];
     declare isValidPosition: Canvas.Canvas['isValidPosition'];
@@ -326,6 +308,7 @@ export class Bot implements
     declare getUniquePlayerId: NetUtil['getUniquePlayerId'];
     declare getUserData: NetUtil['getUserData'];
     declare getPaintingData: NetUtil['getPaintingData'];
+    declare getCoinIsland: NetUtil['getCoinIsland'];
     declare getCanvasUrl: typeof NetUtil.getCanvasUrl;
 
     // ---------------- UID Manager ----------------
@@ -340,6 +323,7 @@ export class Bot implements
 
     // ---------------- Text Writer ----------------
     declare drawText: OmitFirst<typeof TextWriter.drawText>;
+    declare getTextLength: typeof TextWriter.getTextLength;
 
     // ---------------- Image Drawer ----------------
     declare drawImage: OmitFirst<typeof ImageDrawer.drawImage>;
@@ -348,6 +332,7 @@ export class Bot implements
     declare playAnimation: OmitFirst<typeof AnimationDrawer.playAnimation>;
 
     // ---------------- Pixel Queue ----------------
+    declare readonly loadData: PixelQueue['loadData'];
     declare sortQueue: PixelQueue['sortQueue'];
     declare readQueue: PixelQueue['readQueue'];
     declare placePixel: PixelQueue['placePixel'];
@@ -355,6 +340,7 @@ export class Bot implements
     declare sendWarPackets: PixelQueue['sendWarPackets'];
     declare addToSendQueue: PixelQueue['addToSendQueue'];
     declare finishQueue: PixelQueue['finishQueue'];
+    declare setLoadData: PixelQueue['setLoadData'];
 
     // ---------------- Internal Listeners ----------------
     declare isNewChat: InternalListeners['isNewChat'];

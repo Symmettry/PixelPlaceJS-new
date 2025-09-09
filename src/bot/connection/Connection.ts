@@ -1,9 +1,9 @@
 import * as Canvas from "../../util/canvas/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
-import { Packets } from "../../util/packets/Packets";
+import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel, BoardID } from "../../util/data/Data";
-import { constant } from '../../util/Constant.js';
+import { constant } from '../../util/Helper.js';
 import { delegate, DelegateMethod } from "ts-delegate";
 import fs from 'fs';
 import path from 'path';
@@ -15,6 +15,8 @@ import { NetUtil } from "../../util/NetUtil";
 import { ServerClient } from "../../browser/client/ServerClient";
 import UIDManager from "../../util/UIDManager";
 import { Bounds } from "../../util/Bounds";
+
+type PacketHandleFunction<T extends keyof PacketResponseMap> = (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void;
 
 /**
  * Handles the connection between the bot and pixelplace. Not really useful for the developer.
@@ -53,6 +55,8 @@ export class Connection {
 
     packetHandler!: PacketHandler;
     loadResolve!: (value: void | PromiseLike<void>) => void;
+
+    bombResolves: (() => void)[] = [];
 
     serverClient: ServerClient | undefined;
 
@@ -285,9 +289,21 @@ export class Connection {
      * @param pre If true, the function will be called before ppjs processes it (only applies to 42[] packets). Defaults to false.
      */
     @DelegateMethod()
-    on<T extends keyof PacketResponseMap>(packet: T, func: (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void, pre?: boolean): void {
+    on<T extends keyof PacketResponseMap>(packet: T, func: PacketHandleFunction<T>, pre?: boolean): void {
         if(!this.packetHandler.listeners.has(packet)) this.packetHandler.listeners.set(packet, []);
-        this.packetHandler.listeners.get(packet)?.push([func, pre ?? false]);
+        this.packetHandler.listeners.get(packet)!.push([func, pre ?? false]);
+    }
+
+    /**
+     * Removes a listener
+     * @param packet Packet to remove the listener from
+     * @param func The function to remove; this must be a reference to the same function that was provided in on()
+     */
+    @DelegateMethod()
+    removeListener<T extends keyof PacketResponseMap>(packet: T, func: PacketHandleFunction<T>): void {
+        if(!this.packetHandler.listeners.has(packet)) return;
+        const arr = this.packetHandler.listeners.get(packet)!;
+        arr.splice(arr.findIndex(k => k[0] == func), 1);
     }
 
     private pixelsThisSecond: number = 0;
@@ -308,8 +324,9 @@ export class Connection {
                 this.lastReset += 1000;
                 this.pixelsThisSecond = 0;
             }
-            if(++this.pixelsThisSecond > this.bot.loadData.failSafe) {
-                console.log(`~~Fail safe triggered: ${this.pixelsThisSecond}/${this.bot.loadData.failSafe}~~`);
+            const loadData = this.bot.loadData;
+            if(++this.pixelsThisSecond > loadData.failSafe) {
+                console.log(`~~Fail safe triggered: ${this.pixelsThisSecond}/${loadData.failSafe}~~`);
                 process.exit();
             }
         }
@@ -326,20 +343,40 @@ export class Connection {
         }
     }
 
-   /**
+    /**
+     * Waits for a packet and gives the response
+     * @param waitFor The packet to wait for
+     * @returns The value of that packet
+     */
+    @DelegateMethod()
+    async waitForPacket<T extends keyof PacketResponseMap>(waitFor: T): Promise<PacketResponseMap[T]> {
+        return new Promise<PacketResponseMap[T]>((resolve) => {
+            const wait = (res: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => {
+                this.removeListener(waitFor, wait);
+                resolve(res as PacketResponseMap[T]);
+            };
+            this.on(waitFor, wait);
+        });
+    }
+
+    /**
      * Emits a packet type and value through the socket.
      * @param type Packet type.
      * @param value Value. If not set, no value will be sent through other than the packet name.
      * @returns A promise that will complete once the bot is actively connected; this is usually instant, it only waits if the bot crashes
      */
     @DelegateMethod()
-    async emit<T extends keyof PacketSendMap>(type: T, value?: PacketSendMap[T]): Promise<void> {
+    async emit<T extends keyof PacketSendMap, K extends keyof PacketResponseMap>
+        (type: T, value?: PacketSendMap[T], waitFor?: K): Promise<PacketResponseMap[K] | void> {
         await this.verify();
         if(value == null) {
             this.send(`42["${type}"]`);
             return;
         }
         this.send(`42["${type}",${JSON.stringify(value)}]`)
+        if(waitFor != null) {
+            return await this.waitForPacket(waitFor);
+        }
     }
 
     /**
@@ -478,6 +515,14 @@ export class Connection {
         const area = this.getAreas()[name];
         if(area == null || !area.xStart) return false;
         return Bounds.isInBounds(area.xStart, area.yStart, area.xEnd, area.yEnd, x, y);
+    }
+
+    /**
+     * Gives a promise that will be resolved once the pixels from a bomb item packet are received and processed
+     */
+    @DelegateMethod()
+    async bombPixels(): Promise<void> {
+        return new Promise<void>((resolve) => this.bombResolves.push(resolve));
     }
 
 }

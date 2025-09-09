@@ -511,6 +511,11 @@ export class Canvas {
 
     private loadPixels(pixels: PixelPacket): void {
         for(const [x, y, col] of pixels) {
+            if((col as any) == -100) {
+                this.pixelData.set(x, y, Color.OCEAN);
+                continue;
+            }
+            if(this.pixelData.get(x, y) == Color.OCEAN) continue;
             this.pixelData.set(x, y, col);
         }
     }

@@ -1,5 +1,6 @@
 import { Color } from "../data/Color";
-import { BoardID, ChatChannel } from "../data/Data";
+import { BoardID } from "../data/Data";
+import { ChatChannel } from "../NetUtil";
 import { SENT } from "./Packets";
 
 export interface PacketSendMap {

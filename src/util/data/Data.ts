@@ -1,3 +1,4 @@
+import { ImagePixels } from "../drawing/ImageDrawer";
 import { Color } from "./Color";
 
 export type RawFlags = {
@@ -44,7 +45,7 @@ export interface IUnverifiedPixel {
 export interface IQueuedPixel {
     data: PlainPixel;
     speed: number;
-    resolve: ((value: PlaceResults) => void) | null;
+    resolve: ((value: PlaceResults) => void | Promise<void>) | null;
 }
 
 export type PlaceResults = {
@@ -72,14 +73,10 @@ export enum BoardTemplate {
 export type PixelSetData = {
     width: number,
     height: number,
-    pixels: (Color | null)[][],
+    pixels: ImagePixels,
 }
 
 export type CoordSet<T> = { [x: number]: { [y: number]: T } };
-
-export type Icon = "admin" | "moderator" | "chat-moderator" | "former-global-moderator" | "1-year" | "3-months" | "1-month" | "3-days" | "nitro" | "vip" | "bread" | "gifter" | "booster" | "painting-owner" | "painting-moderator" | "snowball" | "partner" | "art-dealer-1" | "art-dealer-2" | "art-dealer-3";
-export type ItemName = "Pixel Missile" | "Pixel Bomb" | "Atomic Bomb" | "1 month - Premium" | "1 year - Premium" | "Rainbow Username" | "Guild Bomb" | "Avatar Bomb" | "Name Change" | "XMAS Username" | "3 days - Premium" | "HALLOWEEN Username" | "Treasure Chest";
-export type ChatChannel = "global" | "whispers" | "guild" | "nonenglish" | "painting";
 
 export type AuctionData = {
     id: number;

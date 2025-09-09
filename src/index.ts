@@ -1,5 +1,6 @@
 export { PixelPlace } from './PixelPlace';
-export { Bot, LoadPresets } from "./bot/Bot";
+export { Bot } from "./bot/Bot";
+export { LoadPresets } from "./bot/PixelQueue";
 export { AuthFile } from "./bot/Auth";
 export { Modes } from "./util/data/Modes";
 export { Color } from "./util/data/Color";
@@ -11,6 +12,6 @@ export { PixelSetData as ImageData, IAuthData, IBotParams, BrushTypes, QueueSide
 export { FightType, FightLocation } from "./util/packets/PacketResponses";
 export { ClientPackets, ServerPackets, PixelPipeType } from "./browser/SocketData";
 export { AnimationType } from "./util/drawing/AnimationDrawer";
-export { FilterMode } from "./util/drawing/ImageFilter";
+export { FilterMode } from "./util/drawing/ImageEffects";
 export * as PacketTypes from "./util/packets/PacketResponses";
 export * as PacketSends from "./util/packets/PacketSends";

@@ -5,10 +5,10 @@ import { PixelSetData } from "../data/Data";
 import mime = require("mime-types");
 import { NetUtil } from "../NetUtil";
 import { HeadersFunc } from "../../PixelPlace";
-import { FilterFunction } from "./ImageFilter";
+import { EffectFunction, FilterFunction } from "./ImageEffects";
 
 export class ImageUtil {
-    static applyJimp(width: number, height: number, filter: FilterFunction, data: PixelSetData, err: Error | null, img: Jimp): [width: number, height: number] {
+    static applyJimp(width: number, height: number, filter: FilterFunction, effect: EffectFunction, data: PixelSetData, err: Error | null, img: Jimp): [width: number, height: number] {
         if (err) {
             throw err;
         }
@@ -24,12 +24,12 @@ export class ImageUtil {
         data.width = img.bitmap.width;
         data.height = img.bitmap.height;
 
-        data.pixels = filter(img);
+        data.pixels = filter(img, effect);
 
         return [data.width, data.height];
     }
 
-    static async getPixelData(width: number, height: number, filter: FilterFunction, headers: HeadersFunc,
+    static async getPixelData(width: number, height: number, filter: FilterFunction, effect: EffectFunction, headers: HeadersFunc,
                               boardId: number, path?: string, url?: string, pixels?: ImagePixels): Promise<PixelSetData> {
         const data: PixelSetData = { width, height, pixels: [] };
         if(path) {
@@ -43,7 +43,7 @@ export class ImageUtil {
 
             await new Promise<void>((resolve) => {
                 Jimp.read(path, (err, img) => {
-                    const [w,h] = this.applyJimp(width, height, filter, data, err, img);
+                    const [w,h] = this.applyJimp(width, height, filter, effect, data, err, img);
                     data.width = w;
                     data.height = h;
                     resolve();
@@ -66,7 +66,7 @@ export class ImageUtil {
                 throw e;
             }
 
-            const [w,h] = this.applyJimp(width, height, filter, data, null, img);
+            const [w,h] = this.applyJimp(width, height, filter, effect, data, null, img);
             data.width = w;
             data.height = h;
 

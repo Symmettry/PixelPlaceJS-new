@@ -1,12 +1,12 @@
 import { Bot } from "../../bot/Bot";
 import { DrawingFunction, DrawingMode, drawingStrategies, HypotFunction, Modes } from "../data/Modes";
-import { constant } from "../Constant";
+import { constant } from "../Helper";
 import { DelegateMethod } from "ts-delegate";
 import { PixelSetData, PixelFlags, PlaceResults, RawFlags } from "../data/Data";
 import { Color } from "../data/Color";
 import { ImageUtil } from "./ImageUtil";
 import { populate } from "../FlagUtil";
-import { FilterFunction, FilterMode } from "./ImageFilter";
+import { EffectFunction, EffectMode, FilterFunction, FilterMode } from "./ImageEffects";
 
 export type ImagePixels = (Color | null)[][];
 
@@ -39,7 +39,10 @@ export type Image = {
 
     /** Drawing mode; defaults to Modes.TOP_LEFT_TO_RIGHT */
     mode?: DrawingMode,
+    /** Filter mode for the image; converts the R,G,B to pixel values. Also does dithering if using ones like FLOYD_STEINBERG. Defaults to STANDARD */
     filter?: FilterFunction,
+    /** Effects to apply to the image; defaults to NONE */
+    effect?: EffectFunction,
     /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
     performant?: boolean;
 
@@ -96,6 +99,7 @@ export class ImageDrawer {
 
     private mode!: Modes | DrawingFunction;
     private filter!: FilterFunction;
+    private effect!: EffectFunction;
     private byColor!: boolean;
 
     private x!: number;
@@ -140,6 +144,7 @@ export class ImageDrawer {
         this.height = image.height ?? -1;
 
         this.filter = image.filter ?? FilterMode.STANDARD;
+        this.effect = image.effect ?? EffectMode.NONE;
 
         constant(this, 'mode', image.mode ?? Modes.TOP_LEFT_TO_RIGHT);
         constant(this, 'byColor', image.byColor ?? false);
@@ -185,7 +190,7 @@ export class ImageDrawer {
 
     async begin(): Promise<PlaceResults[][]> {
 
-        const data: PixelSetData = await ImageUtil.getPixelData(this.width, this.height, this.filter, this.instance.headers, this.instance.boardId,
+        const data: PixelSetData = await ImageUtil.getPixelData(this.width, this.height, this.filter, this.effect, this.instance.headers, this.instance.boardId,
                         this.path, this.url, this.pixels);
 
         this.width = data.width;

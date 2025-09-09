@@ -1,3 +1,4 @@
+import { ImagePixels } from "../drawing/ImageDrawer";
 import { Color } from "./Color";
 import { CoordSet, Pixel, PixelSetData } from "./Data";
 
@@ -191,7 +192,7 @@ export function sortPixels<T>(
     const width = pixels.map(p => p.x).reduce((p, c) => Math.max(p, c), -Infinity) - minX + 1;
     const height = pixels.map(p => p.y).reduce((p, c) => Math.max(p, c), -Infinity) - minY + 1;
 
-    const pixelGrid: (Color | null)[][] = [];
+    const pixelGrid: ImagePixels = [];
     for (const p of pixels) {
         const nx = p.x - minX;
         const ny = p.y - minY;

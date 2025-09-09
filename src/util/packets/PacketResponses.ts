@@ -1,7 +1,7 @@
 import { Color } from "../data/Color";
-import { ChatChannel, IArea, ItemName } from "../data/Data";
+import { IArea } from "../data/Data";
 import { PPError } from "../data/Errors";
-import { ShopItems } from "../NetUtil";
+import { ChatChannel, ItemIds, ItemName, ShopItems } from "../NetUtil";
 import { RECEIVED } from "./Packets";
 
 export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
@@ -233,7 +233,7 @@ export type ItemUseNotificationPacket = {
     /** The username of the sender. */
     from: string,
     /** The item id. */
-    item: number,
+    item: ItemIds,
     /** The item name. */
     itemName: ItemName,
     /** The painting id. */
@@ -244,8 +244,8 @@ export type ItemUseNotificationPacket = {
     y: number,
     /** The zoom level. */
     zoom?: number,
-    /** No idea. Color maybe? */
-    c: string,
+    /** Color */
+    c: Color,
 };
 
 /**
@@ -257,7 +257,7 @@ export type ItemGiftNotificationPacket = {
     /** The recipient's username. */
     to: string,
     /** The item id. Use bot.getItemData(id) */
-    item: keyof ShopItems,
+    item: ItemIds,
 };
 
 /**
@@ -350,15 +350,17 @@ export type NewPaintingAuctionPacket = {
     current_bid: number
 };
 
+export type CoinIslandID = 0 | 1 | 2 | 3;
+
 /**
  * Represents a change in the owner of a coin island.
  */
 export type CoinIslandOwnerChangePacket = {
-    /** The island number. */
-    island: number,
-    /** The username of the previous owner. */
+    /** The island number; 0,1,2,3 */
+    island: CoinIslandID,
+    /** The username of the new owner apparently */
     from: string,
-    /** The amount of coins. */
+    /** The amount of coins it was bought for */
     amount: number
 };
 

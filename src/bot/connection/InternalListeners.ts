@@ -1,6 +1,6 @@
 import { DelegateMethod } from "ts-delegate";
 import { ServerClient } from "../../browser/client/ServerClient";
-import { constant } from "../../util/Constant";
+import { constant } from "../../util/Helper";
 import { Color } from "../../util/data/Color";
 import { IArea, IQueuedPixel } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
@@ -127,10 +127,13 @@ export class InternalListeners {
             this.connection.emit(SENT.PONG_ALIVE, getPalive(this.tDelay, this.bot.userId));
         });
 
-        let missileDelay = false;
+        let missileDelay: [x: number, y: number, color: Color] | null = null;
         this.listen(RECEIVED.NOTIFICATION_ITEM_USE, (i) => {
-            if(i.itemName.includes("Pixel")){
-                missileDelay = true;
+            const item = this.bot.getItemData(i.item);
+            const n = item.name;
+            if(n == "Pixel Bomb" || n == "Pixel Missile" || n == "Atomic Bomb" || n == "Avatar Bomb" || n == "Guild Bomb") {
+                console.log("missile delay");
+                missileDelay = [i.x, i.y, i.c];
             }
         });
 
@@ -163,14 +166,22 @@ export class InternalListeners {
                 this.bot.uidMan.onPixels(pixels);
             }
 
-            if(missileDelay && pixels.find(n => n[4] === 0)) {
-                missileDelay = false;
-
-                // wait a delay so that we repair n stuff a bit later
-                await new Promise<void>((resolve) => setTimeout(resolve, 3000));
-            }
-
             this.bot.detectPixels(pixels);
+
+            if(!missileDelay) return;
+
+            const [x, y, col] = missileDelay;
+            // will eventually happen
+            if(!pixels.find(n => n[2] == col && n[0] == x && n[1] == y)) return;
+
+            console.log("missile delay 2");
+            missileDelay = null;
+
+            this.connection.bombResolves.forEach(c => c());
+            this.connection.bombResolves = [];
+
+            // wait a delay so that we repair n stuff a bit later
+            await new Promise<void>((resolve) => setTimeout(resolve, 3000));
         });
 
         const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;

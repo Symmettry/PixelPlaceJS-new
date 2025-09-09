@@ -2,9 +2,30 @@ import { Color } from "../util/data/Color";
 import { CoordSet, IQueuedPixel, Pixel, PlaceResults, PlainPixel, QueueSide } from "../util/data/Data";
 import { DrawingMode, sortPixels } from "../util/data/Modes";
 import { populate } from "../util/FlagUtil";
-import { DelegateMethod } from "ts-delegate";
+import { DelegateField, DelegateMethod } from "ts-delegate";
 import { Packets } from "../util/packets/Packets";
 import { Bot } from "./Bot";
+
+type LoadData = {
+    /** List of barriers to pass; has a 0 at the start because uhm idk keep the array size the same */
+    readonly barriers: readonly number[];
+    /** Increases (ms) based on index into barriers */
+    readonly increases: readonly number[];
+    /** Resets to 0 load after reaching this */
+    readonly reset: number;
+    /** Sets the amount the load must reach before it'll become 0 after no queued pixels for a bit */
+    readonly zeroAfter: number;
+    /** Will stop the bot if the failsafe is passed */
+    readonly failSafe: number;
+}
+
+const _LoadPresets = {
+    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 500,  zeroAfter: 100, failSafe: 1000/6  },
+    DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, zeroAfter: 0,   failSafe: 1000/10 },
+    SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, zeroAfter: 0,   failSafe: 1000/10 },
+} as const;
+type _Keys = keyof typeof _LoadPresets;
+export const LoadPresets: Record<_Keys, LoadData> = _LoadPresets;
 
 export class PixelQueue {
 
@@ -22,6 +43,9 @@ export class PixelQueue {
 
     private startedQueue: boolean = false;
 
+    @DelegateField(true, false)
+    loadData: LoadData = LoadPresets.FAST;
+
     constructor(bot: Bot) {
         this.bot = bot;
     }
@@ -35,9 +59,9 @@ export class PixelQueue {
             return;
         }
 
-        if(this.bot.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 100) {
+        if(this.bot.stats.pixels.placing.placed > 0 && Date.now() - this.lastVerification > 100 && this.bot.sustainingLoad >= this.loadData.zeroAfter) {
             this.bot.sustainingLoad = Math.floor(Math.max(0, this.bot.sustainingLoad / 3 - 400));
-            while(this.bot.currentBarrier > 0 && this.bot.sustainingLoad < this.bot.loadData.increases[this.bot.currentBarrier]) {
+            while(this.bot.currentBarrier > 0 && this.bot.sustainingLoad < this.loadData.increases[this.bot.currentBarrier]) {
                 this.bot.currentBarrier--;
             }
             this.lastVerification = Date.now();
@@ -106,38 +130,42 @@ export class PixelQueue {
             console.error(this);
             throw new Error("Sleeping for an invalid amount of time " + time + "!! Something is wrong, pls report with your code and the above text");
         }
+        this.timeOffset = 0;
         if(time == 0) return call();
 
+        const thiz = this;
         const start = Date.now();
         function loop() {
             const elapsed = Date.now() - start;
             if (elapsed < time) {
                 setImmediate(loop);
             } else {
+                // 10ms max
+                thiz.timeOffset = Math.min(elapsed - time, 1.5);
                 call();
             }
         }
         setImmediate(loop);
     }
 
-    private resolvePixel(oldCol: Color, queuedPixel: IQueuedPixel): void {
-        if(queuedPixel.resolve) queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: oldCol });
+    private async resolvePixel(oldCol: Color, queuedPixel: IQueuedPixel): Promise<void> {
+        if(queuedPixel.resolve) await queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: oldCol });
         setImmediate(() => this.goThroughPixels());
     }
 
     applySpeedChanges(queuedPixel: IQueuedPixel): number {
         this.bot.sustainingLoad++;
-        if(this.bot.sustainingLoad >= this.bot.loadData.reset) {
+        if(this.bot.sustainingLoad >= this.loadData.reset) {
             this.bot.sustainingLoad = 0;
         }
-        if(this.bot.sustainingLoad > this.bot.loadData.barriers[this.bot.currentBarrier]) {
-            if(this.bot.currentBarrier != this.bot.loadData.barriers.length - 1 && this.bot.sustainingLoad > this.bot.loadData.barriers[this.bot.currentBarrier + 1]) {
+        if(this.bot.sustainingLoad > this.loadData.barriers[this.bot.currentBarrier]) {
+            if(this.bot.currentBarrier != this.loadData.barriers.length - 1 && this.bot.sustainingLoad > this.loadData.barriers[this.bot.currentBarrier + 1]) {
                 this.bot.currentBarrier++;
             }
         } else if (this.bot.currentBarrier > 0) {
             this.bot.currentBarrier--;
         }
-        queuedPixel.speed += this.bot.loadData.increases[this.bot.currentBarrier];
+        queuedPixel.speed += this.loadData.increases[this.bot.currentBarrier];
 
         queuedPixel.speed += this.bot.lagAmount * this.bot.lagIncreasePerMs;
 
@@ -161,6 +189,12 @@ export class PixelQueue {
                 this.bot.specialQueueInfo = null;
             }
         }
+
+        if(this.timeOffset > 0) {
+            queuedPixel.speed -= this.timeOffset;
+            this.timeOffset = 0;
+        }
+
         return queuedPixel.speed;
     }
 
@@ -233,6 +267,7 @@ export class PixelQueue {
     }
 
     lastPixel: number = Date.now();
+    timeOffset: number = 0;
 
     private async sendPixel(queuedPixel: IQueuedPixel): Promise<void> {
         if(!this.bot.isConnected()) {
@@ -250,7 +285,7 @@ export class PixelQueue {
         const skipped = ((!force && colAtSpot == col) || colAtSpot == null || colAtSpot == Color.OCEAN)
                             || (!wars && this.bot.isWarOccurring() && this.bot.isPixelInWarZone(this.bot.getCurrentWarZone(), x, y));
 
-        this.resolvePixel(colAtSpot!, queuedPixel);
+        await this.resolvePixel(colAtSpot!, queuedPixel);
 
         if(skipped) {
             return;
@@ -380,14 +415,28 @@ export class PixelQueue {
         this.sendQueue = sortPixels(pixels, map, mode);
     }
 
+    /**
+     * @returns the current queued pixels
+     */
     @DelegateMethod()
     readQueue(): IQueuedPixel[] {
         return this.sendQueue;
     }
 
+    /**
+     * @returns a promise that resolves once the pixel queue is finished
+     */
     @DelegateMethod()
     finishQueue(): Promise<void> {
         return new Promise<void>(resolve => this.finishQueueResolves.push(resolve));
+    }
+
+    /**
+     * Sets the load data; this effects the delay in packet speed.
+     */
+    @DelegateMethod()
+    setLoadData(loadData: LoadData): void {
+        this.loadData = loadData;
     }
 
 }

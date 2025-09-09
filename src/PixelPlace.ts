@@ -4,7 +4,7 @@ import { BoardID, IBotParams } from "./util/data/Data";
 import { SocketHook } from "./browser/SocketHook";
 import { BrowserSettings } from "./browser/SocketData";
 
-export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-user" | "outside";
+export type HeaderTypes = "canvas-image" | "get-painting" | "socket" | "relog" | "get-data" | "outside";
 
 export type HeadersFunc = (type: HeaderTypes, boardId: BoardID) => OutgoingHttpHeaders;
 
@@ -77,7 +77,7 @@ class PixelPlace {
                     h['sec-fetch-mode'] = 'no-cors';
                     break;
                 case "get-painting":
-                case "get-user":
+                case "get-data":
                 case 'relog':
                     h['sec-fetch-dest'] = 'empty';
                     h['sec-fetch-mode'] = 'cors';
