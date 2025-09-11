@@ -300,8 +300,8 @@ export type SnowballItemNotificationPacket = {
 export type AuctionWinNotificationPacket = {
     /** The owner's username. */
     owner_username: string,
-    /** The frame id. */
-    frame_id: number,
+    /** The type of frame. */
+    frame_id: AuctionFrameType,
     /** The auction id. */
     id: number,
     /** The current bid. */
@@ -336,14 +336,21 @@ export type LostBidAuctionPacket = {
     current_bid_username: string
 };
 
+export enum AuctionFrameType {
+    COPPER = 1,
+    IRON = 2,
+    PYRITE = 3,
+    PIXELITE = 4,
+}
+
 /**
  * Represents a new painting in an auction.
  */
 export type NewPaintingAuctionPacket = {
     /** The owner's username. */
     owner_username: string,
-    /** The frame id. */
-    frame_id: number,
+    /** The type of frame. */
+    frame_id: AuctionFrameType,
     /** The auction id. */
     id: number,
     /** The current bid. */
@@ -360,7 +367,7 @@ export type CoinIslandOwnerChangePacket = {
     island: CoinIslandID,
     /** The username of the new owner apparently */
     from: string,
-    /** The amount of coins it was bought for */
+    /** The amount of unclaimed coins stolen */
     amount: number
 };
 

@@ -63,7 +63,7 @@ export class TextWriter<T extends FontData> {
 
     private bot: Bot;
 
-    constructor(bot: Bot, uobj: TextData<T>) {
+    constructor(bot: Bot, uobj: TextData<any>) {
 
         const obj = populate(uobj);
 
@@ -73,8 +73,7 @@ export class TextWriter<T extends FontData> {
 
         const {text, x, y} = obj;
 
-        const font = orDefault(obj, 'font', Font.SMALL_FONT);
-
+        obj.font ??= Font.SMALL_FONT;
         obj.backgroundColor ??= -1;
         obj.lineGap ??= 1;
         obj.fillColor ??= -1;
@@ -87,7 +86,7 @@ export class TextWriter<T extends FontData> {
         // tab = 4 spaces
         // ignore carriage return
         const t = text.replace(/\t/g, "    ").replace(/\r/g, "");
-        obj.text = font.ignoreCase ? t.toLowerCase() : t;
+        obj.text = obj.font.ignoreCase ? t.toLowerCase() : t;
 
         this.x = x;
         this.y = y;

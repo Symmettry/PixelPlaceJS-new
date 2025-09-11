@@ -236,6 +236,8 @@ export interface IStatistics {
             first_time: number,
             /** Average pixels placed per second. */
             per_second: number,
+            /** Average pixels placed per second accounting for pauses. */
+            continuous_per_second: number,
             /** Last pixel placement position. */
             last_pos: number[],
             /** Pixel confirm ping */
@@ -310,6 +312,7 @@ export function defaultStatistics(): IStatistics {
                 failed: 0,
                 first_time: -1,
                 per_second: -1,
+                continuous_per_second: -1,
                 last_pos: [-1, -1],
                 ping: -1,
             },

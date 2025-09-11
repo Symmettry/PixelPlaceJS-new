@@ -509,12 +509,14 @@ export type CoinIslandData = {
 }
 
 const NAMESPACE = "pixelplacejs-new";
+// 5 mins
+const CACHE_EXPIRATION_TIME = 300_000;
 
 export class NetUtil {
     private static extCache: {[key: string]: any} = {};
 
-    private paintingCache: {[key: string]: PaintingData} = {};
-    private userCache: {[key: string]: UserData} = {};
+    private paintingCache: {[key: string]: [EpochTimeStamp, PaintingData]} = {};
+    private userCache: {[key: string]: [EpochTimeStamp, UserData]} = {};
 
     private bot: Bot;
 
@@ -547,7 +549,12 @@ export class NetUtil {
      */
     @DelegateMethod()
     async getPaintingData(canvasId: number, reload: boolean=false, connected: boolean=true): Promise<PaintingData | null> {
-        if(this.paintingCache[canvasId] && !reload) return this.paintingCache[canvasId];
+        if(!reload && this.paintingCache[canvasId]) {
+            const [time, data] = this.paintingCache[canvasId];
+            if(Date.now() - time < CACHE_EXPIRATION_TIME) {
+                return data;
+            }
+        }
 
         let data: Response;
         try {
@@ -563,7 +570,9 @@ export class NetUtil {
             return this.notOkay(null);
         }
 
-        return (await data.json()) as PaintingData;
+        const pd = (await data.json()) as PaintingData;
+        this.paintingCache[canvasId] = [Date.now(), pd];
+        return pd;
     }
 
     /**
@@ -574,7 +583,12 @@ export class NetUtil {
     @DelegateMethod()
     async getUserData(name: string, reload: boolean=false): Promise<UserData | null> {
         name = name.toLowerCase();
-        if(this.userCache[name] && !reload) return this.userCache[name];
+        if(!reload && this.userCache[name]) {
+            const [time, data] = this.userCache[name];
+            if(Date.now() - time < CACHE_EXPIRATION_TIME) {
+                return data;
+            }
+        }
 
         let data: Response;
         try {
@@ -590,7 +604,9 @@ export class NetUtil {
             return this.notOkay(null);
         }
 
-        return (await data.json()) as UserData;
+        const ud = (await data.json()) as UserData;
+        this.userCache[name] = [ Date.now(), ud ];
+        return ud;
     }
     
     /**
@@ -629,6 +645,31 @@ export class NetUtil {
         }
 
         return (await data.json()) as CoinIslandData;
+    }
+
+    /**
+     * Gets information about an auction
+     * @param auctionId The auction id
+     * @returns Auction data
+     */
+    @DelegateMethod()
+    async getAuctionData(auctionId: number): Promise<AuctionData | null> {
+        let data: Response;
+        try {
+            data = await fetch("https://pixelplace.io/api/framed-painting.php?auction=true&id=" + auctionId, {
+                "headers": this.headers("get-data", this.bot.boardId) as HeadersInit,
+                "body": null,
+                "method": "GET",
+            });
+            if(!data.ok) {
+                return this.notOkay(data);
+            }
+        } catch (err) {
+            return this.notOkay(null);
+        }
+
+        // the only other value is time and it's LTIERALLY DATE.NOW() WHAT IS THIS OWICODE..
+        return (await data.json()).ah as AuctionData;
     }
 
     static async getUrl(url: string, headers: OutgoingHttpHeaders) {

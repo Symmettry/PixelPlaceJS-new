@@ -176,7 +176,9 @@ export class Bot implements
         // updating values
         this.stats.session.time = Date.now() - this.stats.session.beginTime;
         const timeSinceFirstPixel = Date.now() - this.stats.pixels.placing.first_time;
+        const contTimeSinceFirstPixel = timeSinceFirstPixel - this.pixelQueue.contOff - this.pixelQueue.queueOff;
         this.stats.pixels.placing.per_second = this.stats.pixels.placing.placed / (timeSinceFirstPixel * 0.001);
+        this.stats.pixels.placing.continuous_per_second = this.stats.pixels.placing.placed / (contTimeSinceFirstPixel * 0.001);
         this.stats.pixels.placing.ping = this.connection!.getConfirmPing();
         return this.stats;
     }
@@ -309,6 +311,7 @@ export class Bot implements
     declare getUserData: NetUtil['getUserData'];
     declare getPaintingData: NetUtil['getPaintingData'];
     declare getCoinIsland: NetUtil['getCoinIsland'];
+    declare getAuctionData: NetUtil['getAuctionData'];
     declare getCanvasUrl: typeof NetUtil.getCanvasUrl;
 
     // ---------------- UID Manager ----------------

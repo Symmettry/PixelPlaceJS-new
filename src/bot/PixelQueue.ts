@@ -20,7 +20,7 @@ type LoadData = {
 }
 
 const _LoadPresets = {
-    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 500,  zeroAfter: 100, failSafe: 1000/6  },
+    FAST:    { barriers: [0, 24, 100],            increases: [-12, 0, 1],     reset: 600,  zeroAfter: 100, failSafe: 1000/5  },
     DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, zeroAfter: 0,   failSafe: 1000/10 },
     SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, zeroAfter: 0,   failSafe: 1000/10 },
 } as const;
@@ -52,7 +52,7 @@ export class PixelQueue {
 
     private lastQueueTime: EpochTimeStamp = Date.now();
     private lastVerification: EpochTimeStamp = Date.now();
-    queueLoop() {
+    queueLoop(start: boolean) {
         if(this.sendQueue.length > 0) {
             this.lastQueueTime = Date.now();
             this.goThroughPixels();
@@ -71,8 +71,13 @@ export class PixelQueue {
             this.finishQueueResolves.forEach(n => n());
             this.finishQueueResolves = [];
         }
+
+        if(start) {
+            this.queueOffTime = Date.now();
+        }
+        this.queueOff = Date.now() - this.queueOffTime;
         
-        setTimeout(() => this.queueLoop(), 10);
+        setTimeout(() => this.queueLoop(false), 10);
     }
 
     private getPlacementSpeed() {
@@ -130,18 +135,14 @@ export class PixelQueue {
             console.error(this);
             throw new Error("Sleeping for an invalid amount of time " + time + "!! Something is wrong, pls report with your code and the above text");
         }
-        this.timeOffset = 0;
         if(time == 0) return call();
 
-        const thiz = this;
         const start = Date.now();
         function loop() {
             const elapsed = Date.now() - start;
             if (elapsed < time) {
                 setImmediate(loop);
             } else {
-                // 10ms max
-                thiz.timeOffset = Math.min(elapsed - time, 1.5);
                 call();
             }
         }
@@ -152,6 +153,10 @@ export class PixelQueue {
         if(queuedPixel.resolve) await queuedPixel.resolve({ pixel: queuedPixel.data, oldColor: oldCol });
         setImmediate(() => this.goThroughPixels());
     }
+
+    queueOff = 0;
+    queueOffTime = 0;
+    contOff = 0;
 
     applySpeedChanges(queuedPixel: IQueuedPixel): number {
         this.bot.sustainingLoad++;
@@ -167,7 +172,9 @@ export class PixelQueue {
         }
         queuedPixel.speed += this.loadData.increases[this.bot.currentBarrier];
 
-        queuedPixel.speed += this.bot.lagAmount * this.bot.lagIncreasePerMs;
+        const lagIncrease = this.bot.lagAmount * this.bot.lagIncreasePerMs;
+        this.contOff += lagIncrease;
+        queuedPixel.speed += lagIncrease;
 
         if(this.bot.ratelimited) queuedPixel.speed += 100;
 
@@ -190,11 +197,6 @@ export class PixelQueue {
             }
         }
 
-        if(this.timeOffset > 0) {
-            queuedPixel.speed -= this.timeOffset;
-            this.timeOffset = 0;
-        }
-
         return queuedPixel.speed;
     }
 
@@ -205,7 +207,7 @@ export class PixelQueue {
 
         if(this.sendQueue.length == 0) {
             this.lastVerification = Date.now();
-            this.queueLoop();
+            this.queueLoop(true);
             return;
         }
 
@@ -215,7 +217,7 @@ export class PixelQueue {
             else this.lagCount = Math.max(0, this.lagCount - 1);
             setTimeout(() => {
                 this.lastVerification = Date.now();
-                this.queueLoop();
+                this.queueLoop(true);
             }, this.lagCount * 2000);
             this.lastLag = Date.now();
             return;
@@ -233,7 +235,7 @@ export class PixelQueue {
 
         if(queuedPixel == undefined) {
             this.lastVerification = Date.now();
-            this.queueLoop();
+            this.queueLoop(true);
             return;
         }
 
@@ -262,19 +264,21 @@ export class PixelQueue {
         queuedPixel.speed = this.applySpeedChanges(queuedPixel);
         if(queuedPixel.speed == Infinity) return;
 
+        this.contOff += this.queueOff;
+        this.queueOffTime = this.queueOff = 0;
+
         this.accurateTimeout(() => this.sendPixel(queuedPixel), Math.max(0, Math.min(queuedPixel.speed, this.bot.maxPixelWait)));
         return;
     }
 
     lastPixel: number = Date.now();
-    timeOffset: number = 0;
 
     private async sendPixel(queuedPixel: IQueuedPixel): Promise<void> {
         if(!this.bot.isConnected()) {
             this.bot.getConnection().verify().then(() => {
                 this.lastVerification = Date.now();
                 this.addToSendQueue(queuedPixel);
-                this.queueLoop();
+                this.queueLoop(true);
             });
             return;
         }
@@ -327,7 +331,7 @@ export class PixelQueue {
         // otherwise if it's not a pixel placing bot we can let it take less CPU
         if(!this.startedQueue) {
             this.startedQueue = true;
-            this.queueLoop();
+            this.queueLoop(true);
         }
     }
 

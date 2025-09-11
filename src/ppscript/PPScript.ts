@@ -470,7 +470,7 @@ export class PPScript {
                     const botInst = this.bots[(bot as string)];
                     if(!botInst) command.error(`Unknown bot: ${bot}`); 
 
-                    const text: TextData = {
+                    const text: TextData<any> = {
                         font,
                         text: string0 as string,
                         x: x as number,

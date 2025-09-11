@@ -2,7 +2,7 @@ import { DelegateMethod } from "ts-delegate";
 import { ServerClient } from "../../browser/client/ServerClient";
 import { constant } from "../../util/Helper";
 import { Color } from "../../util/data/Color";
-import { IArea, IQueuedPixel } from "../../util/data/Data";
+import { IArea, IQueuedPixel, QueueSide } from "../../util/data/Data";
 import { ErrorMessages, PPError } from "../../util/data/Errors";
 import { AreaFightEndPacket, AreaFightStartPacket, AreaFightZoneChangePacket, AreasPacket, CanvasPacket, ChatMessagePacket, PacketResponseMap, PixelPacket, RateChangePacket, ServerTimePacket, UsernamePacket } from "../../util/packets/PacketResponses";
 import { RECEIVED, SENT } from "../../util/packets/Packets";
@@ -132,7 +132,6 @@ export class InternalListeners {
             const item = this.bot.getItemData(i.item);
             const n = item.name;
             if(n == "Pixel Bomb" || n == "Pixel Missile" || n == "Atomic Bomb" || n == "Avatar Bomb" || n == "Guild Bomb") {
-                console.log("missile delay");
                 missileDelay = [i.x, i.y, i.c];
             }
         });
@@ -154,7 +153,8 @@ export class InternalListeners {
                 for(const [time, queuedPixel] of timings) {
                     if(now - time < 500) continue;
                     this.pixelTime[key].splice(this.pixelTime[key].findIndex(n => n[1] == queuedPixel), 1);
-                    this.bot.addToSendQueue(queuedPixel);
+                    queuedPixel.speed = Math.max(queuedPixel.speed, bot.rate);
+                    this.bot.readQueue().unshift(queuedPixel);
                     this.bot.stats.pixels.placing.failed++;
                 }
             }
@@ -166,22 +166,22 @@ export class InternalListeners {
                 this.bot.uidMan.onPixels(pixels);
             }
 
+            if(missileDelay) {
+
+                const [x, y, col] = missileDelay;
+                // will eventually happen
+                if(pixels.find(n => n[2] == col && n[0] == x && n[1] == y)) {
+                    missileDelay = null;
+
+                    // wait a delay so that we repair n stuff a bit later
+                    await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+
+                    this.connection.bombResolves.forEach(c => c());
+                    this.connection.bombResolves = [];
+                }
+            }
+
             this.bot.detectPixels(pixels);
-
-            if(!missileDelay) return;
-
-            const [x, y, col] = missileDelay;
-            // will eventually happen
-            if(!pixels.find(n => n[2] == col && n[0] == x && n[1] == y)) return;
-
-            console.log("missile delay 2");
-            missileDelay = null;
-
-            this.connection.bombResolves.forEach(c => c());
-            this.connection.bombResolves = [];
-
-            // wait a delay so that we repair n stuff a bit later
-            await new Promise<void>((resolve) => setTimeout(resolve, 3000));
         });
 
         const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;

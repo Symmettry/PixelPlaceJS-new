@@ -575,12 +575,12 @@ export class Canvas {
             width = this.canvasWidth;
             height = this.canvasHeight;
         } else {
-            sx = position.startX;
-            sy = position.startY;
+            sx = Math.floor(position.startX);
+            sy = Math.floor(position.startY);
             // @ts-expect-error the ?? is fine for this
-            width = position.width ?? (position.endX - position.startX)
+            width = Math.floor(position.width ?? (position.endX - position.startX));
             // @ts-expect-error the ?? is fine for this
-            height = position.height ?? (position.endY - position.startY)
+            height = Math.floor(position.height ?? (position.endY - position.startY));
         }
         sx = Math.max(sx, 0);
         sy = Math.max(sy, 0);
