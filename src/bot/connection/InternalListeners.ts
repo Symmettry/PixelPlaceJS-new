@@ -153,7 +153,7 @@ export class InternalListeners {
                 for(const [time, queuedPixel] of timings) {
                     if(now - time < 500) continue;
                     this.pixelTime[key].splice(this.pixelTime[key].findIndex(n => n[1] == queuedPixel), 1);
-                    queuedPixel.speed = Math.max(queuedPixel.speed, bot.rate);
+                    queuedPixel.speed = Math.max(queuedPixel.speed, bot.rate + 3);
                     this.bot.readQueue().unshift(queuedPixel);
                     this.bot.stats.pixels.placing.failed++;
                 }

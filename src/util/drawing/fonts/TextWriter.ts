@@ -4,7 +4,7 @@ import { Color } from "../../data/Color";
 import { PixelFlags, PlaceResults } from "../../data/Data";
 import { populate } from "../../FlagUtil";
 import { CachedTextData, cacheText, Font, FontData, Spot } from "./Font";
-import { confirm, orDefault } from "../../Helper";
+import { confirm } from "../../Helper";
 
 export type TextData<T extends FontData> = {
     /** The text to write */
