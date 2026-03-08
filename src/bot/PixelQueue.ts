@@ -1,10 +1,11 @@
 import { Color } from "../util/data/Color";
-import { CoordSet, IQueuedPixel, Pixel, PlaceResults, PlainPixel, QueueSide } from "../util/data/Data";
-import { DrawingMode, sortPixels } from "../util/data/Modes";
+import { CoordSet, IQueuedPixel, Pixel, PixelSetData, PlaceResults, PlainPixel, QueueSide } from "../util/data/Data";
 import { populate } from "../util/FlagUtil";
 import { DelegateField, DelegateMethod } from "ts-delegate";
 import { Packets } from "../util/packets/Packets";
 import { Bot } from "./Bot";
+import { DrawHook, DrawingFunction, Modes } from "../util/data/Modes";
+import { ImagePixels } from "../util/drawing/ImageDrawer";
 
 type LoadData = {
     /** List of barriers to pass; has a 0 at the start because uhm idk keep the array size the same */
@@ -444,19 +445,49 @@ export class PixelQueue {
 
     /**
      * Sorts the current queue with a drawing mode
-     * 
+     *
      * You can take advantage of this by adding a bunch of pixels into queue with async: false, then sort.
      */
     @DelegateMethod()
-    sortQueue(mode: DrawingMode) {
+    async sortQueue(mode: DrawingFunction) {
+
         const pixels = this.sendQueue.map(n => n.data);
+
         const map: CoordSet<IQueuedPixel> = {};
-        for(const qp of this.sendQueue) {
-            const {x, y} = qp.data;
+        for (const qp of this.sendQueue) {
+            const { x, y } = qp.data;
             map[x] ??= {};
             map[x][y] = qp;
         }
-        this.sendQueue = sortPixels(pixels, map, mode);
+
+        const minX = Math.min(...pixels.map(p => p.x));
+        const minY = Math.min(...pixels.map(p => p.y));
+
+        const width = Math.max(...pixels.map(p => p.x)) - minX + 1;
+        const height = Math.max(...pixels.map(p => p.y)) - minY + 1;
+
+        const pixelGrid: ImagePixels = [];
+        for (const p of pixels) {
+            const nx = p.x - minX;
+            const ny = p.y - minY;
+            pixelGrid[nx] ??= [];
+            pixelGrid[nx][ny] = p.col;
+        }
+
+        const pixelSet: PixelSetData = { width, height, pixels: pixelGrid };
+        const sortedQueue: IQueuedPixel[] = [];
+
+        const hook: DrawHook = async (x, y) => {
+            const px = minX + x;
+            const py = minY + y;
+            if (map[px]?.[py]) {
+                sortedQueue.push(map[px][py]);
+            }
+        };
+
+        await mode(pixelSet, hook, Math.hypot);
+
+        this.sendQueue = sortedQueue;
     }
 
     /**

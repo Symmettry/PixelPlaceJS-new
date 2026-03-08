@@ -4,6 +4,7 @@ import { Color } from '../util/data/Color';
 import { BoardID, Pixel } from '../util/data/Data';
 import { TextData } from '../util/drawing/fonts/TextWriter';
 import { Image } from '../util/drawing/ImageDrawer';
+import { BaseModes, DrawingFunction } from '../util/data/Modes';
 
 type Args = { [key: string]: [string | number | boolean | CallData, string] };
 type RuntimeArgs = { [key: string]: any }
@@ -385,16 +386,16 @@ export class PPScript {
                     const { bot, mode, protect, fullProtect, wars, force, width, height, wait }
                             = command.optional(
                                 ['bot', Object.keys(this.bots)[0]],
-                                ['mode', "TOP_LEFT_TO_RIGHT"], ['protect', false], ['fullProtect', false],
+                                ['mode', "ROWS"], ['protect', false], ['fullProtect', false],
                                 ['wars', false], ['force', false],
                                 ['width', -1], ['height', -1],
                                 ['wait', true],
                             );
 
                     const modeStr = (mode as string);
-                    let modeVal: Modes = Modes.TOP_LEFT_TO_RIGHT;
-                    if(modeStr in Modes) {
-                        modeVal = Modes[modeStr as keyof typeof Modes];
+                    let modeVal: DrawingFunction = Modes.of(BaseModes.ROWS);
+                    if(modeStr in BaseModes) {
+                        modeVal = Modes.of(BaseModes[modeStr as keyof typeof BaseModes]);
                     }
 
                     const botInst = this.bots[(bot as string)];

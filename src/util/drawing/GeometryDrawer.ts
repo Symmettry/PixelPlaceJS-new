@@ -1,7 +1,7 @@
 import { Bot } from "../../bot/Bot";
 import { Color } from "../data/Color";
-import { CoordSet, Pixel, PixelFlags, PlaceResults } from "../data/Data";
-import { DrawingMode, Modes, sortPixels } from "../data/Modes";
+import { CoordSet, Pixel, PixelFlags, PixelSetData, PlaceResults } from "../data/Data";
+import { BaseModes, DrawingFunction, Modes } from "../data/Modes";
 import { populate } from "../FlagUtil";
 import { DelegateMethod } from "ts-delegate";
 
@@ -20,8 +20,8 @@ export type Rectangle = {
     /** Color to draw in */
     color: ColorReceiver;
 
-    /** Sorts the pixels of the rectangle; defaults to Modes.TOP_LEFT_TO_RIGHT */
-    sort?: DrawingMode;
+    /** Sorts the pixels of the rectangle; defaults to Modes.of(BaseModes.ROWS) */
+    sort?: DrawingFunction;
 
     /** Protect all pixels instantly */
     fullProtect?: boolean;
@@ -44,8 +44,8 @@ export type Outline = {
     /** Border width of the outline; defaults to 1 */
     borderWidth?: number;
 
-    /** Sorts the pixels of the outline; defaults to Modes.TOP_LEFT_TO_RIGHT */
-    sort?: DrawingMode;
+    /** Sorts the pixels of the outline; defaults to Modes.of(BaseModes.ROWS) */
+    sort?: DrawingFunction;
 
     /** Protect all pixels instantly */
     fullProtect?: boolean;
@@ -60,19 +60,38 @@ export class GeometryDrawer {
     static async placeSorted(bot: Bot, ref: Rectangle | Outline, pixels: Pixel[]): Promise<PlaceResults[][]> {
         const results: PlaceResults[][] = [];
 
+        // Build a quick lookup map
         const map: CoordSet<Pixel> = {};
-        for(const p of pixels) {
-            const {x, y} = p;
+        for (const p of pixels) {
+            const { x, y } = p;
             map[x] ??= {};
             map[x][y] = p;
         }
 
-        const sortedPixels = sortPixels(pixels, map, ref.sort ?? Modes.TOP_LEFT_TO_RIGHT);
-        for(const {x, y, col} of sortedPixels) {
-            const res = await bot.placePixel({x, y, col, ref});
+        // Build PixelSetData for the drawing function
+        const width = Math.max(...pixels.map(p => p.x)) + 1;
+        const height = Math.max(...pixels.map(p => p.y)) + 1;
+
+        const pixelData: PixelSetData = {
+            width,
+            height,
+            pixels: Array.from({ length: width }, (_, x) =>
+                Array.from({ length: height }, (_, y) => map[x]?.[y]?.col ?? null)
+            )
+        };
+
+        // Use the new system: either a DrawingFunction or default to BaseModes.ROWS
+        const drawFn = ref.sort ?? Modes.of(BaseModes.ROWS);
+
+        const drawHook = async (x: number, y: number) => {
+            const col = pixelData.pixels[x]?.[y];
+            if (col == null) return;
+            const res = await bot.placePixel({ x, y, col, ref });
             results[x] ??= [];
             results[x][y] = res;
-        }
+        };
+
+        await drawFn(pixelData, drawHook, Math.hypot);
 
         return results;
     }

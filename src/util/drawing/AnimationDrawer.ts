@@ -2,7 +2,7 @@ import { ImagePixels } from "./ImageDrawer";
 import fs from 'fs';
 import { parseGIF, decompressFrames } from 'gifuct-js';
 import { Bot } from "../../bot/Bot";
-import { DrawingMode, Modes } from "../data/Modes";
+import { BaseModes, DrawingFunction, ModeConfigs, Modes } from "../data/Modes";
 import { IRGBColor, PixelFlags, PlaceResults } from "../data/Data";
 import { NetUtil } from "../NetUtil";
 import { populate } from "../FlagUtil";
@@ -17,7 +17,7 @@ type FrameCall<T> = (frame: number) => T;
 type AnimationData<T> = T | FrameCall<T>;
 
 type AnimationCoord = AnimationData<number>;
-type AnimationMode = AnimationData<DrawingMode>;
+type AnimationMode = AnimationData<DrawingFunction>;
 type AnimationTimings = number[] | AnimationData<number>;
 
 type PathAnimationData = {
@@ -108,7 +108,7 @@ export class AnimationDrawer {
         this.bot = bot;
         this.x = animation.x;
         this.y = animation.y;
-        this.mode = animation.mode ?? Modes.TO_CENTER;
+        this.mode = animation.mode ?? Modes.of(BaseModes.ROWS, [ModeConfigs.CENTRAL_SORT]);
         this.onFrame = animation.onFrame;
         this.flags = populate(animation);
         this.repeats = animation.repeat ?? 1;
