@@ -1,5 +1,5 @@
-# ppjs-new
-PixelPlace JS v2 basically
+# ppjs-reborn
+PixelPlace JS reborn
 
 https://www.npmjs.com/package/pixelplacejs-new
 
@@ -163,11 +163,12 @@ ErrorMessages[ID] // The messages for these errors. This is not an enum. Example
 ### Full Bot
 
 ```js
-import { PixelPlace, Modes, Packets, Color, PPError } from "pixelplacejs-new";
+import { PixelPlace, Modes, Packets, Color } from "pixelplacejs-new";
 
 (async () => {
     const params = [
         {
+            // or AuthFile.from("5 chars of key")
             authData: {
                 authKey: "key",
                 authId: "id",
@@ -184,17 +185,51 @@ import { PixelPlace, Modes, Packets, Color, PPError } from "pixelplacejs-new";
     
     console.log("Pixel Place initiated!");
 
-    // draws image at path "C:/my image.png" (will throw an error if it doesn't exist)
+    // -----------------------------
+    // Draw image using new modes!!!
+    // -----------------------------
+    // FROM_CENTER = BaseMode.CENTER_SPIRAL + ModeConfigs.CENTRAL_SORT
     await bot.drawImage({
-        x: 100, y: 100,
-        path: "C:/my image.png",
-        mode: Modes.FROM_CENTER,
+        x: 100,
+        y: 100,
+        path: "C:/my_image.png",
+        mode: Modes.of(
+            BaseModes.CENTER_SPIRAL,
+            [ModeConfigs.CENTRAL_SORT]
+        ),
+        protect: true,   // protect the image
+        force: false,    // do not overwrite same-color pixels
     });
 
-    // places a 10x10 area of white (You should remove this; it's just an example)
-    for(let x=0;x<10;x++) {
-        for(let y=0;y<10;y++) {
-            bot.placePixel({
+    // DRAW WITH ANGLE MODE (+ CHECKERED!)
+    await bot.drawImage({
+        x: 500,
+        y: 500,
+        path: "C:/my_angle.png",
+        mode: Modes.of(
+            BaseModes.ROWS,
+            [ModeConfigs.ANGLE_CW, ModeConfigs.CHECKERED]
+        ),
+        protect: false,
+        force: true,
+    });
+
+    // DRAW BY COLOR
+    await bot.drawImage({
+        x: 800,
+        y: 200,
+        path: "C:/my_image.png",
+        mode: Modes.of(BaseModes.ROWS),
+        byColor: true,
+        protect: false,
+    });
+
+    // -----------------------------
+    // Place single pixels
+    // -----------------------------
+    for (let x = 0; x < 10; x++) {
+        for (let y = 0; y < 10; y++) {
+            await bot.placePixel({
                 x: 1000 + x,
                 y: 1000 + y,
                 col: Color.WHITE,
@@ -202,14 +237,16 @@ import { PixelPlace, Modes, Packets, Color, PPError } from "pixelplacejs-new";
         }
     }
 
-    // draws "Hello World!" at 100,100 (also remove this)
+    // -----------------------------
+    // Draw text
+    // -----------------------------
     await bot.drawText({
         x: 100,
         y: 100,
         text: "Hello World!",
     });
-})();
 
+})();
 ```
 
 ## PPScript
