@@ -20,7 +20,8 @@ type LoadData = {
 }
 
 const _LoadPresets = {
-    FAST:    { barriers: [0, 23, 100],            increases: [-12, 0, 1],     reset: 600,  zeroAfter: 100, failSafe: 1000/5  },
+    FASTEST:    { barriers: [0, 23, 100],            increases: [-12, 0, 1],     reset: 600,  zeroAfter: 100, failSafe: 1000/5  },
+    FAST:    { barriers: [0, 30, 80, 100],            increases: [-3, 0, 1, 2],     reset: 800,  zeroAfter: 100, failSafe: 1000/5  },
     DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, zeroAfter: 0,   failSafe: 1000/10 },
     SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, zeroAfter: 0,   failSafe: 1000/10 },
 } as const;

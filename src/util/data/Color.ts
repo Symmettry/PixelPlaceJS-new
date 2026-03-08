@@ -1,5 +1,6 @@
 /**
  * Enumeration of colors.
+ * I don't know what new colors were added so this is outdated.
  * @enum {number}
  */
 export enum Color {
@@ -80,7 +81,7 @@ export enum Color {
     GRAY_BLUE = 34,
     SKY_BLUE = 35,
     TEAL = 36,
-    DARK_CYAN = 37,
+    LIGHT = 37,
     CYAN = 38,
     NAVY_BLUE = 59,
 
