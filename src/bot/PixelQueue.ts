@@ -166,7 +166,7 @@ export class PixelQueue {
 
         if (time === 0) return call();
 
-        const target = process.hrtime.bigint() + BigInt(time) * BigInt(1_000_000);
+        const target = process.hrtime.bigint() + BigInt(Math.floor(time * 1_000_000));
 
         let cycles = 0;
         const loop = (): void => {
