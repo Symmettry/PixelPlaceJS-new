@@ -18,7 +18,6 @@ import { GeometryDrawer } from '../util/drawing/GeometryDrawer.js';
 import { PixelQueue } from './PixelQueue.js';
 import { constant } from '../util/Helper.js';
 import { InternalListeners } from './connection/InternalListeners.js';
-import { FontData } from '../util/drawing/fonts/Font.js';
 
 /**
  * Pixelplace bot instance.

@@ -170,6 +170,8 @@ export type PixelPacketData = [
     brush: number,
     /** If premium, a user id will be present. It will also be your user id if it's a response packet. */
     userId?: number,
+    /** No clue, seems to just be 0 */
+    unknown?: number,
 ];
 type RequireUserId<T extends any[]> =
     T extends [...infer Head, number?] ? [...Head, number] : T;
