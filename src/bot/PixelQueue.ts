@@ -130,23 +130,62 @@ export class PixelQueue {
         this.bot.checkRate = -1;
     }
     
-    private accurateTimeout(call: () => void, time: number): void {
-        if(isNaN(time) || time < 0) {
+    private timeoutBenchmarkNs: bigint | null = null;
+
+    public async benchmarkTimeout(): Promise<void> {
+        return new Promise<void>((res) => {
+            const runs = 500;
+            let completed = 0;
+            let slowest = BigInt(0);
+
+            for (let i = 0; i < runs; i++) {
+                const start = process.hrtime.bigint();
+
+                setTimeout(() => {
+                    const diff = process.hrtime.bigint() - start;
+
+                    if (diff > slowest) slowest = diff;
+
+                    completed++;
+                    if (completed !== runs) return;
+
+                    this.timeoutBenchmarkNs = slowest;
+                    res();
+                }, 1);
+            }
+        });
+    }
+
+    private async accurateTimeout(call: () => void, time: number): Promise<void> {
+        if (isNaN(time) || time < 0) {
             console.error(this);
             throw new Error("Sleeping for an invalid amount of time " + time + "!! Something is wrong, pls report with your code and the above text");
         }
-        if(time == 0) return call();
 
-        const start = Date.now();
-        function loop() {
-            const elapsed = Date.now() - start;
-            if (elapsed < time) {
-                setImmediate(loop);
-            } else {
-                call();
+        if(this.timeoutBenchmarkNs === null) await this.benchmarkTimeout();
+
+        if (time === 0) return call();
+
+        const target = process.hrtime.bigint() + BigInt(time) * BigInt(1_000_000);
+
+        let cycles = 0;
+        const loop = (): void => {
+            cycles++;
+            const remaining = target - process.hrtime.bigint();
+
+            if (remaining <= BigInt(500_000)) {
+                return call();
             }
-        }
-        setImmediate(loop);
+
+            if (remaining > this.timeoutBenchmarkNs!) {
+                setTimeout(loop, 1);
+                return;
+            }
+
+            setImmediate(loop);
+        };
+
+        loop();
     }
 
     private async resolvePixel(oldCol: Color, queuedPixel: IQueuedPixel): Promise<void> {

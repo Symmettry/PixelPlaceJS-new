@@ -35,8 +35,9 @@
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
     "eslint": "^9.4.0",
+    "tsc": "^2.0.4",
     "typedoc": "^0.28.12",
     "typedoc-plugin-not-exported": "^0.1.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }
