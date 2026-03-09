@@ -10,7 +10,7 @@ export type Coord = [number, number];
 export type BaseMode = (pixels: PixelSetData) => Coord[];
 
 // ModeConfig transforms the coordinate order, optionally using hypot or pixel data
-export type ModeConfig = (coords: Coord[], pixels: PixelSetData, hypot: HypotFunction) => Coord[];
+export type ModeConfig = (coords: Coord[], pixels: PixelSetData, hypot: HypotFunction, base: BaseMode) => Coord[];
 
 export type DrawingFunction = (pixels: PixelSetData, draw: DrawHook, hypot: HypotFunction) => Promise<void>;
 
@@ -20,11 +20,10 @@ export class Modes {
     private constructor() {}
 
     static of(base: BaseMode, configs: readonly ModeConfig[] = []): DrawingFunction {
-        if(base == BaseModes.RANDOM && configs.length > 0) throw new Error("Random mode cannot have any configurations.");
         return async (pixels, draw, hypot) => {
             let coords = base(pixels);
             for (const config of configs) {
-                coords = config(coords, pixels, hypot);
+                coords = config(coords, pixels, hypot, base);
             }
             for (const [x, y] of coords) {
                 await draw(x, y);
@@ -91,7 +90,7 @@ export const BaseModes = {
 
     /**
      * Traverses pixels in a random order.
-     * Incompatible with all ModeConfigs (will error)
+     * Has some special compatibilities with ModeConfigs
      */
     RANDOM: (pixels: PixelSetData): Coord[] => {
         const coords: Coord[] = [];
@@ -165,7 +164,7 @@ export const BaseModes = {
 
         return coords;
     },
-};
+} as const;
 
 // -------------------- Config Modifiers -------------------- //
 
@@ -232,14 +231,33 @@ export const ModeConfigs = {
      * Sorts pixels by distance from the center (closest first).
      * Incompatible with: ANGLE_CW, ANGLE_CCW.
      */
-    CENTRAL_SORT: (coords: Coord[], pixels: PixelSetData, hypot: HypotFunction): Coord[] => {
-        const cx = Math.floor(pixels.width / 2);
-        const cy = Math.floor(pixels.height / 2);
-        return coords
-            .map(c => ({ c, d: hypot(c[0] - cx, c[1] - cy) }))
-            .sort((a, b) => a.d - b.d)
-            .map(v => v.c);
-    },
+    CENTRAL_SORT: ((() => {
+        const fn: any = (coords: Coord[], pixels: PixelSetData, hypot: HypotFunction, base: BaseMode): Coord[] => {
+            const cx = fn.cx ?? Math.floor(pixels.width / 2);
+            const cy = fn.cy ?? Math.floor(pixels.height / 2);
+
+            const nhypot =
+                base === BaseModes.RANDOM
+                    ? (a: number, b: number) => hypot(a, b) + Math.floor(Math.random() * 5) - 3
+                    : hypot;
+
+            return coords
+                .map(c => ({ c, d: nhypot(c[0] - cx, c[1] - cy) }))
+                .sort((a, b) => a.d - b.d)
+                .map(v => v.c);
+        };
+
+        fn.cx = undefined;
+        fn.cy = undefined;
+
+        fn.center = (x: number, y: number) => {
+            fn.cx = x;
+            fn.cy = y;
+            return fn;
+        };
+
+        return fn;
+    }) as () => ModeConfig)(),
 
     /**
      * Sorts pixels by diamond distance from the center.
@@ -265,4 +283,39 @@ export const ModeConfigs = {
         for (const row of rows) result.push(...row.reverse()); 
         return result;
     },
-};
+
+    OFFSET: ((() => {
+        const fn = (coords: Coord[]): Coord[] => {
+            const n = coords.length;
+            if (n === 0) return coords.slice();
+
+            let realOffset = 0;
+
+            if (fn.offpercent && fn.offpercent > 0) {
+                realOffset = Math.floor((n * fn.offpercent) / 100);
+            } else if (fn.offset) {
+                realOffset = ((fn.offset % n) + n) % n; // normalize negative/overflow
+            }
+
+            if (realOffset === 0) return coords.slice();
+
+            return coords.slice(realOffset).concat(coords.slice(0, realOffset));
+        };
+
+        fn.offset = 0;
+        fn.offpercent = 0;
+
+        fn.percent = (p: number) => {
+            if (p < 0 || p > 100) throw new Error("percent must be 0-100");
+            fn.offpercent = p;
+            return fn;
+        };
+
+        fn.amount = (amt: number) => {
+            fn.offset = amt;
+            return fn;
+        };
+
+        return fn;
+    }) as () => ModeConfig)(),  
+} as const;

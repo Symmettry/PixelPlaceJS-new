@@ -4,7 +4,7 @@ import { populate } from "../util/FlagUtil";
 import { DelegateField, DelegateMethod } from "ts-delegate";
 import { Packets } from "../util/packets/Packets";
 import { Bot } from "./Bot";
-import { DrawHook, DrawingFunction, Modes } from "../util/data/Modes";
+import { DrawHook, DrawingFunction } from "../util/data/Modes";
 import { ImagePixels } from "../util/drawing/ImageDrawer";
 
 type LoadData = {
