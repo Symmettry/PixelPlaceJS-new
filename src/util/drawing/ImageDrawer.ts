@@ -46,9 +46,6 @@ export type Image = {
     /** Will make certain pre-made modes perform better; e.g. FROM_CENTER and TO_CENTER will run faster but be slightly less accurate. */
     performant?: boolean;
 
-    /** If it should draw each color independently; defaults to false */
-    byColor?: boolean;
-
     /** If the bot should add all the pixels to protection immediately, before drawing; defaults to false */
     fullProtect?: boolean;
 
@@ -94,7 +91,6 @@ export class ImageDrawer {
     private mode!: DrawingFunction;
     private filter!: FilterFunction;
     private effect!: EffectFunction;
-    private byColor!: boolean;
 
     private x!: number;
     private y!: number;
@@ -141,7 +137,6 @@ export class ImageDrawer {
         this.effect = image.effect ?? EffectMode.NONE;
 
         constant(this, 'mode', image.mode ?? Modes.of(BaseModes.ROWS));
-        constant(this, 'byColor', image.byColor ?? false);
 
         this.flags = image as RawFlags;
 
@@ -206,24 +201,6 @@ export class ImageDrawer {
             : (() => { throw new Error(`Invalid mode: ${this.mode}`); })();
 
         if (!func) throw new Error(`Invalid mode: ${this.mode}`);
-
-        if(this.byColor) {
-            const dataSets: {[key: string]: PixelSetData} = {};
-            for (let x = 0; x < data.width; x++) {
-                for (let y = 0; y < data.height; y++) {
-                    const col = data.pixels[x][y];
-                    if(!col) continue;
-                    if(!dataSets[col]) dataSets[col] = { width: data.width, height: data.height, pixels: [] };
-                    if(!dataSets[col].pixels[x]) dataSets[col].pixels[x] = [];
-                    dataSets[col].pixels[x][y] = col;
-                }
-            }
-            for(const colData of Object.values(dataSets)) {
-                const drawHook = (x: number, y: number) => this.draw(x, y, colData);
-                await func(colData, drawHook, this.hypot);
-            }
-            return this.placeResults;
-        }
 
         const drawHook = (x: number, y: number) => this.draw(x, y, data);
         await func(data, drawHook, this.hypot);
