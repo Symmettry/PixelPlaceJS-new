@@ -94,7 +94,7 @@ export class Protector {
             this.pp.placePixel({
                 x, y,
                 col: protectColor,
-                protect: true
+                protect: true,
             });
         }
     }

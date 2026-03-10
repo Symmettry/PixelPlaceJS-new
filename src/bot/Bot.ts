@@ -356,6 +356,7 @@ export class Bot implements
     declare sortQueue: PixelQueue['sortQueue'];
     declare readQueue: PixelQueue['readQueue'];
     declare placePixel: PixelQueue['placePixel'];
+    declare placeTree: PixelQueue['placeTree'];
     declare setPlacementSpeed: PixelQueue['setPlacementSpeed'];
     declare sendWarPackets: PixelQueue['sendWarPackets'];
     declare addToSendQueue: PixelQueue['addToSendQueue'];

@@ -295,7 +295,7 @@ export class Canvas {
             const code = codeVar.value;
             i = codeVar.nextPos;
 
-            const trackVar = this. decodeVarInt(buffer, i);
+            const trackVar = this.decodeVarInt(buffer, i);
             const track = trackVar.value;
             i = trackVar.nextPos;
 

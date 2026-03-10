@@ -21,7 +21,7 @@ type LoadData = {
 }
 
 const _LoadPresets = {
-    FASTEST:    { barriers: [0, 23, 100],            increases: [-12, 0, 1],     reset: 600,  zeroAfter: 100, failSafe: 1000/5  },
+    FASTEST:    { barriers: [0, 14, 100],            increases: [-12, 0, 1],     reset: 600,  zeroAfter: 100, failSafe: 1000/5  },
     FAST:    { barriers: [0, 30, 80, 100],            increases: [-3, 0, 1, 2],     reset: 800,  zeroAfter: 100, failSafe: 1000/5  },
     DEFAULT: { barriers: [0, 50, 250, 500],       increases: [0, 1, 2, 3],    reset: 1500, zeroAfter: 0,   failSafe: 1000/10 },
     SAFE:    { barriers: [0, 100, 250, 500, 100], increases: [0, 1, 3, 4, 5], reset: 3000, zeroAfter: 0,   failSafe: 1000/10 },
@@ -441,6 +441,27 @@ export class PixelQueue {
         }
         this.addToSendQueue({data: pixel, speed: this.getPlacementSpeed(), resolve: null})
         return Promise.resolve({ pixel, oldColor: this.bot.getPixelAt(x, y) } as PlaceResults);
+    }
+
+    /**
+     * Draws a happy little tree :)
+     */
+    @DelegateMethod()
+    async placeTree(x: number, y: number, col1: Color, col2: Color) {
+        return new Promise<PlaceResults[]>(async (res) => {
+            const results = [];
+            results.push(await this.placePixel({x, y, col: col1}));
+            results.push(await this.placePixel({x, y: y + 1, col: col1}));
+            results.push(await this.placePixel({x, y: y + 2, col: col1}));
+            results.push(await this.placePixel({x, y: y + 3, col: col2}));
+            results.push(await this.placePixel({x: x + 1, y: y + 3, col: col2}));
+            results.push(await this.placePixel({x: x - 1, y: y + 3, col: col2}));
+            results.push(await this.placePixel({x, y: y + 3, col: col2}));
+            results.push(await this.placePixel({x: x + 1, y: y + 3, col: col2}));
+            results.push(await this.placePixel({x: x - 1, y: y + 3, col: col2}));
+            results.push(await this.placePixel({x, y: y + 4, col: col2}));
+            res(results);
+        })
     }
 
     /**

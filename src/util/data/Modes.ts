@@ -14,24 +14,6 @@ export type ModeConfig = (coords: Coord[], pixels: PixelSetData, hypot: HypotFun
 
 export type DrawingFunction = (pixels: PixelSetData, draw: DrawHook, hypot: HypotFunction) => Promise<void>;
 
-// The composable drawing function
-export class Modes {
-
-    private constructor() {}
-
-    static of(base: BaseMode, configs: readonly ModeConfig[] = []): DrawingFunction {
-        return async (pixels, draw, hypot) => {
-            let coords = base(pixels);
-            for (const config of configs) {
-                coords = config(coords, pixels, hypot, base);
-            }
-            for (const [x, y] of coords) {
-                await draw(x, y);
-            }
-        };
-    }
-}
-
 // -------------------- Base Traversals -------------------- //
 
 export const BaseModes = {
@@ -108,6 +90,7 @@ export const BaseModes = {
 
     /**
      * Spiral pattern in square steps from the center outward.
+     * Will cut off edges on even sized squares.
      */
     SQUARE_SPIRAL: (pixels: PixelSetData): Coord[] => {
         const coords: Coord[] = [];
@@ -785,3 +768,24 @@ export const ModeConfigs = {
     },
 
 } as const;
+
+// The composable drawing function
+export class Modes {
+
+    private constructor() {}
+
+    static of(base: BaseMode, configs: readonly ModeConfig[] = []): DrawingFunction {
+        return async (pixels, draw, hypot) => {
+            let coords = base(pixels);
+            for (const config of configs) {
+                coords = config(coords, pixels, hypot, base);
+            }
+            for (const [x, y] of coords) {
+                await draw(x, y);
+            }
+        };
+    }
+
+    static FROM_CENTER = Modes.of(BaseModes.ROWS, [ModeConfigs.CENTRAL_SORT]);
+    static TO_CENTER   = Modes.of(BaseModes.ROWS, [ModeConfigs.CENTRAL_SORT, ModeConfigs.REVERSE]);
+}
