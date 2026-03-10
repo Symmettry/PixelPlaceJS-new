@@ -137,11 +137,12 @@ export class InternalListeners {
         });
 
         const PIXEL_PACKET_TIME = 50;
+        const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;
+        let confirmTimes: number[] = [], avg = 0;
         this.listen(RECEIVED.PIXEL, async (pixels: PixelPacket) => {
             if(this.connection.isWorld) this.connection.canvas.loadPixelData(pixels);
 
             const now = Date.now();
-
             const deltaTime = now - this.lastPixelPacket;
             this.lastPixelPacket = now;
 
@@ -149,11 +150,12 @@ export class InternalListeners {
                 this.bot.lagAmount = Math.max(0, this.bot.lagAmount / 2 - 10);
             }
 
+            // handle queued pixels that timed out
             for(const [key, timings] of Object.entries(this.pixelTime)) {
                 for(const [time, queuedPixel] of timings) {
                     if(now - time < 500) continue;
                     this.pixelTime[key].splice(this.pixelTime[key].findIndex(n => n[1] == queuedPixel), 1);
-                    queuedPixel.speed = Math.max(queuedPixel.speed, bot.rate + 3);
+                    queuedPixel.speed = Math.max(queuedPixel.speed, this.bot.rate + 3);
                     this.bot.readQueue().unshift(queuedPixel);
                     this.bot.stats.pixels.placing.failed++;
                 }
@@ -161,64 +163,51 @@ export class InternalListeners {
 
             if(pixels.length == 0) return;
 
-            if(this.bot.premium) {
-                // pass the pixel update to the uid manager
-                this.bot.uidMan.onPixels(pixels);
-            }
+            if(this.bot.premium) this.bot.uidMan.onPixels(pixels);
 
             if(missileDelay) {
-
                 const [x, y, col] = missileDelay;
-                // will eventually happen
                 if(pixels.find(n => n[2] == col && n[0] == x && n[1] == y)) {
                     missileDelay = null;
-
-                    // wait a delay so that we repair n stuff a bit later
-                    await new Promise<void>((resolve) => setTimeout(resolve, 3000));
-
+                    await new Promise<void>(resolve => setTimeout(resolve, 3000));
                     this.connection.bombResolves.forEach(c => c());
                     this.connection.bombResolves = [];
                 }
             }
 
             this.bot.detectPixels(pixels);
-        });
 
-        const CONFIRM_CHECKS = 10, ABOVE_AVG = 20;
-        let confirmTimes: number[] = [], avg = 0;
-        this.listen(RECEIVED.PIXEL_CONFIRM, ([[x,y]]) => {
+            for(const pixel of pixels) {
+                const key = `${pixel[0]},${pixel[1]}`;
+                if(!this.pixelTime[key] || this.pixelTime[key].length === 0) continue;
 
-            const key = `${x},${y}`;
-            if(!this.pixelTime[key] || this.pixelTime[key].length == 0) {
-                // owmince bug :(
-                //console.log("~~WARN~~ pixel time not set this is a bug this is a bug help help help wahh");
-                return;
-            }
+                // find matching queued pixel by x, y, col, brush
+                const idx = this.pixelTime[key].findIndex(([, qp]) =>
+                    qp.data.col === pixel[2] && qp.data.brush === pixel[3]
+                );
+                if(idx === -1) continue;
 
-            this.bot.stats.pixels.placing.placed++;
+                const [t, queuedPixel] = this.pixelTime[key].splice(idx, 1)[0];
+                this.bot.stats.pixels.placing.placed++;
+                this.connection.canvas.pixelData!.set(pixel[0], pixel[1], queuedPixel.data.col);
 
-            const [t, p] = this.pixelTime[key].shift()!;
+                const delta = now - t;
 
-            const delta = Date.now() - t;
-            this.connection!.canvas!.pixelData!.set(x, y, p.data.col);
+                if(confirmTimes.length === CONFIRM_CHECKS) {
+                    this.confirmPing = avg;
+                    const test = this.confirmPing + ABOVE_AVG;
+                    this.bot.lagAmount = this.bot.lagAmount * 0.1 + Math.max(0, delta - test);
+                } else {
+                    this.confirmPing = delta;
+                }
 
-            if(confirmTimes.length == CONFIRM_CHECKS) {
-                this.confirmPing = avg;
-
-                const test = this.confirmPing + ABOVE_AVG;
-                this.bot.lagAmount = this.bot.lagAmount * 0.1 + Math.max(0, delta - test);
-            } else {
-                // for now
-                this.confirmPing = delta;
-            }
-
-            const time = delta / CONFIRM_CHECKS;
-            confirmTimes.push(time);
-            avg += time;
-            if(confirmTimes.length > CONFIRM_CHECKS) {
-                avg -= confirmTimes.shift()!;
+                const time = delta / CONFIRM_CHECKS;
+                confirmTimes.push(time);
+                avg += time;
+                if(confirmTimes.length > CONFIRM_CHECKS) avg -= confirmTimes.shift()!;
             }
         });
+
 
         this.listen(RECEIVED.CANVAS, (canvas: CanvasPacket) => {
             this.connection.connected = true;

@@ -1,7 +1,7 @@
 import { ServerClient } from "../../browser/client/ServerClient";
 import { constant } from "../../util/Helper";
 import { IAuthData, IBotParams } from "../../util/data/Data";
-import { MessageTuple, PacketResponseMap, PixelConfirmPacket, PixelPacket } from "../../util/packets/PacketResponses";
+import { MessageTuple, PacketResponseMap } from "../../util/packets/PacketResponses";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
 import { Connection } from "./Connection";
 import { InternalListeners } from "./InternalListeners";
@@ -89,14 +89,6 @@ export class PacketHandler {
     private async handlePXPMessage<T extends keyof PacketResponseMap>(message: MessageTuple<T>) {
         let key: keyof PacketResponseMap = message[0];
         let value: PacketResponseMap[typeof key] = message[1] as PacketResponseMap[typeof key];
-
-        if (key == RECEIVED.PIXEL) {
-            const pixel = value as PixelPacket;
-            if (pixel.length == 1 && pixel[0][4] == this.connection.bot.userId) {
-                key = RECEIVED.PIXEL_CONFIRM;
-                value = message[1] as PixelConfirmPacket;
-            }
-        }
 
         // Packet listeners pre
         this.announce(key, value, true);

@@ -2,7 +2,7 @@ import * as Canvas from "../../util/canvas/Canvas";
 import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
-import { IStatistics, IArea, IBotParams, IAuthData, IQueuedPixel, BoardID } from "../../util/data/Data";
+import { IArea, IBotParams, IAuthData, IQueuedPixel, BoardID } from "../../util/data/Data";
 import { constant } from '../../util/Helper.js';
 import { delegate, DelegateMethod } from "ts-delegate";
 import fs from 'fs';
@@ -15,6 +15,7 @@ import { NetUtil } from "../../util/NetUtil";
 import { ServerClient } from "../../browser/client/ServerClient";
 import UIDManager from "../../util/UIDManager";
 import { Bounds } from "../../util/Bounds";
+import { IStatistics } from "../../util/data/Statistics";
 
 type PacketHandleFunction<T extends keyof PacketResponseMap> = (args: PacketResponseMap[T] | Expand<PacketResponseMap[T]>) => void;
 

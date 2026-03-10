@@ -1,9 +1,9 @@
 import { Bot } from "../bot/Bot";
 import { Canvas } from "./canvas/Canvas";
 import { Color } from "./data/Color";
-import { IStatistics } from "./data/Data";
 import { DelegateMethod } from "ts-delegate";
 import { PixelPacket } from "./packets/PacketResponses";
+import { IStatistics } from "./data/Statistics";
 
 /**
  * Utility functions for protecting pixels.

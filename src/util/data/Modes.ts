@@ -141,6 +141,44 @@ export const BaseModes = {
     },
 
     /**
+     * Polar spiral expanding from the center.
+     * Similar to drawing a circle spiral with a shrinking angular step.
+     */
+    CIRCLE_SPIRAL: (pixels: PixelSetData): Coord[] => {
+        const coords: Coord[] = [];
+
+        const cx = Math.floor(pixels.width / 2);
+        const cy = Math.floor(pixels.height / 2);
+
+        let angle = 0;
+        const scale = 0.05;
+
+        const seen = new Set<string>();
+
+        while (true) {
+            const radius = scale * angle;
+
+            const x = Math.floor(cx + Math.cos(angle) * radius);
+            const y = Math.floor(cy + Math.sin(angle) * radius);
+
+            if (x < 0 || y < 0 || x >= pixels.width || y >= pixels.height) {
+                if (radius > Math.max(pixels.width, pixels.height)) break;
+            } else {
+                const key = x + "," + y;
+                if (!seen.has(key)) {
+                    coords.push([x, y]);
+                    seen.add(key);
+                }
+            }
+
+            const step = 1 / Math.max(radius, 1);
+            angle += step;
+        }
+
+        return coords;
+    },
+
+    /**
      * Traverses the image in concentric square rings from the center.
      */
     SQUARE_RINGS: (pixels: PixelSetData): Coord[] => {

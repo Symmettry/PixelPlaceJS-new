@@ -2,7 +2,8 @@ import * as Canvas from '../util/canvas/Canvas.js';
 import { ImageDrawer } from '../util/drawing/ImageDrawer.js';
 import { Protector } from "../util/Protector.js";
 import { Packets } from "../util/packets/Packets.js";
-import { IStatistics, defaultStatistics, IBotParams, IDebuggerOptions, BoardID } from '../util/data/Data.js';
+import { IBotParams, IDebuggerOptions, BoardID } from '../util/data/Data.js';
+import { IStatistics, StatPrinterOptions, StatType, defaultStatistics, startStatPrinter } from "../util/data/Statistics.js";
 import UIDManager from '../util/UIDManager.js';
 import { Connection } from './connection/Connection.js';
 import { delegate, Delegate, DelegateStatic, delegateStatic, OmitFirst } from 'ts-delegate';
@@ -256,6 +257,23 @@ export class Bot implements
             throw new Error("Not connected yet!");
         }
         return this.connection;
+    }
+
+    private statPrinter: NodeJS.Timeout | null = null;
+
+    startStats(options: StatPrinterOptions): void {
+        if (this.statPrinter) {
+            clearInterval(this.statPrinter);
+            this.statPrinter = null;
+        }
+
+        this.statPrinter = startStatPrinter(this, options);
+    }
+
+    stopStats(): void {
+        if (!this.statPrinter) return;
+        clearInterval(this.statPrinter);
+        this.statPrinter = null;
     }
     
     // Delegations //

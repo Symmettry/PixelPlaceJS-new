@@ -11,7 +11,6 @@ export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
  */
 export interface PacketResponseMap {
     [RECEIVED.PIXEL]: PixelPacket,
-    [RECEIVED.PIXEL_CONFIRM]: PixelConfirmPacket;
     [RECEIVED.RATE_CHANGE]: RateChangePacket,
 
     [RECEIVED.PING_ALIVE]: null,
@@ -180,11 +179,6 @@ type RequireUserId<T extends any[]> =
  * Contains an array of pixel data.
  */
 export type PixelPacket = PixelPacketData[];
-
-/**
- * Contains 1 pixel packet data with the userid of yourself
- */
-export type PixelConfirmPacket = [RequireUserId<PixelPacketData>];
 
 /**
  * Also contains an array of pixel data, but this packet is only sent at the start.

@@ -4,8 +4,6 @@
 export enum RECEIVED {
     /** Includes pixel data. [[x,y,brush,col,userId?],etc.] */
     PIXEL = "p",
-    /** Contains pixel data + your userid; this is sent back every time you send a pixel. */
-    PIXEL_CONFIRM = "<INTERNAL_PIXEL_CONFIRM>",
     /** The minimum rate of pixeling that the bot should follow. */
     RATE_CHANGE = "rate_change",
 
