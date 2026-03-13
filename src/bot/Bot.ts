@@ -78,6 +78,8 @@ export class Bot implements
     /** Statistics that are modified internally. Use getStatistics() instead, since it updates other things. */
     stats: IStatistics = defaultStatistics();
 
+    loggedIn: boolean = false;
+
     // Connection
     private connection: Connection | null = null;
 
@@ -301,6 +303,8 @@ export class Bot implements
 
     declare bombPixels: Connection['bombPixels'];
 
+    declare waitForAuth: Connection['waitForAuth'];
+
     // ---------------- Canvas ----------------
     declare readonly canvasWidth: Canvas.Canvas['canvasWidth'];
     declare readonly canvasHeight: Canvas.Canvas['canvasHeight'];
@@ -322,6 +326,7 @@ export class Bot implements
     declare unprotect: Protector['unprotect'];
     declare getProtectedColor: Protector['getProtectedColor'];
     declare isProtected: Protector['isProtected'];
+    declare setProtectSide: Protector['setProtectSide'];
 
     // ---------------- Net util ----------------
     declare getUniquePlayerId: NetUtil['getUniquePlayerId'];

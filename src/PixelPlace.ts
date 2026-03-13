@@ -17,6 +17,8 @@ export type SystemParameters = {
     handleErrors?: boolean;
     /** Warns for things on /7 such as botting/repairing in disallowed areas. Also handles prime island. Defaults to true. */
     warnRuleBreakage?: boolean;
+    /** Enables the distance to ocean functions in Bot.getDistanceToOcean(x,y); saves some performance when off. Defaults to false. */
+    distToOcean?: boolean;
 }
 
 /**

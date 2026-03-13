@@ -130,6 +130,8 @@ export enum RECEIVED {
     LIB_SOCKET_CLOSE = "socket_close",
     /** Socket error */
     LIB_ERROR = "error",
+    /** Invalid auth */
+    LIB_INVALID_AUTH = "lib_invalid_auth",
 }
 
 /**

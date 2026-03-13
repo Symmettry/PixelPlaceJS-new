@@ -4,6 +4,7 @@ import { Color } from "./data/Color";
 import { DelegateMethod } from "ts-delegate";
 import { PixelPacket } from "./packets/PacketResponses";
 import { IStatistics } from "./data/Statistics";
+import { QueueSide } from "./data/Data";
 
 /**
  * Utility functions for protecting pixels.
@@ -16,6 +17,7 @@ export class Protector {
 
     private pp: Bot;
     private stats: IStatistics;
+    private side: QueueSide = QueueSide.BACK;
 
     constructor(pp: Bot) {
         this.protectedPixels = {};
@@ -57,6 +59,12 @@ export class Protector {
 
         if(protectColor == undefined) this.stats.pixels.protection.protected++;
     }
+
+    @DelegateMethod()
+    setProtectSide(side: QueueSide) {
+        this.side = side;
+    }
+
     /**
      * Directly unprotects a pixel.
      * @param x X of the pixel
@@ -95,6 +103,7 @@ export class Protector {
                 x, y,
                 col: protectColor,
                 protect: true,
+                side: this.side,
             });
         }
     }

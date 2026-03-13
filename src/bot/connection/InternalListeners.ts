@@ -93,6 +93,7 @@ export class InternalListeners {
                     console.error(errorMessage);
                     break;
                 case PPError.RATELIMITED:
+                    if(this.bot.ratelimited)return;
                     this.bot.ratelimited = true;
                     console.error("~~BOT RATELIMITED~~");
                     break;
@@ -100,7 +101,7 @@ export class InternalListeners {
         });
 
         this.listen(RECEIVED.CHAT_CUSTOM_MESSAGE, (msg) => {
-            if(!this.bot.ratelimited) return;
+            if(!this.bot.ratelimited || this.bot.ratelimitTime != 0) return;
             this.bot.ratelimitTime = parseFloat(msg.substring("Time left: ".length).slice(0, -1))
             setTimeout(() => {
                 this.bot.ratelimited = false;

@@ -1,4 +1,5 @@
 import ndarray from 'ndarray';
+import pako from 'pako';
 import fs from 'fs';
 import path from 'path';
 import { BoardID, BoardTemplate } from '../data/Data';
@@ -12,19 +13,19 @@ import { DelegateField, DelegateMethod } from 'ts-delegate';
 
 const canvases: Map<number, Canvas> = new Map();
 
-export function getCanvas(boardId: BoardID, netUtil: NetUtil, headers: HeadersFunc): Canvas {
+export function getCanvas(boardId: BoardID, netUtil: NetUtil, headers: HeadersFunc, distToOcean: boolean): Canvas {
     const existing = canvases.get(boardId);
     if (existing) {
         existing.setHeaders(headers);
         return existing;
     }
-    const canvas = new Canvas({type: 0, boardId, netUtil, headers});
+    const canvas = new Canvas({type: 0, boardId, netUtil, headers}, distToOcean);
     canvases.set(boardId, canvas);
     return canvas;
 }
 
 export function createFromClient(serverClient: ServerClient): Canvas {
-    return new Canvas({type: 1, serverClient });
+    return new Canvas({type: 1, serverClient }, false); // todo
 }
 
 export function hasCanvas(boardId: BoardID): boolean {
@@ -239,17 +240,25 @@ export class Canvas {
     boardTemplate!: BoardTemplate;
     fullPaintingData!: PaintingData;
 
-    constructor(data: ReqCanvas | ClientCanvas) {
-        if(data.type == 0) {
+    private loadDistToOcean: boolean = false;
+    private distToOceanData: Uint16Array | null = null;
+    private distToOceanWidth: number = 0;
+    private distToOceanHeight: number = 0;
+    private distToOceanScale: number = 0.1; // because we scaled by 10
+
+    constructor(data: ReqCanvas | ClientCanvas, enableDistToOcean: boolean) {
+        this.loadDistToOcean = enableDistToOcean;
+
+        if (data.type === 0) {
             const { boardId, headers, netUtil } = data as ReqCanvas;
             this.boardId = boardId;
             this.headers = headers;
             this.netUtil = netUtil;
 
-            // make a default array to store some changes;
             this.pixelData = this.createNDArray(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE);
 
-            // now start loading it asap
+            if (this.loadDistToOcean && data.boardId == 7) this.loadDistanceToOcean();
+
             this.loadCanvasPicture();
             return;
         }
@@ -261,11 +270,43 @@ export class Canvas {
         this.canvasWidth = width;
         this.canvasHeight = height;
         this.boardTemplate = template;
-        if(this.boardTemplate == BoardTemplate.PIXEL_WORLD_WAR) {
-            this.loadRegionData();
+
+        if(this.boardTemplate === BoardTemplate.PIXEL_WORLD_WAR) this.loadRegionData();
+        this.loadFromCanvasData(canvasData, width, height);
+
+        if (this.loadDistToOcean && boardID == 7) this.loadDistanceToOcean();
+    }
+
+    private loadDistanceToOcean() {
+        const filePath = path.join(__dirname, "disttoocean.zbin");
+        if (!fs.existsSync(filePath)) {
+            console.warn("Distance-to-ocean file not found:", filePath);
+            return;
         }
 
-        this.loadFromCanvasData(canvasData, width, height);
+        const compressed = fs.readFileSync(filePath);
+        const buffer = Buffer.from(pako.inflate(compressed));
+
+        this.distToOceanWidth = buffer.readUInt32LE(0);
+        this.distToOceanHeight = buffer.readUInt32LE(4);
+
+        this.distToOceanData = new Uint16Array(this.distToOceanWidth * this.distToOceanHeight);
+        let offset = 8;
+        for (let i = 0; i < this.distToOceanData.length; i++) {
+            this.distToOceanData[i] = buffer.readUInt16LE(offset);
+            offset += 2;
+        }
+    }
+
+    /**
+     * Get distance to ocean at x,y. Returns undefined if not loaded or out of bounds.
+     */
+    @DelegateMethod()
+    getDistanceToOcean(x: number, y: number): number | undefined {
+        if (!this.distToOceanData) throw new Error(this.boardId == 7 ? "Enable distToOcean: true in PixelPlace settings in order to use this." : "Unavailable for board /" + this.boardId);
+        if (x < 0 || y < 0 || x >= this.distToOceanWidth || y >= this.distToOceanHeight) return undefined;
+        const idx = y * this.distToOceanWidth + x;
+        return this.distToOceanData[idx] * this.distToOceanScale; // undo scaling
     }
 
     decodeVarInt(buffer: Buffer, start: number) {

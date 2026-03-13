@@ -1,4 +1,5 @@
 import * as Canvas from "../../util/canvas/Canvas";
+import http from 'http';
 import { Bot } from "../Bot";
 import WebSocket from "ws";
 import { Packets, RECEIVED } from "../../util/packets/Packets";
@@ -184,7 +185,7 @@ export class Connection {
                 this.onopen(resolve);
             } else {
                 // create the canvas
-                if(!restarting) delegate(this.bot, [this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers)]);
+                if(!restarting) delegate(this.bot, [this.canvas = Canvas.getCanvas(this.boardId, this.netUtil, this.headers, this.bot.sysParams.distToOcean ?? false)]);
                 // connect to PixelPlace
                 this.socket = new WebSocket('wss://pixelplace.io/socket.io/?EIO=4&transport=websocket', {
                     headers: this.headers("socket", this.boardId),
@@ -214,6 +215,10 @@ export class Connection {
             if(userId == 0 && this.authKey != undefined) {
                 console.log(`~~WARN~~ This bot is not logged in!`,
                     `${this.bot.params instanceof ServerClient ? `(Userscript bot)` : `(Auth key of '${this.authKey.substring(0, 5)}')`}`);
+                this.bot.loggedIn = false;
+                this.packetHandler.fire(Packets.RECEIVED.LIB_INVALID_AUTH);
+            } else {
+                this.bot.loggedIn = true;
             }
             this.bot.username = username;
             this.bot.userId = userId;
@@ -242,9 +247,7 @@ export class Connection {
     private socketClosed(code: number, reason: Buffer) {
         this.connected = false;
         this.chatLoaded = false;
-        if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_SOCKET_CLOSE)) {
-            this.packetHandler.listeners.get(Packets.RECEIVED.LIB_SOCKET_CLOSE)?.forEach(listener => listener[0]([code, reason]));
-        }
+        this.packetHandler.fire(Packets.RECEIVED.LIB_SOCKET_CLOSE, [code, reason])
         if(this.bot.sysParams.autoRestart) {
             setImmediate(() => this.Start());
         } else if (this.bot.sysParams.exitOnClose) {
@@ -253,9 +256,7 @@ export class Connection {
     }
 
     private socketError(error: Error) {
-        if(this.packetHandler.listeners.has(Packets.RECEIVED.LIB_ERROR)) {
-            this.packetHandler.listeners.get(Packets.RECEIVED.LIB_ERROR)?.forEach(listener => listener[0](error));
-        }
+        this.packetHandler.fire(Packets.RECEIVED.LIB_ERROR, error);
 
         // statistics
         this.stats.session.errors++;
@@ -526,4 +527,46 @@ export class Connection {
         return new Promise<void>((resolve) => this.bombResolves.push(resolve));
     }
 
+    @DelegateMethod()
+    async waitForAuth(): Promise<object> {
+        return new Promise<object>((resolve, reject) => {
+            console.log("waitForAuth(): Starting auth server on port 9593");
+
+            const server = http.createServer((req, res) => {
+                if (req.method !== "GET") {
+                    res.writeHead(405);
+                    res.end();
+                    return;
+                }
+
+                const url = new URL(req.url ?? "/", "http://localhost:9593");
+                const data = url.searchParams.get("data");
+
+                if (!data) {
+                    res.writeHead(400);
+                    res.end("missing data");
+                    return;
+                }
+
+                res.writeHead(200, { "Content-Type": "text/html" });
+                res.end("<!doctypehtml><html><body><script>window.close()</script></body></html>");
+
+                server.close();
+
+                try {
+                    const parsed = JSON.parse(data);
+                    resolve(parsed);
+                } catch {
+                    resolve({ data });
+                }
+            });
+
+            server.on("error", err => {
+                console.error("waitForAuth(): Error", err);
+                reject(err);
+            });
+
+            server.listen(9593, "127.0.0.1");
+        });
+    }
 }

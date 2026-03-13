@@ -35,6 +35,11 @@ export class PacketHandler {
         this.authId = authData.authId;
     }
 
+    async fire(event: Packets, ...data: any[]) {
+        if(!this.listeners.has(event)) return;
+        this.listeners.get(event)?.forEach(k => k[0](data));
+    }
+
     async evaluatePacket(data: string) {
         if(this.listeners.has(Packets.RECEIVED.LIB_RAW)) {
             this.listeners.get(Packets.RECEIVED.LIB_RAW)?.forEach(listener => listener[0](data));
