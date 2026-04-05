@@ -289,7 +289,7 @@ export class Canvas {
 
         this.distToOceanWidth = buffer.readUInt32LE(0);
         this.distToOceanHeight = buffer.readUInt32LE(4);
-
+        
         this.distToOceanData = new Uint16Array(this.distToOceanWidth * this.distToOceanHeight);
         let offset = 8;
         for (let i = 0; i < this.distToOceanData.length; i++) {

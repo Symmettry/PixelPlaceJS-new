@@ -318,6 +318,7 @@ export class Bot implements
     declare isValidColor: typeof Canvas.Canvas.isValidColor;
     declare getRandomColor: typeof Canvas.Canvas.getRandomColor;
     declare getClosestColorId: typeof Canvas.Canvas.getClosestColorId;
+    declare getDistanceToOcean: Canvas.Canvas['getDistanceToOcean'];
 
     // ---------------- Protector ----------------
     declare updateProtection: Protector['updateProtection'];

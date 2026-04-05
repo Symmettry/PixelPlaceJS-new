@@ -365,7 +365,7 @@ export class PixelQueue {
      */
     @DelegateMethod()
     addToSendQueue(p: IQueuedPixel): void {
-        if(!p.data.side || p.data.side == QueueSide.BACK) this.sendQueue.push(p);
+        if(p.data.side == null || p.data.side == QueueSide.BACK) this.sendQueue.push(p);
         else this.sendQueue.unshift(p);
 
         // only start the queue loop if the bot's actually gonna be placing pixels
