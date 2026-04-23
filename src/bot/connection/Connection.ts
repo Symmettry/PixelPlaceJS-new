@@ -168,6 +168,10 @@ export class Connection {
         }, 5e3);
     }
 
+    Close() {
+        this.socket.close(1000);
+    }
+
     async Connect() {
         const restarting = this.socket != null;
         if(restarting && this.socket.readyState == 1) throw "Bot already connected.";

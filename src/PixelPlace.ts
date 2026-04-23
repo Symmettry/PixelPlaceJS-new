@@ -121,6 +121,13 @@ class PixelPlace {
     }
 
     /**
+     * Closes
+     */
+    Close(): void {
+        this.CallOnBots(bot => bot.Close());
+    }
+
+    /**
      * Starts a websocket server for userscript browser connection
      * @param port Port of the socket
      */

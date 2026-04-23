@@ -81,6 +81,12 @@ export class Protector {
         this.stats.pixels.protection.protected--;
     }
 
+    @DelegateMethod()
+    unprotectAll(): void {
+        this.protectedPixels = {};
+        this.stats.pixels.protection.protected = 0;
+    }
+
     /**
      * Gets the color being protected at a position, or undefined if not protected
      */

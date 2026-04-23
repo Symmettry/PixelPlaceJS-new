@@ -37,9 +37,12 @@ export class PixelQueue {
 
     private prevPlaceValue: number = 0;
 
+    private paused: boolean = false;
+
     private finishQueueResolves: (() => void)[] = [];
 
     private sendQueue: Array<IQueuedPixel> = [];
+    private pausedQueue: Array<IQueuedPixel> = [];
     private resendQueue: Array<PlainPixel> = [];
     private sendAfterWarDone: Array<Pixel> = [];
 
@@ -229,7 +232,7 @@ export class PixelQueue {
                         this.goThroughPixels();
                     };
                     if(isFunc) time(call);
-                    else setTimeout(call, time);
+                    else if(time > 0 && !isNaN(time)) setTimeout(call, time);
                     return Infinity;
                 }
                 queuedPixel.speed += amount;
@@ -365,12 +368,13 @@ export class PixelQueue {
      */
     @DelegateMethod()
     addToSendQueue(p: IQueuedPixel): void {
-        if(p.data.side == null || p.data.side == QueueSide.BACK) this.sendQueue.push(p);
-        else this.sendQueue.unshift(p);
+        const queue = this.paused ? this.pausedQueue : this.sendQueue;
+        if(p.data.side == null || p.data.side == QueueSide.BACK) queue.push(p);
+        else queue.unshift(p);
 
         // only start the queue loop if the bot's actually gonna be placing pixels
         // otherwise if it's not a pixel placing bot we can let it take less CPU
-        if(!this.startedQueue) {
+        if(!this.startedQueue && !this.paused) {
             this.startedQueue = true;
             this.queueLoop(true);
         }
@@ -517,6 +521,36 @@ export class PixelQueue {
     @DelegateMethod()
     readQueue(): IQueuedPixel[] {
         return this.sendQueue;
+    }
+
+    /**
+     * Clears the queue
+     */
+    @DelegateMethod()
+    clearQueue(): void {
+        this.sendQueue = [];
+    }
+    /**
+     * Pauses the queue
+     */
+    @DelegateMethod()
+    pause(): void {
+        this.paused = true;
+        this.pausedQueue = [...this.sendQueue];
+        this.sendQueue = [];
+    }
+    /**
+     * Starts the queue
+     */
+    @DelegateMethod()
+    start(): void {
+        this.paused = false;
+        this.sendQueue = [...this.pausedQueue];
+        this.pausedQueue = [];
+        if(!this.startedQueue) {
+            this.startedQueue = true;
+            this.queueLoop(true);
+        }
     }
 
     /**

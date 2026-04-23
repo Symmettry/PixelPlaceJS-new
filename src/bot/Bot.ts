@@ -148,6 +148,11 @@ export class Bot implements
         return new Promise<void>((resolve) => this.Connect().then(this.Load).then(resolve));
     }
 
+    Close(): void {
+        this.sysParams.autoRestart = false;
+        this.connection?.Close();
+    }
+
     /**
      * Connects the bot to pixelplace.
      * @returns A promise that will resolve once the socket opens.
@@ -325,6 +330,7 @@ export class Bot implements
     declare detectPixels: Protector['detectPixels'];
     declare protect: Protector['protect'];
     declare unprotect: Protector['unprotect'];
+    declare unprotectAll: Protector['unprotectAll'];
     declare getProtectedColor: Protector['getProtectedColor'];
     declare isProtected: Protector['isProtected'];
     declare setProtectSide: Protector['setProtectSide'];
@@ -361,6 +367,9 @@ export class Bot implements
     declare readonly loadData: PixelQueue['loadData'];
     declare sortQueue: PixelQueue['sortQueue'];
     declare readQueue: PixelQueue['readQueue'];
+    declare clearQueue: PixelQueue['clearQueue'];
+    declare pause: PixelQueue['pause'];
+    declare start: PixelQueue['start'];
     declare placePixel: PixelQueue['placePixel'];
     declare placeTree: PixelQueue['placeTree'];
     declare setPlacementSpeed: PixelQueue['setPlacementSpeed'];

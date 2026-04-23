@@ -1,10 +1,9 @@
-import { ImagePixels } from "../drawing/ImageDrawer";
-import { Pixel, PixelSetData } from "./Data";
+import { PixelSetData } from "./Data";
 
 export type DrawHook = (x: number, y: number) => Promise<void>;
 export type HypotFunction = (dx: number, dy: number) => number;
 
-export type Coord = [number, number];
+export type Coord = [x: number, y: number];
 
 // A BaseMode generates coordinates from pixels
 export type BaseMode = (pixels: PixelSetData) => Coord[];
@@ -784,6 +783,15 @@ export class Modes {
                 await draw(x, y);
             }
         };
+    }
+    static toSort(base: BaseMode, configs: readonly ModeConfig[] = []): (pixels: PixelSetData) => Coord[] {
+        return (pixels) => {
+            let coords = base(pixels);
+            for (const config of configs) {
+                coords = config(coords, pixels, Math.hypot, base);
+            }
+            return coords;
+        }
     }
 
     static FROM_CENTER = Modes.of(BaseModes.ROWS, [ModeConfigs.CENTRAL_SORT]);

@@ -22,6 +22,9 @@ type UrlFile = {
     /** Url to image */
     url: string;
 }
+type BufferFile = {
+    buffer: Buffer<any>;
+}
 
 /**
  * Image data.
@@ -51,11 +54,12 @@ export type Image = {
 
     /** Takes the set of place results (e.g. from a previous draw) and will merge it in, and replace any pixels that were done by the old call. */
     replace?: PlaceResults[][];
-} & (LocalFile | SetPixels | UrlFile) & PixelFlags;
+} & (LocalFile | SetPixels | UrlFile | BufferFile) & PixelFlags;
 
 type LocalImage = Image & LocalFile;
 type SetImage = Image & SetPixels;
 type UrlImage = Image & UrlFile;
+type BufferImage = Image & BufferFile;
 
 const SQRT2M1 = Math.sqrt(2) - 1;
 
@@ -87,6 +91,7 @@ export class ImageDrawer {
     private path?: string;
     private pixels?: ImagePixels;
     private url?: string;
+    private buffer?: Buffer;
 
     private mode!: DrawingFunction;
     private filter!: FilterFunction;
@@ -117,6 +122,9 @@ export class ImageDrawer {
     isUrl(image: Image): image is UrlImage {
         return (image as any).url != undefined;
     }
+    isBuffer(image: Image): image is BufferImage {
+        return (image as any).buffer != undefined;
+    }
 
     constructor(instance: Bot, uimage: Image) {
         constant(this, 'instance', instance);
@@ -125,6 +133,7 @@ export class ImageDrawer {
         if(this.isLocal(image)) this.path = image.path;
         else if (this.isUrl(image)) this.url = image.url;
         else if (this.isSet(image)) this.pixels = image.pixels;
+        else if (this.isBuffer(image)) this.buffer = image.buffer;
         else throw new Error(`Missing path, url, or pixels on image: ${image}`);
 
         this.x = image.x;
@@ -179,7 +188,7 @@ export class ImageDrawer {
         const data: PixelSetData = await ImageUtil.getPixelData(
             this.width, this.height, this.filter, this.effect,
             this.instance.headers, this.instance.boardId,
-            this.path, this.url, this.pixels
+            this.path, this.url, this.pixels, this.buffer,
         );
 
         this.width = data.width;

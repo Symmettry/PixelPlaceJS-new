@@ -1,16 +1,47 @@
 {
   "name": "pixelplacejs-new",
-  "version": "3.6.4",
+  "version": "4.0.0",
   "description": "PixelPlace JS v2",
-  "main": "dist/index.js",
+  "main": "dist/electron/electron.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": ". scripts/build.sh",
-    "docs": "rm -rf /docs && typedoc --out docs src"
+    "docs": "rm -rf /docs && typedoc --out docs src",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win zip",
+    "dist:linux": "npm run build && electron-builder --linux zip",
+    "dist:mac": "npm run build && electron-builder --mac zip"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Symmettry/PixelPlaceJS-new.git"
+  },
+  "build": {
+    "appId": "me.symmettry.pixelplacejsreborn",
+    "productName": "PixelPlaceJS-Reborn",
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!src/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "zip",
+      "artifactName": "pixelplacejs-new-${version}-windows.${ext}",
+      "signAndEditExecutable": false
+    },
+    "linux": {
+      "target": "zip",
+      "category": "Utility",
+      "artifactName": "pixelplacejs-new-${version}-linux.${ext}"
+    },
+    "mac": {
+      "target": "zip",
+      "artifactName": "pixelplacejs-new-${version}-mac.${ext}"
+    }
   },
   "author": "Symmettry",
   "license": "GPL-3.0-only",
@@ -36,9 +67,12 @@
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
     "tsc": "^2.0.4",
     "typedoc": "^0.28.12",
     "typedoc-plugin-not-exported": "^0.1.6",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3",
+    "typescritp": "^1.0.0"
   }
 }
