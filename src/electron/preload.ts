@@ -1,531 +1,8 @@
 import { ipcRenderer } from 'electron';
 
-function pretty(value: string) {
-    return value
-        .toLowerCase()
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
+const pretty = (v: string) => v.toLowerCase().split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 
-const styleCSS = `
-:host {
-    all: initial;
-}
-
-.ppjs-tab:disabled,
-.ppjs-primary-btn:disabled,
-.ppjs-secondary-btn:disabled,
-.ppjs-upload-btn[aria-disabled="true"] {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.ppjs-pause-btn {
-    background: #7f1d1d;
-    color: #ffffff;
-    border: 1px solid #b91c1c;
-}
-
-.ppjs-pause-btn.ppjs-paused {
-    background: #14532d;
-    color: #ffffff;
-    border: 1px solid #22c55e;
-}
-
-.ppjs-cancel-btn {
-    background: #3b0a0a;
-    color: #ffffff;
-    border: 1px solid #dc2626;
-}
-
-* {
-    box-sizing: border-box;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.ppjs-wrap {
-    pointer-events: auto;
-    width: 420px;
-    color: #e7ebf3;
-}
-
-.ppjs-window {
-    background: rgba(17, 20, 27, 0.96);
-    border: 1px solid #232938;
-    border-radius: 16px;
-    overflow: visible;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(10px);
-}
-
-#ppjs-toggle {
-    cursor: pointer;
-}
-
-.ppjs-titlebar {
-    height: 48px;
-    padding: 0 14px;
-    border-bottom: 1px solid #202636;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #0f1218;
-    border-radius: 16px 16px 0 0;
-    cursor: move;
-    user-select: none;
-}
-
-.ppjs-title-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: #dbe2f1;
-    font-weight: 600;
-}
-
-.ppjs-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: #63e6be;
-    box-shadow: 0 0 12px rgba(99, 230, 190, 0.55);
-}
-
-.ppjs-tabs {
-    display: flex;
-    gap: 8px;
-    padding: 12px 14px 0;
-    background: #11141b;
-}
-
-.ppjs-tab {
-    border: none;
-    background: transparent;
-    color: #93a0b8;
-    padding: 10px 14px;
-    border-radius: 10px 10px 0 0;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.ppjs-tab.ppjs-active {
-    background: #171c27;
-    color: #f4f7fb;
-    border: 1px solid #283042;
-    border-bottom: none;
-}
-
-.ppjs-panel {
-    padding: 14px;
-    background: #171c27;
-    border-top: 1px solid #283042;
-    border-radius: 0 0 16px 16px;
-}
-
-.ppjs-card {
-    background: #11151e;
-    border: 1px solid #252d3d;
-    border-radius: 14px;
-    padding: 16px;
-}
-
-.ppjs-header h2 {
-    margin: 0 0 4px;
-    font-size: 18px;
-}
-
-.ppjs-header p {
-    margin: 0 0 16px;
-    color: #95a1b8;
-    font-size: 13px;
-}
-
-.ppjs-stack {
-    display: grid;
-    gap: 14px;
-}
-
-.ppjs-field {
-    display: grid;
-    gap: 8px;
-    position: relative;
-}
-
-.ppjs-row-two {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.ppjs-label {
-    font-size: 13px;
-    color: #b5bfd1;
-    font-weight: 600;
-}
-
-.ppjs-input,
-.ppjs-select,
-.ppjs-dropdown-btn {
-    width: 100%;
-    height: 42px;
-    border: 1px solid #2b3446;
-    background: #0c1017;
-    color: #eef2f8;
-    border-radius: 10px;
-    padding: 0 12px;
-    outline: none;
-}
-
-.ppjs-upload-btn {
-    height: 42px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 14px;
-    border-radius: 10px;
-    background: #1d2432;
-    border: 1px solid #313b4f;
-    color: #f1f5fb;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.ppjs-file-name {
-    font-size: 12px;
-    color: #92a0b7;
-}
-
-.ppjs-dropdown {
-    position: relative;
-}
-
-.ppjs-dropdown-btn {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    text-align: left;
-}
-
-.ppjs-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    width: 100%;
-    max-height: 240px;
-    overflow-y: auto;
-    background: #10151f;
-    border: 1px solid #2e384d;
-    border-radius: 12px;
-    padding: 8px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
-    z-index: 50;
-    display: none;
-}
-
-.ppjs-dropdown.ppjs-open .ppjs-dropdown-menu {
-    display: block;
-}
-
-.ppjs-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 10px;
-    border-radius: 8px;
-    color: #dce4f2;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.ppjs-dropdown-item:hover {
-    background: #1a2130;
-}
-
-.ppjs-selected-configs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 10px;
-    padding-top: 4px;
-}
-
-.ppjs-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #1e2635;
-    border: 1px solid #33405a;
-    color: #e6edf8;
-    border-radius: 999px;
-    padding: 7px 10px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.ppjs-chip button {
-    border: none;
-    background: transparent;
-    color: #9fb0cb;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    padding: 0;
-}
-
-.ppjs-actions {
-    display: flex;
-    gap: 10px;
-    padding-top: 4px;
-}
-
-.ppjs-primary-btn,
-.ppjs-secondary-btn {
-    height: 42px;
-    border-radius: 10px;
-    padding: 0 16px;
-    border: none;
-    cursor: pointer;
-    font-weight: 700;
-}
-
-.ppjs-primary-btn {
-    background: #5b8cff;
-    color: white;
-}
-
-.ppjs-secondary-btn {
-    background: #202838;
-    color: #dce4f3;
-    border: 1px solid #313b4f;
-}
-
-.ppjs-preview-card {
-    margin-top: 14px;
-    background: #11151e;
-    border: 1px solid #252d3d;
-    border-radius: 14px;
-    padding: 16px;
-}
-
-.ppjs-preview-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    color: #dce4f2;
-    font-weight: 600;
-}
-
-.ppjs-preview-meta {
-    font-size: 12px;
-    color: #95a2b9;
-}
-
-.ppjs-preview-box {
-    min-height: 240px;
-    border-radius: 12px;
-    border: 1px dashed #33405a;
-    background: #0c1017;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    color: #7f8ca3;
-    padding: 16px;
-}
-
-.ppjs-canvas {
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    background: #000;
-    border: 1px solid #33405a;
-    display: block;
-}
-.flag-row {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;        /* spacing between them */
-    align-items: center;
-}
-`;
-const wrapHTML = `
-<div class="ppjs-window">
-    <div class="ppjs-titlebar">
-        <div class="ppjs-title-left">
-            <div class="ppjs-dot"></div>
-            <span>PixelPlace Bot</span>
-        </div>
-        <button id="ppjs-toggle" class="ppjs-secondary-btn" style="height:32px;padding:0 10px;">Hide</button>
-    </div>
-
-    <div id="ppjs-body">
-        <div class="ppjs-tabs">
-            <button class="ppjs-tab ppjs-active" data-tab="images">Images</button>
-            <button class="ppjs-tab" data-tab="active">Active</button>
-        </div>
-
-        <div class="ppjs-panel" data-panel="images">
-            <div class="ppjs-card">
-                <div class="ppjs-header">
-                    <h2>Image Draw</h2>
-                    <p>Upload an image and configure draw behavior.</p>
-                </div>
-
-                <div class="ppjs-stack">
-                    <div class="ppjs-field">
-                        <div class="ppjs-label">Image</div>
-                        <label for="ppjs-image-upload" class="ppjs-upload-btn">Upload Image</label>
-                        <input id="ppjs-image-upload" type="file" accept="image/*" hidden />
-                        <div class="ppjs-file-name" id="ppjs-file-name">No file selected</div>
-                    </div>
-
-                    <div class="ppjs-row-two">
-                        <div class="ppjs-field">
-                            <label class="ppjs-label" for="ppjs-width">Width</label>
-                            <input id="ppjs-width" class="ppjs-input" type="number" min="1" value="100" />
-                        </div>
-
-                        <div class="ppjs-field">
-                            <label class="ppjs-label" for="ppjs-height">Height</label>
-                            <input id="ppjs-height" class="ppjs-input" type="number" min="1" value="100" />
-                        </div>
-                    </div>
-
-                    <div class="ppjs-row-two">
-                        <div class="ppjs-field">
-                            <label class="ppjs-label" for="ppjs-x">X Position</label>
-                            <input id="ppjs-x" class="ppjs-input" type="number" min="0" max="3000" value="0" />
-                        </div>
-
-                        <div class="ppjs-field">
-                            <label class="ppjs-label" for="ppjs-y">Y Position</label>
-                            <input id="ppjs-y" class="ppjs-input" type="number" min="0" max="3000" value="0" />
-                        </div>
-                    </div>
-
-                    <div class="ppjs-field">
-                        <label class="ppjs-label" for="ppjs-mode">Mode</label>
-                        <select id="ppjs-mode" class="ppjs-select">
-                            <option value="ROWS">Rows</option>
-                            <option value="COLUMNS">Columns</option>
-                            <option value="DIAGONAL_TL">Diagonal TL</option>
-                            <option value="DIAGONAL_TR">Diagonal TR</option>
-                            <option value="RANDOM">Random</option>
-                            <option value="SQUARE_SPIRAL">Square Spiral</option>
-                            <option value="CIRCLE_SPIRAL">Circle Spiral</option>
-                            <option value="SQUARE_RINGS">Square Rings</option>
-                            <option value="HILBERT">Hilbert</option>
-                            <option value="HAMILTONIAN_SNAKE">Hamiltonian Snake</option>
-                        </select>
-                    </div>
-
-                    <div class="ppjs-field">
-                        <div class="ppjs-label">Mode Configs</div>
-                        <div class="ppjs-dropdown" id="ppjs-dropdown">
-                            <button type="button" class="ppjs-dropdown-btn" id="ppjs-dropdown-btn">
-                                <span id="ppjs-dropdown-text">Select mode configs</span>
-                                <span>▾</span>
-                            </button>
-
-                            <div class="ppjs-dropdown-menu" id="ppjs-dropdown-menu">
-                                ${[
-                                    'REVERSE','ROTATE','CHECKERED','SNAKE','ANGLE_CW','ANGLE_CCW',
-                                    'CENTRAL_SORT','DIAMOND_SORT','REVERSE_ROWS',
-                                    'SHUFFLE_ROWS','SHUFFLE_COLUMNS','MIRROR','SORT_BY_COLOR'
-                                ].map(v => `
-                                    <label class="ppjs-dropdown-item">
-                                        <input type="checkbox" value="${v}" />
-                                        <span>${pretty(v)}</span>
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="ppjs-selected-configs" id="ppjs-selected-configs"></div>
-                    </div>
-                    <div class="flag-row">
-                        <label>
-                            <input type="checkbox" id="ppjs-protect">
-                            Protect
-                        </label>
-
-                        <label>
-                            <input type="checkbox" id="ppjs-force">
-                            Force
-                        </label>
-                    </div>
-
-                    <div class="ppjs-actions">
-                        <button class="ppjs-secondary-btn" id="ppjs-preview-btn">Preview</button>
-                        <button class="ppjs-secondary-btn" id="ppjs-select-btn">Select Location</button>
-                        <button class="ppjs-primary-btn" id="ppjs-draw-btn">Draw</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="ppjs-preview-card">
-                <div class="ppjs-preview-header">
-                    <span>Preview</span>
-                    <span class="ppjs-preview-meta" id="ppjs-preview-meta">64 × 64 • Rows</span>
-                </div>
-                <div class="ppjs-preview-box" id="ppjs-preview-box">
-                    <span>No image loaded</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="ppjs-panel" data-panel="active" style="display:none;">
-            <div class="ppjs-card">
-                <div class="ppjs-header">
-                    <h2>Active Draw</h2>
-                    <p>Shows the current thing being drawn.</p>
-                </div>
-
-                <div class="ppjs-stack" id="ppjs-active-content">
-                    <div class="ppjs-field">
-                        <div class="ppjs-label">Status</div>
-                        <div class="ppjs-input" id="ppjs-active-status" style="display:flex;align-items:center;">Idle</div>
-                    </div>
-
-                    <div class="ppjs-row-two">
-                        <div class="ppjs-field">
-                            <div class="ppjs-label">Position</div>
-                            <div class="ppjs-input" id="ppjs-active-position" style="display:flex;align-items:center;">-</div>
-                        </div>
-                        <div class="ppjs-field">
-                            <div class="ppjs-label">Size</div>
-                            <div class="ppjs-input" id="ppjs-active-size" style="display:flex;align-items:center;">-</div>
-                        </div>
-                    </div>
-
-                    <div class="ppjs-field">
-                        <div class="ppjs-label">Mode</div>
-                        <div class="ppjs-input" id="ppjs-active-mode" style="display:flex;align-items:center;">-</div>
-                    </div>
-
-                    <div class="ppjs-field">
-                        <div class="ppjs-label">Configs</div>
-                        <div class="ppjs-selected-configs" id="ppjs-active-configs"></div>
-                    </div>
-
-                    <div class="ppjs-field">
-                        <div class="ppjs-label">Image</div>
-                        <div class="ppjs-file-name" id="ppjs-active-image">No active image</div>
-                    </div>
-                    
-                    <div class="ppjs-actions">
-                        <button class="ppjs-secondary-btn ppjs-pause-btn" id="ppjs-pause-btn">Pause</button>
-                        <button class="ppjs-secondary-btn ppjs-cancel-btn" id="ppjs-cancel-btn">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-`;
+const { styleCSS, wrapHTML } = ipcRenderer.sendSync('ppjs:get-ui-assets-sync');
 
 window.addEventListener('DOMContentLoaded', () => {
     injectOverlay();
@@ -543,30 +20,15 @@ window.addEventListener('beforeunload', () => {
     ]);
 });
 
-ipcRenderer.on('server-message', (_event, data) => {
-    const [key, value] = data;
+const handlers = {
+  sorted: (v: any) => (window as any).__ppjsHandleSortedPreview?.(v),
+  draw_finished: () => (window as any).__ppjsClearActiveDrawUi?.(),
+  close: () => location.reload(),
+} satisfies Record<string, (...args: any[]) => any>;
 
-    switch (key) {
-        case 'sorted': {
-            const handler = (window as any).__ppjsHandleSortedPreview;
-            handler?.(value);
-            break;
-        }
-        case 'draw_finished': {
-            const clear = (window as any).__ppjsClearActiveDrawUi;
-            clear?.();
-            break;
-        }
-        case 'close': {
-            window.location.reload();
-            break;
-        }
-        default: {
-            console.log('<UNIMPLEMENTED>', key, value);
-            break;
-        }
-    }
-});
+ipcRenderer.on('server-message', (_e, [k, v]: [keyof typeof handlers, any]) =>
+  handlers[k]?.(v) ?? console.log('<UNIMPLEMENTED>', k, v)
+);
 
 function injectOverlay() {
     if (document.getElementById('ppjs-root-host')) return;
@@ -598,44 +60,40 @@ function injectOverlay() {
 
 function setupOverlay(root: ShadowRoot) {
 
+    const $ = (id: string) => root.getElementById(id);
+    const $DIV = (...id: string[]) => id.map(k => root.getElementById('ppjs-' + k)) as HTMLDivElement[];
+
     const tabs = Array.from(root.querySelectorAll('.ppjs-tab')) as HTMLButtonElement[];
     const panels = Array.from(root.querySelectorAll('.ppjs-panel[data-panel]')) as HTMLDivElement[];
 
     const imagesTab = root.querySelector('.ppjs-tab[data-tab="images"]') as HTMLButtonElement;
     const activeTabBtn = root.querySelector('.ppjs-tab[data-tab="active"]') as HTMLButtonElement;
 
-    const activeStatus = root.getElementById('ppjs-active-status') as HTMLDivElement;
-    const activePosition = root.getElementById('ppjs-active-position') as HTMLDivElement;
-    const activeSize = root.getElementById('ppjs-active-size') as HTMLDivElement;
-    const activeMode = root.getElementById('ppjs-active-mode') as HTMLDivElement;
-    const activeConfigs = root.getElementById('ppjs-active-configs') as HTMLDivElement;
-    const activeImage = root.getElementById('ppjs-active-image') as HTMLDivElement;
+    const [activeStatus, activePosition, activeSize, activeMode, activeConfigs, activeImage, body, selectedConfigs, dropdown]
+        = $DIV('active-status', 'active-position', 'active-size', 'active-mode', 'active-configs', 'active-image', 'body', 'selected-configs', 'dropdown');
 
-    const imageUpload = root.getElementById('ppjs-image-upload') as HTMLInputElement;
-    const fileName = root.getElementById('ppjs-file-name') as HTMLDivElement;
-    const previewBox = root.getElementById('ppjs-preview-box') as HTMLDivElement;
-    const previewMeta = root.getElementById('ppjs-preview-meta') as HTMLSpanElement;
-    const widthInput = root.getElementById('ppjs-width') as HTMLInputElement;
-    const heightInput = root.getElementById('ppjs-height') as HTMLInputElement;
-    const xInput = root.getElementById('ppjs-x') as HTMLInputElement;
-    const yInput = root.getElementById('ppjs-y') as HTMLInputElement;
-    const modeSelect = root.getElementById('ppjs-mode') as HTMLSelectElement;
-    const dropdown = root.getElementById('ppjs-dropdown') as HTMLDivElement;
-    const dropdownBtn = root.getElementById('ppjs-dropdown-btn') as HTMLButtonElement;
-    const dropdownText = root.getElementById('ppjs-dropdown-text') as HTMLSpanElement;
-    const selectedConfigs = root.getElementById('ppjs-selected-configs') as HTMLDivElement;
-    const previewBtn = root.getElementById('ppjs-preview-btn') as HTMLButtonElement;
-    const selectBtn = root.getElementById('ppjs-select-btn') as HTMLButtonElement;
-    const drawBtn = root.getElementById('ppjs-draw-btn') as HTMLButtonElement;
-    const toggleBtn = root.getElementById('ppjs-toggle') as HTMLButtonElement;
-    const body = root.getElementById('ppjs-body') as HTMLDivElement;
+    const imageUpload = $('ppjs-image-upload') as HTMLInputElement;
+    const fileName = $('ppjs-file-name') as HTMLDivElement;
+    const previewBox = $('ppjs-preview-box') as HTMLDivElement;
+    const previewMeta = $('ppjs-preview-meta') as HTMLSpanElement;
+    const widthInput = $('ppjs-width') as HTMLInputElement;
+    const heightInput = $('ppjs-height') as HTMLInputElement;
+    const xInput = $('ppjs-x') as HTMLInputElement;
+    const yInput = $('ppjs-y') as HTMLInputElement;
+    const modeSelect = $('ppjs-mode') as HTMLSelectElement;
+    const dropdownBtn = $('ppjs-dropdown-btn') as HTMLButtonElement;
+    const dropdownText = $('ppjs-dropdown-text') as HTMLSpanElement;
+    const previewBtn = $('ppjs-preview-btn') as HTMLButtonElement;
+    const selectBtn = $('ppjs-select-btn') as HTMLButtonElement;
+    const drawBtn = $('ppjs-draw-btn') as HTMLButtonElement;
+    const toggleBtn = $('ppjs-toggle') as HTMLButtonElement;
     const configCheckboxes = Array.from(root.querySelectorAll('#ppjs-dropdown-menu input[type="checkbox"]')) as HTMLInputElement[];
     const host = document.getElementById('ppjs-root-host') as HTMLDivElement;
     const titlebar = root.querySelector('.ppjs-titlebar') as HTMLDivElement;
-    const pauseBtn = root.getElementById('ppjs-pause-btn') as HTMLButtonElement;
-    const cancelBtn = root.getElementById('ppjs-cancel-btn') as HTMLButtonElement;
-    const protect = root.getElementById('ppjs-protect') as HTMLInputElement;
-    const force = root.getElementById('ppjs-force') as HTMLInputElement;
+    const pauseBtn = $('ppjs-pause-btn') as HTMLButtonElement;
+    const cancelBtn = $('ppjs-cancel-btn') as HTMLButtonElement;
+    const protect = $('ppjs-protect') as HTMLInputElement;
+    const force = $('ppjs-force') as HTMLInputElement;
 
     let objectUrl = '';
     let selectedFile: File | null = null;
@@ -661,23 +119,14 @@ function setupOverlay(root: ShadowRoot) {
         fileName: string | null;
     } | null = null;
 
-    let previewPixels: Uint8ClampedArray | null = null;
-    let previewBaseCanvas: HTMLCanvasElement | null = null;
     let previewAnimationFrame: number | null = null;
     let previewRequestId = 0;
 
-    function setActiveTab(tabName: string) {
-        activeTab = tabName;
-
-        tabs.forEach(tab => {
-            const isActive = tab.dataset.tab === tabName;
-            tab.classList.toggle('ppjs-active', isActive);
-        });
-
-        panels.forEach(panel => {
-            panel.style.display = panel.dataset.panel === tabName ? '' : 'none';
-        });
-    }
+    const setActiveTab = (t: string) => {
+        activeTab = t;
+        tabs.forEach(b => b.classList.toggle('ppjs-active', b.dataset.tab === t));
+        panels.forEach(p => p.style.display = p.dataset.panel === t ? '' : 'none');
+    };
     function hasActiveDraw() {
         return currentDrawState !== null && currentDrawState.status !== 'Cancelled';
     }
@@ -769,10 +218,8 @@ function setupOverlay(root: ShadowRoot) {
         updateTabLocks();
     }
 
-    function clamp(value: number, min: number, max: number) {
-        return Math.min(Math.max(value, min), max);
-    }
-
+    const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
+    
     pauseBtn.addEventListener('click', () => {
         if (!currentDrawState) return;
 
@@ -961,7 +408,6 @@ function setupOverlay(root: ShadowRoot) {
         ctx.drawImage(originalImage, 0, 0, width, height);
 
         const imageData = ctx.getImageData(0, 0, width, height);
-        previewBaseCanvas = canvas;
         return imageData.data;
     }
 

@@ -485,11 +485,22 @@ export class PixelQueue {
             map[x][y] = qp;
         }
 
-        const minX = Math.min(...pixels.map(p => p.x));
-        const minY = Math.min(...pixels.map(p => p.y));
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
 
-        const width = Math.max(...pixels.map(p => p.x)) - minX + 1;
-        const height = Math.max(...pixels.map(p => p.y)) - minY + 1;
+        for (let i = 0; i < pixels.length; i++) {
+            const { x, y } = pixels[i];
+
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+        }
+
+        const width = maxX - minX + 1;
+        const height = maxY - minY + 1;
 
         const pixelGrid: ImagePixels = [];
         for (const p of pixels) {

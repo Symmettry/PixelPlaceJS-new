@@ -28,7 +28,7 @@ export class SocketHook {
 
     debug(...data: any) {
         if(!this.settings.debugger) return;
-        if(this.settings.lineClears) {
+        if(this.settings.lineClears && !(!process || !process.stdout || !process.stdout.clearLine || !process.stdout.cursorTo)) {
             process.stdout.clearLine(0);
             process.stdout.cursorTo(0);
         }

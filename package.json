@@ -1,6 +1,6 @@
 {
   "name": "pixelplacejs-new",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "PixelPlace JS v2",
   "main": "dist/electron/electron.js",
   "types": "dist/index.d.ts",
@@ -67,6 +67,7 @@
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
+    "copyfiles": "^2.4.1",
     "electron": "^41.3.0",
     "electron-builder": "^26.8.1",
     "tsc": "^2.0.4",

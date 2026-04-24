@@ -217,6 +217,7 @@ export class Bot implements
     }
 
     private wipeLine() {
+        if(!process || !process.stdout || !process.stdout.clearLine || !process.stdout.cursorTo) return;
         process.stdout.clearLine(0);
         process.stdout.cursorTo(0);
     }

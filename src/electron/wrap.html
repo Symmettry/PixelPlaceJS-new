@@ -1,0 +1,214 @@
+<div class="ppjs-window">
+    <div class="ppjs-titlebar">
+        <div class="ppjs-title-left">
+            <div class="ppjs-dot"></div>
+            <span>PixelPlace Bot</span>
+        </div>
+        <button id="ppjs-toggle" class="ppjs-secondary-btn" style="height:32px;padding:0 10px;">Hide</button>
+    </div>
+
+    <div id="ppjs-body">
+        <div class="ppjs-tabs">
+            <button class="ppjs-tab ppjs-active" data-tab="images">Images</button>
+            <button class="ppjs-tab" data-tab="active">Active</button>
+        </div>
+
+        <div class="ppjs-panel" data-panel="images">
+            <div class="ppjs-card">
+                <div class="ppjs-header">
+                    <h2>Image Draw</h2>
+                    <p>Upload an image and configure draw behavior.</p>
+                </div>
+
+                <div class="ppjs-stack">
+                    <div class="ppjs-field">
+                        <div class="ppjs-label">Image</div>
+                        <label for="ppjs-image-upload" class="ppjs-upload-btn">Upload Image</label>
+                        <input id="ppjs-image-upload" type="file" accept="image/*" hidden />
+                        <div class="ppjs-file-name" id="ppjs-file-name">No file selected</div>
+                    </div>
+
+                    <div class="ppjs-row-two">
+                        <div class="ppjs-field">
+                            <label class="ppjs-label" for="ppjs-width">Width</label>
+                            <input id="ppjs-width" class="ppjs-input" type="number" min="1" value="100" />
+                        </div>
+
+                        <div class="ppjs-field">
+                            <label class="ppjs-label" for="ppjs-height">Height</label>
+                            <input id="ppjs-height" class="ppjs-input" type="number" min="1" value="100" />
+                        </div>
+                    </div>
+
+                    <div class="ppjs-row-two">
+                        <div class="ppjs-field">
+                            <label class="ppjs-label" for="ppjs-x">X Position</label>
+                            <input id="ppjs-x" class="ppjs-input" type="number" min="0" max="3000" value="0" />
+                        </div>
+
+                        <div class="ppjs-field">
+                            <label class="ppjs-label" for="ppjs-y">Y Position</label>
+                            <input id="ppjs-y" class="ppjs-input" type="number" min="0" max="3000" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="ppjs-field">
+                        <label class="ppjs-label" for="ppjs-mode">Mode</label>
+                        <select id="ppjs-mode" class="ppjs-select">
+                            <option value="ROWS">Rows</option>
+                            <option value="COLUMNS">Columns</option>
+                            <option value="DIAGONAL_TL">Diagonal TL</option>
+                            <option value="DIAGONAL_TR">Diagonal TR</option>
+                            <option value="RANDOM">Random</option>
+                            <option value="SQUARE_SPIRAL">Square Spiral</option>
+                            <option value="CIRCLE_SPIRAL">Circle Spiral</option>
+                            <option value="SQUARE_RINGS">Square Rings</option>
+                            <option value="HILBERT">Hilbert</option>
+                            <option value="HAMILTONIAN_SNAKE">Hamiltonian Snake</option>
+                        </select>
+                    </div>
+
+                    <div class="ppjs-field">
+                        <div class="ppjs-label">Mode Configs</div>
+                        <div class="ppjs-dropdown" id="ppjs-dropdown">
+                            <button type="button" class="ppjs-dropdown-btn" id="ppjs-dropdown-btn">
+                                <span id="ppjs-dropdown-text">Select mode configs</span>
+                                <span>▾</span>
+                            </button>
+
+                            <div class="ppjs-dropdown-menu" id="ppjs-dropdown-menu">
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="REVERSE" />
+                                    <span>Reverse</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="ROTATE" />
+                                    <span>Rotate</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="CHECKERED" />
+                                    <span>Checkered</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="SNAKE" />
+                                    <span>Snake</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="ANGLE_CW" />
+                                    <span>Angle Cw</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="ANGLE_CCW" />
+                                    <span>Angle Ccw</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="CENTRAL_SORT" />
+                                    <span>Central Sort</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="DIAMOND_SORT" />
+                                    <span>Diamond Sort</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="REVERSE_ROWS" />
+                                    <span>Reverse Rows</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="SHUFFLE_ROWS" />
+                                    <span>Shuffle Rows</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="SHUFFLE_COLUMNS" />
+                                    <span>Shuffle Columns</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="MIRROR" />
+                                    <span>Mirror</span>
+                                </label>
+                                <label class="ppjs-dropdown-item">
+                                    <input type="checkbox" value="SORT_BY_COLOR" />
+                                    <span>Sort By Color</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="ppjs-selected-configs" id="ppjs-selected-configs"></div>
+                    </div>
+                    <div class="flag-row">
+                        <label>
+                            <input type="checkbox" id="ppjs-protect">
+                            Protect
+                        </label>
+
+                        <label>
+                            <input type="checkbox" id="ppjs-force">
+                            Force
+                        </label>
+                    </div>
+
+                    <div class="ppjs-actions">
+                        <button class="ppjs-secondary-btn" id="ppjs-preview-btn">Preview</button>
+                        <button class="ppjs-secondary-btn" id="ppjs-select-btn">Select Location</button>
+                        <button class="ppjs-primary-btn" id="ppjs-draw-btn">Draw</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ppjs-preview-card">
+                <div class="ppjs-preview-header">
+                    <span>Preview</span>
+                    <span class="ppjs-preview-meta" id="ppjs-preview-meta">64 × 64 • Rows</span>
+                </div>
+                <div class="ppjs-preview-box" id="ppjs-preview-box">
+                    <span>No image loaded</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="ppjs-panel" data-panel="active" style="display:none;">
+            <div class="ppjs-card">
+                <div class="ppjs-header">
+                    <h2>Active Draw</h2>
+                    <p>Shows the current thing being drawn.</p>
+                </div>
+
+                <div class="ppjs-stack" id="ppjs-active-content">
+                    <div class="ppjs-field">
+                        <div class="ppjs-label">Status</div>
+                        <div class="ppjs-input" id="ppjs-active-status" style="display:flex;align-items:center;">Idle</div>
+                    </div>
+
+                    <div class="ppjs-row-two">
+                        <div class="ppjs-field">
+                            <div class="ppjs-label">Position</div>
+                            <div class="ppjs-input" id="ppjs-active-position" style="display:flex;align-items:center;">-</div>
+                        </div>
+                        <div class="ppjs-field">
+                            <div class="ppjs-label">Size</div>
+                            <div class="ppjs-input" id="ppjs-active-size" style="display:flex;align-items:center;">-</div>
+                        </div>
+                    </div>
+
+                    <div class="ppjs-field">
+                        <div class="ppjs-label">Mode</div>
+                        <div class="ppjs-input" id="ppjs-active-mode" style="display:flex;align-items:center;">-</div>
+                    </div>
+
+                    <div class="ppjs-field">
+                        <div class="ppjs-label">Configs</div>
+                        <div class="ppjs-selected-configs" id="ppjs-active-configs"></div>
+                    </div>
+
+                    <div class="ppjs-field">
+                        <div class="ppjs-label">Image</div>
+                        <div class="ppjs-file-name" id="ppjs-active-image">No active image</div>
+                    </div>
+                    
+                    <div class="ppjs-actions">
+                        <button class="ppjs-secondary-btn ppjs-pause-btn" id="ppjs-pause-btn">Pause</button>
+                        <button class="ppjs-secondary-btn ppjs-cancel-btn" id="ppjs-cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

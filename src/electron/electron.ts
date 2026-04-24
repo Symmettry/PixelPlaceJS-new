@@ -1,5 +1,7 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+
 import path from 'path';
+import fs from 'fs';
+import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { PixelPlace } from '../PixelPlace';
 import { Bot } from '../bot/Bot';
 import { Packets } from '../util/packets/Packets';
@@ -21,6 +23,22 @@ let isProtecting = false;
 function getMode(type: 'of' | 'toSort', mode: string, modeConfigs: string[]): any {
     return Modes[type](BaseModes[mode as keyof typeof BaseModes], modeConfigs.map((k: string) => ModeConfigs[k as keyof typeof ModeConfigs]));
 }
+
+function readElectronAssetSync(fileName: string) {
+    const directPath = path.join(__dirname, fileName);
+
+    return fs.readFileSync(directPath, 'utf8');
+}
+
+ipcMain.on('ppjs:get-ui-assets-sync', (event) => {
+    const styleCSS = readElectronAssetSync('style.css');
+    const wrapHTML = readElectronAssetSync('wrap.html');
+
+    event.returnValue = {
+        styleCSS,
+        wrapHTML
+    };
+});
 
 ipcMain.on('page-info', async (_event, payload) => {
     const [key, value] = payload;

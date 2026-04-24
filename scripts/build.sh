@@ -2,7 +2,4 @@
 
 echo compiling typescript and declarations
 tsc -d
-echo copying mapdata
-cp src/util/canvas/mapdata.bin dist/util/canvas/mapdata.bin
-echo zipping userscript
-zip -r ./userscript/extension.zip ./userscript/extension
+copyfiles -u 1 "src/**/*.{html,css,bin,zbin}" dist/

@@ -208,7 +208,7 @@ export const startStatPrinter = (
             .map((t) => statResolvers[t](bot, stats))
             .join(` ${delimiter} `);
 
-        if (mode === "stdout") {
+        if (mode === "stdout" && !(!process || !process.stdout || !process.stdout.clearLine || !process.stdout.cursorTo)) {
             process.stdout.clearLine(0);
             process.stdout.cursorTo(0);
             process.stdout.write(line);
